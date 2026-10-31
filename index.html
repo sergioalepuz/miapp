@@ -14,7 +14,7 @@
       color: #111;
       padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
     }
-    .barra { display: flex; align-items: center; gap: 16px; padding: 10px 12px; }
+    .barra { position: relative; display: flex; align-items: center; gap: 16px; padding: 10px 12px; }
     #entrada {
       flex: 1; min-width: 0; font-size: 16px; padding: 10px 12px;
       border: 1px solid #ddd; border-radius: 8px; background: #fff;
@@ -23,6 +23,20 @@
       background: none; border: 0; color: var(--azul);
       font-size: 20px; font-weight: 700; padding: 4px;
     }
+
+    /* Sugerencias al escribir */
+    #sugerencias {
+      display: none; position: absolute; left: 12px; right: 12px; top: calc(100% - 4px);
+      z-index: 5; background: #fff; border: 1px solid #ddd; border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15); max-height: 40vh; overflow-y: auto;
+    }
+    .sugerencia {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding: 12px 14px; font-size: 18px; border-top: 1px solid #eee;
+    }
+    .sugerencia:first-child { border-top: 0; }
+    .sugerencia small { color: #888; font-size: 14px; }
+
     .seccion {
       display: flex; align-items: center; justify-content: center; gap: 6px;
       background: var(--azul); color: #fff; font-size: 17px; padding: 6px;
@@ -61,13 +75,15 @@
     .nueva { display: flex; gap: 8px; align-items: center; padding: 10px 16px 6px; border-top: 1px solid #eee; }
     .nueva input { flex: 1; min-width: 0; font-size: 16px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; }
     .nueva button { width: auto; border: 0; padding: 8px 4px; color: var(--azul); font-weight: 700; font-size: 18px; }
+
+    /* Mensaje: aparece al instante y se desvanece despacio al quitar .visible */
     #aviso {
-      position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom));
-      transform: translateX(-50%); background: #333; color: #fff;
-      padding: 10px 16px; border-radius: 20px; font-size: 15px;
-      opacity: 0; pointer-events: none; transition: opacity .2s;
+      position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 70px);
+      transform: translateX(-50%); z-index: 20; white-space: nowrap;
+      background: #333; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 16px;
+      opacity: 0; pointer-events: none; transition: opacity 1s;
     }
-    #aviso.visible { opacity: 1; }
+    #aviso.visible { opacity: 1; transition: opacity .15s; }
   </style>
 </head>
 <body>
@@ -75,6 +91,7 @@
     <input id="entrada" type="text" placeholder="Añadir alimento" autocomplete="off">
     <button id="ok">Ok</button>
     <button id="menu">···</button>
+    <div id="sugerencias"></div>
   </div>
 
   <div id="lista"></div>
@@ -93,12 +110,20 @@
     const ANCHO_PAPELERA = 80; // debe coincidir con el width de .borrar
 
     const entrada = document.getElementById("entrada");
+    const sugerenciasEl = document.getElementById("sugerencias");
     const lista = document.getElementById("lista");
     const velo = document.getElementById("velo");
     const caja = document.getElementById("caja");
     const avisoEl = document.getElementById("aviso");
 
     const clave = texto => texto.trim().toLowerCase();
+    // Para comparar sin distinguir mayúsculas ni tildes (Limón = limon)
+    const normalizar = texto => texto.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    // Formato de los alimentos: primera letra en mayúscula y el resto en minúscula
+    const formatear = texto => {
+      const t = texto.trim().replace(/\s+/g, " ").toLocaleLowerCase("es");
+      return t.charAt(0).toLocaleUpperCase("es") + t.slice(1);
+    };
     const pedir = req => new Promise((ok, fallo) => {
       req.onsuccess = () => ok(req.result);
       req.onerror = () => fallo(req.error);
@@ -123,20 +148,77 @@
       });
     }
 
+    // Pone en el formato correcto los alimentos que ya estaban guardados
+    async function normalizarNombres() {
+      const alimentos = await pedir(tabla("alimentos").getAll());
+      for (const a of alimentos) {
+        const bueno = formatear(a.nombre);
+        if (a.nombre !== bueno) {
+          a.nombre = bueno;
+          await pedir(tabla("alimentos", "readwrite").put(a));
+        }
+      }
+    }
+
+    let temporizadorAviso;
     function aviso(texto) {
       avisoEl.textContent = texto;
       avisoEl.classList.add("visible");
-      setTimeout(() => avisoEl.classList.remove("visible"), 2000);
+      clearTimeout(temporizadorAviso);
+      temporizadorAviso = setTimeout(() => avisoEl.classList.remove("visible"), 2000);
+    }
+
+    // Sugerencias: alimentos de la base de datos que empiezan por lo que escribes
+    let ultimaBusqueda = 0;
+    async function sugerir() {
+      const id = ++ultimaBusqueda;
+      const texto = normalizar(entrada.value);
+      if (!texto) {
+        sugerenciasEl.style.display = "none";
+        return;
+      }
+      const alimentos = await pedir(tabla("alimentos").getAll());
+      const secciones = await pedir(tabla("secciones").getAll());
+      if (id !== ultimaBusqueda) return; // llegó una búsqueda más reciente
+
+      const nombreSeccion = Object.fromEntries(secciones.map(s => [s.clave, s.nombre]));
+      const coincidencias = alimentos
+        .filter(a => normalizar(a.nombre).startsWith(texto))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+
+      sugerenciasEl.innerHTML = "";
+      if (!coincidencias.length) {
+        sugerenciasEl.style.display = "none";
+        return;
+      }
+      for (const a of coincidencias) {
+        const fila = document.createElement("div");
+        fila.className = "sugerencia";
+        const nombre = document.createElement("span");
+        nombre.textContent = a.nombre;
+        const seccion = document.createElement("small");
+        seccion.textContent = nombreSeccion[a.seccion] || "";
+        fila.append(nombre, seccion);
+        // Todas las sugerencias ya están en la lista: se vacía la casilla y se avisa
+        fila.onclick = () => {
+          entrada.value = "";
+          sugerir();
+          aviso("Ya está en la lista");
+        };
+        sugerenciasEl.appendChild(fila);
+      }
+      sugerenciasEl.style.display = "block";
     }
 
     async function anadir() {
-      const nombre = entrada.value.trim();
+      const nombre = formatear(entrada.value);
       if (!nombre) return;
       try {
         await pedir(tabla("alimentos", "readwrite").add({
           clave: clave(nombre), nombre, seccion: SECCION_POR_DEFECTO, tachado: false
         }));
         entrada.value = "";
+        sugerir();
         await pintar();
       } catch (e) {
         if (e.name === "ConstraintError") aviso("Ya está en la lista");
@@ -305,9 +387,17 @@
     velo.onclick = e => { if (e.target === velo) velo.classList.remove("abierto"); };
     document.getElementById("ok").onclick = anadir;
     entrada.onkeydown = e => { if (e.key === "Enter") anadir(); };
+    entrada.addEventListener("input", sugerir);
+    entrada.addEventListener("focus", sugerir);
+
+    // Al tocar fuera de la barra superior se cierran las sugerencias
+    document.addEventListener("pointerdown", e => {
+      if (!e.target.closest(".barra")) sugerenciasEl.style.display = "none";
+    });
 
     (async () => {
       db = await abrirBD();
+      await normalizarNombres();
       pintar();
     })();
   </script>
