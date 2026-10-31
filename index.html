@@ -3,26 +3,193 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Mi App</title>
+  <title>Mi lista</title>
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-    }
+    :root { --azul: #1b9de2; --fondo: #f6f6f6; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
     body {
-      background: blue;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      font-family: -apple-system, system-ui, "Segoe UI", sans-serif;
+      background: var(--fondo);
+      color: #111;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
     }
-    h1 {
-      color: yellow;
-      font-family: sans-serif;
-      font-size: 3rem;
+    .barra { display: flex; align-items: center; gap: 16px; padding: 10px 12px; }
+    #entrada {
+      flex: 1; min-width: 0; font-size: 16px; padding: 10px 12px;
+      border: 1px solid #ddd; border-radius: 8px; background: #fff;
     }
+    .barra button {
+      background: none; border: 0; color: var(--azul);
+      font-size: 20px; font-weight: 700; padding: 4px;
+    }
+    .seccion {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      background: var(--azul); color: #fff; font-size: 17px; padding: 6px;
+    }
+    .item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; border-bottom: 1px solid #eee;
+      padding: 10px 16px; font-size: 22px; font-weight: 600;
+    }
+    .item button { background: none; border: 0; color: var(--azul); padding: 8px; }
+    .velo {
+      position: fixed; inset: 0; background: rgba(0,0,0,.4);
+      display: none; align-items: center; justify-content: center;
+    }
+    .velo.abierto { display: flex; }
+    .caja {
+      background: #fff; border-radius: 14px; width: min(80%, 320px);
+      max-height: 70%; overflow-y: auto; padding: 8px 0;
+    }
+    .caja h2 { margin: 0; padding: 10px 16px; font-size: 15px; color: #666; font-weight: 600; }
+    .caja button {
+      display: block; width: 100%; text-align: left; background: none;
+      border: 0; border-top: 1px solid #eee; padding: 12px 16px; font-size: 18px;
+    }
+    .caja button.actual { color: var(--azul); font-weight: 700; }
+    #aviso {
+      position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom));
+      transform: translateX(-50%); background: #333; color: #fff;
+      padding: 10px 16px; border-radius: 20px; font-size: 15px;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    #aviso.visible { opacity: 1; }
   </style>
 </head>
 <body>
-  <h1>Hola mundo</h1>
+  <div class="barra">
+    <input id="entrada" type="text" placeholder="Añadir alimento" autocomplete="off">
+    <button id="ok">Ok</button>
+    <button id="menu">···</button>
+  </div>
+
+  <div id="lista"></div>
+
+  <div class="velo" id="velo"><div class="caja" id="caja"></div></div>
+  <div id="aviso"></div>
+
+  <script>
+    const SECCIONES_INICIALES = ["Otros", "Fruta", "Verdura", "Carne", "Pescado", "Lácteos", "Panadería", "Limpieza"];
+    const SECCION_POR_DEFECTO = "otros";
+
+    const ICONO_CAPAS = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 8l11 6 11-6-11-6zm0 14.5L3.6 12 1 13.4l11 6.1 11-6.1-2.6-1.4L12 16.5zm0 4L3.6 16 1 17.4l11 6.1 11-6.1-2.6-1.4L12 20.5z"/></svg>';
+    const ICONO_LAPIZ = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+
+    const entrada = document.getElementById("entrada");
+    const lista = document.getElementById("lista");
+    const velo = document.getElementById("velo");
+    const caja = document.getElementById("caja");
+    const avisoEl = document.getElementById("aviso");
+
+    const clave = texto => texto.trim().toLowerCase();
+    const pedir = req => new Promise((ok, fallo) => {
+      req.onsuccess = () => ok(req.result);
+      req.onerror = () => fallo(req.error);
+    });
+
+    let db;
+    const tabla = (nombre, modo = "readonly") => db.transaction(nombre, modo).objectStore(nombre);
+
+    // Base de datos: tablas "secciones" y "alimentos".
+    // La clave (nombre en minúsculas) hace que no se puedan repetir.
+    function abrirBD() {
+      return new Promise((ok, fallo) => {
+        const req = indexedDB.open("miapp", 1);
+        req.onupgradeneeded = () => {
+          const d = req.result;
+          const secciones = d.createObjectStore("secciones", { keyPath: "clave" });
+          d.createObjectStore("alimentos", { keyPath: "clave" });
+          SECCIONES_INICIALES.forEach(n => secciones.add({ clave: clave(n), nombre: n }));
+        };
+        req.onsuccess = () => ok(req.result);
+        req.onerror = () => fallo(req.error);
+      });
+    }
+
+    function aviso(texto) {
+      avisoEl.textContent = texto;
+      avisoEl.classList.add("visible");
+      setTimeout(() => avisoEl.classList.remove("visible"), 2000);
+    }
+
+    async function anadir() {
+      const nombre = entrada.value.trim();
+      if (!nombre) return;
+      try {
+        await pedir(tabla("alimentos", "readwrite").add({
+          clave: clave(nombre), nombre, seccion: SECCION_POR_DEFECTO
+        }));
+        entrada.value = "";
+        await pintar();
+      } catch (e) {
+        if (e.name === "ConstraintError") aviso("Ya está en la lista");
+        else console.error(e);
+      }
+    }
+
+    async function pintar() {
+      const secciones = await pedir(tabla("secciones").getAll());
+      const alimentos = await pedir(tabla("alimentos").getAll());
+      lista.innerHTML = "";
+      for (const s of secciones) {
+        const items = alimentos
+          .filter(a => a.seccion === s.clave)
+          .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+        if (!items.length) continue;
+
+        const cab = document.createElement("div");
+        cab.className = "seccion";
+        cab.innerHTML = ICONO_CAPAS + "<span></span>";
+        cab.querySelector("span").textContent = s.nombre;
+        lista.appendChild(cab);
+
+        for (const a of items) {
+          const fila = document.createElement("div");
+          fila.className = "item";
+          const nombre = document.createElement("span");
+          nombre.textContent = a.nombre;
+          const lapiz = document.createElement("button");
+          lapiz.innerHTML = ICONO_LAPIZ;
+          lapiz.setAttribute("aria-label", "Cambiar sección");
+          lapiz.onclick = () => abrirSelector(a);
+          fila.append(nombre, lapiz);
+          lista.appendChild(fila);
+        }
+      }
+    }
+
+    async function abrirSelector(alimento) {
+      const secciones = await pedir(tabla("secciones").getAll());
+      caja.innerHTML = "";
+      const titulo = document.createElement("h2");
+      titulo.textContent = "Sección de " + alimento.nombre;
+      caja.appendChild(titulo);
+      for (const s of secciones) {
+        const b = document.createElement("button");
+        b.textContent = s.nombre;
+        if (s.clave === alimento.seccion) b.className = "actual";
+        b.onclick = () => mover(alimento, s.clave);
+        caja.appendChild(b);
+      }
+      velo.classList.add("abierto");
+    }
+
+    async function mover(alimento, seccion) {
+      alimento.seccion = seccion;
+      await pedir(tabla("alimentos", "readwrite").put(alimento));
+      velo.classList.remove("abierto");
+      pintar();
+    }
+
+    velo.onclick = e => { if (e.target === velo) velo.classList.remove("abierto"); };
+    document.getElementById("ok").onclick = anadir;
+    entrada.onkeydown = e => { if (e.key === "Enter") anadir(); };
+
+    (async () => {
+      db = await abrirBD();
+      pintar();
+    })();
+  </script>
 </body>
 </html>
