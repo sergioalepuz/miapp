@@ -48,6 +48,9 @@
       border: 0; border-top: 1px solid #eee; padding: 12px 16px; font-size: 18px;
     }
     .caja button.actual { color: var(--azul); font-weight: 700; }
+    .nueva { display: flex; gap: 8px; align-items: center; padding: 10px 16px 6px; border-top: 1px solid #eee; }
+    .nueva input { flex: 1; min-width: 0; font-size: 16px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; }
+    .nueva button { width: auto; border: 0; padding: 8px 4px; color: var(--azul); font-weight: 700; font-size: 18px; }
     #aviso {
       position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom));
       transform: translateX(-50%); background: #333; color: #fff;
@@ -165,6 +168,7 @@
       const titulo = document.createElement("h2");
       titulo.textContent = "Sección de " + alimento.nombre;
       caja.appendChild(titulo);
+
       for (const s of secciones) {
         const b = document.createElement("button");
         b.textContent = s.nombre;
@@ -172,6 +176,22 @@
         b.onclick = () => mover(alimento, s.clave);
         caja.appendChild(b);
       }
+
+      // Casilla para escribir una sección nueva
+      const nueva = document.createElement("div");
+      nueva.className = "nueva";
+      const campo = document.createElement("input");
+      campo.type = "text";
+      campo.placeholder = "Nueva sección";
+      campo.autocomplete = "off";
+      const guardar = document.createElement("button");
+      guardar.textContent = "Ok";
+      const crear = () => crearSeccion(alimento, campo.value);
+      guardar.onclick = crear;
+      campo.onkeydown = e => { if (e.key === "Enter") crear(); };
+      nueva.append(campo, guardar);
+      caja.appendChild(nueva);
+
       velo.classList.add("abierto");
     }
 
@@ -180,6 +200,18 @@
       await pedir(tabla("alimentos", "readwrite").put(alimento));
       velo.classList.remove("abierto");
       pintar();
+    }
+
+    async function crearSeccion(alimento, texto) {
+      const nombre = texto.trim();
+      if (!nombre) return;
+      try {
+        await pedir(tabla("secciones", "readwrite").add({ clave: clave(nombre), nombre }));
+      } catch (e) {
+        // Si ya existe, no se duplica: se usa la que ya hay
+        if (e.name !== "ConstraintError") { console.error(e); return; }
+      }
+      await mover(alimento, clave(nombre));
     }
 
     velo.onclick = e => { if (e.target === velo) velo.classList.remove("abierto"); };
