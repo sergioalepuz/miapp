@@ -27,12 +27,22 @@
       display: flex; align-items: center; justify-content: center; gap: 6px;
       background: var(--azul); color: #fff; font-size: 17px; padding: 6px;
     }
-    .item {
-      display: flex; align-items: center; justify-content: space-between;
-      background: #fff; border-bottom: 1px solid #eee;
-      padding: 10px 16px; font-size: 22px; font-weight: 600;
+
+    /* Cada fila: la papelera roja queda detrás y el item se desliza por encima */
+    .fila { position: relative; overflow: hidden; border-bottom: 1px solid #eee; }
+    .borrar {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 80px;
+      background: #e53935; color: #fff; border: 0;
+      display: flex; align-items: center; justify-content: center;
     }
+    .item {
+      position: relative; display: flex; align-items: center; justify-content: space-between;
+      background: #fff; padding: 10px 16px; font-size: 30px; font-weight: 600;
+      touch-action: pan-y; user-select: none; -webkit-user-select: none;
+    }
+    .item.tachado span { text-decoration: line-through; color: #999; }
     .item button { background: none; border: 0; color: var(--azul); padding: 8px; }
+
     .velo {
       position: fixed; inset: 0; background: rgba(0,0,0,.4);
       display: none; align-items: center; justify-content: center;
@@ -78,6 +88,9 @@
 
     const ICONO_CAPAS = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 8l11 6 11-6-11-6zm0 14.5L3.6 12 1 13.4l11 6.1 11-6.1-2.6-1.4L12 16.5zm0 4L3.6 16 1 17.4l11 6.1 11-6.1-2.6-1.4L12 20.5z"/></svg>';
     const ICONO_LAPIZ = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+    const ICONO_PAPELERA = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+
+    const ANCHO_PAPELERA = 80; // debe coincidir con el width de .borrar
 
     const entrada = document.getElementById("entrada");
     const lista = document.getElementById("lista");
@@ -121,7 +134,7 @@
       if (!nombre) return;
       try {
         await pedir(tabla("alimentos", "readwrite").add({
-          clave: clave(nombre), nombre, seccion: SECCION_POR_DEFECTO
+          clave: clave(nombre), nombre, seccion: SECCION_POR_DEFECTO, tachado: false
         }));
         entrada.value = "";
         await pintar();
@@ -139,7 +152,7 @@
         const items = alimentos
           .filter(a => a.seccion === s.clave)
           .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-        if (!items.length) continue;
+        if (!items.length) continue; // una sección sin alimentos no se muestra
 
         const cab = document.createElement("div");
         cab.className = "seccion";
@@ -149,17 +162,92 @@
 
         for (const a of items) {
           const fila = document.createElement("div");
-          fila.className = "item";
+          fila.className = "fila";
+
+          const papelera = document.createElement("button");
+          papelera.className = "borrar";
+          papelera.innerHTML = ICONO_PAPELERA;
+          papelera.setAttribute("aria-label", "Borrar");
+          papelera.onclick = () => borrar(a);
+
+          const item = document.createElement("div");
+          item.className = "item" + (a.tachado ? " tachado" : "");
           const nombre = document.createElement("span");
           nombre.textContent = a.nombre;
           const lapiz = document.createElement("button");
           lapiz.innerHTML = ICONO_LAPIZ;
           lapiz.setAttribute("aria-label", "Cambiar sección");
           lapiz.onclick = () => abrirSelector(a);
-          fila.append(nombre, lapiz);
+          item.append(nombre, lapiz);
+
+          fila.append(papelera, item);
           lista.appendChild(fila);
+          activarGestos(item, a);
         }
       }
+    }
+
+    // Pulsar = tachar/destachar. Deslizar a la izquierda = mostrar la papelera.
+    function activarGestos(item, alimento) {
+      let x0 = 0, y0 = 0, dx = 0;
+      let activo = false, arrastrando = false, abierto = false;
+
+      const mover = px => { item.style.transform = "translateX(" + px + "px)"; };
+
+      item.addEventListener("pointerdown", e => {
+        if (e.target.closest("button")) return; // el lápiz va aparte
+        activo = true;
+        arrastrando = false;
+        x0 = e.clientX;
+        y0 = e.clientY;
+        dx = 0;
+        item.style.transition = "none";
+      });
+
+      item.addEventListener("pointermove", e => {
+        if (!activo) return;
+        dx = e.clientX - x0;
+        const dy = e.clientY - y0;
+        if (!arrastrando && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+          arrastrando = true;
+          item.setPointerCapture(e.pointerId);
+        }
+        if (arrastrando) {
+          const base = abierto ? -ANCHO_PAPELERA : 0;
+          mover(Math.max(-ANCHO_PAPELERA, Math.min(0, base + dx)));
+        }
+      });
+
+      const terminar = async e => {
+        if (!activo) return;
+        activo = false;
+        item.style.transition = "transform .2s";
+        if (arrastrando) {
+          const base = abierto ? -ANCHO_PAPELERA : 0;
+          abierto = base + dx < -ANCHO_PAPELERA / 2;
+          mover(abierto ? -ANCHO_PAPELERA : 0);
+        } else if (e.type === "pointerup") {
+          if (abierto) {
+            abierto = false;
+            mover(0);
+          } else {
+            await alternarTachado(alimento);
+          }
+        }
+      };
+      item.addEventListener("pointerup", terminar);
+      item.addEventListener("pointercancel", terminar);
+    }
+
+    async function alternarTachado(alimento) {
+      alimento.tachado = !alimento.tachado;
+      await pedir(tabla("alimentos", "readwrite").put(alimento));
+      pintar();
+    }
+
+    async function borrar(alimento) {
+      await pedir(tabla("alimentos", "readwrite").delete(alimento.clave));
+      pintar();
     }
 
     async function abrirSelector(alimento) {
