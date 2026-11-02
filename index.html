@@ -78,8 +78,8 @@
     .item {
       position: relative; display: flex; align-items: center; justify-content: space-between;
       background: #fff; font-weight: 600;
-      padding: 4px 16px;
-      font-size: 33px;
+      padding: 4px 16px;   /* margen: arriba y abajo / a los lados */
+      font-size: 30px;     /* tamaño de la letra */
       touch-action: pan-y; user-select: none; -webkit-user-select: none;
     }
     .item.tachado span { text-decoration: line-through; color: #999; }
@@ -94,9 +94,16 @@
       position: relative; display: flex; align-items: center; justify-content: center;
       padding: 14px; background: var(--azul); color: #fff; font-size: 18px; font-weight: 600;
     }
-    .cabecera button {
+    #atras {
       position: absolute; left: 0; top: 0; bottom: 0; padding: 0 14px;
       background: none; border: 0; color: #fff; font-size: 17px;
+    }
+    /* Botón + : símbolo azul sobre fondo blanco */
+    #mas {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px;
+      background: #fff; color: var(--azul);
+      display: flex; align-items: center; justify-content: center;
     }
     #contenidoPantalla { flex: 1; overflow-y: auto; }
     .registro {
@@ -126,14 +133,14 @@
       width: 100%; font-size: 16px; padding: 10px;
       border: 1px solid #ddd; border-radius: 8px; background: #fff;
     }
-    .acciones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding: 0 8px 4px; }
+    /* Botones de las ventanas: centrados */
+    .acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 16px; padding: 0 8px 4px; }
     .acciones button {
-      border: 0; background: none; padding: 8px 12px;
+      border: 0; background: none; padding: 8px 10px;
       font-size: 18px; color: var(--azul); font-weight: 600;
     }
     .acciones .guardar { font-weight: 700; }
     .acciones .peligro { color: var(--rojo); font-weight: 700; }
-    .acciones .izquierda { margin-right: auto; }
 
     /* Mensaje: aparece al instante y se desvanece despacio al quitar .visible */
     #aviso {
@@ -155,7 +162,6 @@
       <button id="menuEliminar">Eliminar</button>
       <button id="menuAlimentos">Alimentos</button>
       <button id="menuCategorias">Categorías</button>
-      <button id="menuSalir">Salir</button>
     </div>
   </div>
 
@@ -165,6 +171,9 @@
     <div class="cabecera">
       <button id="atras">‹ Atrás</button>
       <span id="tituloPantalla"></span>
+      <button id="mas" aria-label="Añadir">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
     </div>
     <div id="contenidoPantalla"></div>
   </div>
@@ -676,14 +685,15 @@
       }
     }
 
-    // Ventana para cambiar el nombre y la categoría de un alimento.
+    // Ventana para cambiar el nombre y la categoría de un alimento, o para crear uno nuevo (alimento = null).
     // Si viene de Alimentos (mantenimiento) también permite eliminarlo de la base de datos.
     async function abrirEditor(alimento, mantenimiento) {
+      const nuevo = !alimento;
       const secciones = (await pedir(tabla("secciones").getAll())).sort(porOrden);
       caja.innerHTML = "";
 
       const titulo = document.createElement("h2");
-      titulo.textContent = "Editar alimento";
+      titulo.textContent = nuevo ? "Nuevo alimento" : "Editar alimento";
       caja.appendChild(titulo);
 
       const editor = document.createElement("div");
@@ -693,17 +703,18 @@
       etiquetaNombre.textContent = "Nombre";
       const campo = document.createElement("input");
       campo.type = "text";
-      campo.value = alimento.nombre;
+      campo.value = nuevo ? "" : alimento.nombre;
       campo.autocomplete = "off";
 
       const etiquetaSeccion = document.createElement("label");
       etiquetaSeccion.textContent = "Categoría";
       const desplegable = document.createElement("select");
+      const seccionInicial = nuevo ? SECCION_POR_DEFECTO : alimento.seccion;
       for (const s of secciones) {
         const o = document.createElement("option");
         o.value = s.clave;
         o.textContent = s.nombre;
-        if (s.clave === alimento.seccion) o.selected = true;
+        if (s.clave === seccionInicial) o.selected = true;
         desplegable.appendChild(o);
       }
       const opcionNueva = document.createElement("option");
@@ -719,17 +730,17 @@
       campoNueva.style.display = "none";
       campoNueva.style.marginTop = "8px";
       desplegable.onchange = () => {
-        const nueva = desplegable.value === OPCION_NUEVA;
-        campoNueva.style.display = nueva ? "block" : "none";
-        if (nueva) campoNueva.focus();
+        const otra = desplegable.value === OPCION_NUEVA;
+        campoNueva.style.display = otra ? "block" : "none";
+        if (otra) campoNueva.focus();
       };
 
       const acciones = document.createElement("div");
       acciones.className = "acciones";
 
-      if (mantenimiento) {
+      if (mantenimiento && !nuevo) {
         const eliminar = document.createElement("button");
-        eliminar.className = "peligro izquierda";
+        eliminar.className = "peligro";
         eliminar.textContent = "Eliminar";
         eliminar.onclick = async () => {
           const pregunta = "¿Eliminar «" + alimento.nombre + "» de los alimentos?" +
@@ -764,7 +775,9 @@
           }
           seccion = await asegurarSeccion(campoNueva.value);
         }
-        const guardado = await guardarEdicion(alimento, nombre, seccion);
+        const guardado = nuevo
+          ? await crearAlimento(nombre, seccion)
+          : await guardarEdicion(alimento, nombre, seccion);
         if (!guardado) {
           aviso("Ya existe ese alimento");
           return;
@@ -781,6 +794,17 @@
       editor.append(etiquetaNombre, campo, etiquetaSeccion, desplegable, campoNueva, acciones);
       caja.appendChild(editor);
       velo.classList.add("abierto");
+      if (nuevo) campo.focus();
+    }
+
+    // Añade un alimento nuevo a la base de datos (sin ponerlo en la lista). Devuelve false si ya existe.
+    async function crearAlimento(nombre, seccion) {
+      const existente = await pedir(tabla("alimentos").get(clave(nombre)));
+      if (existente) return false;
+      await pedir(tabla("alimentos", "readwrite").add({
+        clave: clave(nombre), nombre, seccion, tachado: false, enLista: false
+      }));
+      return true;
     }
 
     // Guarda el nombre y la categoría nuevos. Como el nombre es la clave del registro,
@@ -806,16 +830,17 @@
       });
     }
 
-    // Ventana para cambiar el nombre de una categoría o eliminarla
+    // Ventana para cambiar el nombre de una categoría o eliminarla, o para crear una nueva (categoria = null)
     async function abrirEditorCategoria(categoria) {
-      if (categoria.clave === SECCION_POR_DEFECTO) {
+      const nueva = !categoria;
+      if (!nueva && categoria.clave === SECCION_POR_DEFECTO) {
         aviso("La categoría Otros no se puede modificar");
         return;
       }
       caja.innerHTML = "";
 
       const titulo = document.createElement("h2");
-      titulo.textContent = "Editar categoría";
+      titulo.textContent = nueva ? "Nueva categoría" : "Editar categoría";
       caja.appendChild(titulo);
 
       const editor = document.createElement("div");
@@ -824,27 +849,30 @@
       etiqueta.textContent = "Nombre";
       const campo = document.createElement("input");
       campo.type = "text";
-      campo.value = categoria.nombre;
+      campo.value = nueva ? "" : categoria.nombre;
       campo.autocomplete = "off";
 
       const acciones = document.createElement("div");
       acciones.className = "acciones";
 
-      const eliminar = document.createElement("button");
-      eliminar.className = "peligro izquierda";
-      eliminar.textContent = "Eliminar";
-      eliminar.onclick = async () => {
-        const alimentos = await pedir(tabla("alimentos").getAll());
-        const total = alimentos.filter(a => a.seccion === categoria.clave).length;
-        let pregunta = "¿Eliminar la categoría «" + categoria.nombre + "»?";
-        if (total === 1) pregunta += " Su alimento pasará a «Otros».";
-        else if (total > 1) pregunta += " Sus " + total + " alimentos pasarán a «Otros».";
-        if (!(await confirmar(pregunta, "Eliminar"))) return;
-        await eliminarCategoria(categoria.clave);
-        velo.classList.remove("abierto");
-        await pintar();
-        refrescarPantalla();
-      };
+      if (!nueva) {
+        const eliminar = document.createElement("button");
+        eliminar.className = "peligro";
+        eliminar.textContent = "Eliminar";
+        eliminar.onclick = async () => {
+          const alimentos = await pedir(tabla("alimentos").getAll());
+          const total = alimentos.filter(a => a.seccion === categoria.clave).length;
+          let pregunta = "¿Eliminar la categoría «" + categoria.nombre + "»?";
+          if (total === 1) pregunta += " Su alimento pasará a «Otros».";
+          else if (total > 1) pregunta += " Sus " + total + " alimentos pasarán a «Otros».";
+          if (!(await confirmar(pregunta, "Eliminar"))) return;
+          await eliminarCategoria(categoria.clave);
+          velo.classList.remove("abierto");
+          await pintar();
+          refrescarPantalla();
+        };
+        acciones.appendChild(eliminar);
+      }
 
       const cancelar = document.createElement("button");
       cancelar.textContent = "Cancelar";
@@ -859,14 +887,23 @@
           aviso("Escribe un nombre");
           return;
         }
-        if (clave(nombre) === SECCION_POR_DEFECTO) {
-          aviso("Ya existe esa categoría");
-          return;
-        }
-        const guardado = await renombrarCategoria(categoria, nombre);
-        if (!guardado) {
-          aviso("Ya existe esa categoría");
-          return;
+        if (nueva) {
+          const todas = await pedir(tabla("secciones").getAll());
+          if (todas.some(s => s.clave === clave(nombre))) {
+            aviso("Ya existe esa categoría");
+            return;
+          }
+          await asegurarSeccion(nombre); // se añade al final de las demás
+        } else {
+          if (clave(nombre) === SECCION_POR_DEFECTO) {
+            aviso("Ya existe esa categoría");
+            return;
+          }
+          const guardado = await renombrarCategoria(categoria, nombre);
+          if (!guardado) {
+            aviso("Ya existe esa categoría");
+            return;
+          }
         }
         velo.classList.remove("abierto");
         await pintar();
@@ -875,10 +912,11 @@
       guardar.onclick = guardarCambios;
       campo.onkeydown = e => { if (e.key === "Enter") guardarCambios(); };
 
-      acciones.append(eliminar, cancelar, guardar);
+      acciones.append(cancelar, guardar);
       editor.append(etiqueta, campo, acciones);
       caja.appendChild(editor);
       velo.classList.add("abierto");
+      if (nueva) campo.focus();
     }
 
     // Cambia el nombre de una categoría y actualiza todos los alimentos que pertenecían a ella
@@ -933,7 +971,8 @@
         };
       });
     }
-        // ---------- Pantalla siempre encendida ----------
+
+    // ---------- Pantalla siempre encendida ----------
     let bloqueoPantalla = null;
     let pidiendoBloqueo = false;
     async function mantenerPantallaEncendida() {
@@ -956,40 +995,6 @@
     document.addEventListener("pointerdown", mantenerPantallaEncendida);
     mantenerPantallaEncendida();
 
-    // ---------- Salir ----------
-    // Ventana con un solo botón para dar información
-    function informar(mensaje) {
-      return new Promise(resolver => {
-        cajaConfirmar.innerHTML = "";
-        const texto = document.createElement("p");
-        texto.className = "mensaje";
-        texto.textContent = mensaje;
-
-        const acciones = document.createElement("div");
-        acciones.className = "acciones";
-        const entendido = document.createElement("button");
-        entendido.className = "guardar";
-        entendido.textContent = "Entendido";
-
-        const cerrar = () => {
-          veloConfirmar.classList.remove("abierto");
-          resolver();
-        };
-        entendido.onclick = cerrar;
-        veloConfirmar.onclick = e => { if (e.target === veloConfirmar) cerrar(); };
-
-        acciones.appendChild(entendido);
-        cajaConfirmar.append(texto, acciones);
-        veloConfirmar.classList.add("abierto");
-      });
-    }
-
-    function salir() {
-      window.close(); // solo funciona en algunos navegadores de ordenador
-      setTimeout(() => {
-        informar("El iPhone no permite que una app se cierre sola. Para cerrarla, desliza hacia arriba desde el borde inferior de la pantalla, haz una pausa en el centro y desliza la app hacia arriba (si tu iPhone tiene botón de inicio, púlsalo dos veces).");
-      }, 300);
-    }
     // ---------- Eventos ----------
     velo.onclick = e => { if (e.target === velo) velo.classList.remove("abierto"); };
     document.getElementById("ok").onclick = anadir;
@@ -1015,11 +1020,13 @@
       menuPanel.style.display = "none";
       mostrarCategorias();
     };
-    document.getElementById("menuSalir").onclick = () => {
-      menuPanel.style.display = "none";
-      salir();
-    };
     document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
+
+    // Botón + de las pantallas de mantenimiento: añade un alimento o una categoría nueva
+    document.getElementById("mas").onclick = () => {
+      if (pantallaActual === "alimentos") abrirEditor(null, true);
+      else abrirEditorCategoria(null);
+    };
 
     // Al tocar fuera se cierran las sugerencias y el menú
     document.addEventListener("pointerdown", e => {
