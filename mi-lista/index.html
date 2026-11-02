@@ -41,20 +41,6 @@
       text-align: center;
       flex: 1;
     }
-    .btn-hdr {
-      background: #fff;
-      border: 0;
-      color: var(--azul);
-      font-size: 18px;
-      font-weight: 700;
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
 
     /* Contenedor principal */
     .contenido {
@@ -171,20 +157,11 @@
 
     function abrirBD() {
       return new Promise((ok, fallo) => {
-        const req = indexedDB.open("menu_comidas_db", 2);
+        const req = indexedDB.open("mi_lista_db", 1);
         req.onupgradeneeded = () => {
           const d = req.result;
           if (!d.objectStoreNames.contains("alimentos")) {
             d.createObjectStore("alimentos", { keyPath: "nombre" });
-          }
-          if (!d.objectStoreNames.contains("platos")) {
-            d.createObjectStore("platos", { keyPath: "nombre" });
-          }
-          if (!d.objectStoreNames.contains("menu")) {
-            d.createObjectStore("menu", { keyPath: "id" });
-          }
-          if (!d.objectStoreNames.contains("ingredientes_base")) {
-            d.createObjectStore("ingredientes_base", { keyPath: "nombre" });
           }
         };
         req.onsuccess = () => ok(req.result);
@@ -240,12 +217,10 @@
       if (!nombreBruto) return;
 
       const nombre = nombreBruto.charAt(0).toUpperCase() + nombreBruto.slice(1).toLowerCase();
-      // Categoría por defecto "Otros" o asignación automática básica
       const categoria = "Otros";
 
-      const tx = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
+      const tx = db.transaction("alimentos", "readwrite");
       tx.objectStore("alimentos").put({ nombre, categoria });
-      tx.objectStore("ingredientes_base").put({ nombre });
 
       tx.oncomplete = () => {
         input.value = "";
@@ -263,10 +238,9 @@
       const nuevoNombre = prompt("Editar nombre del producto:", nombre);
       if (nuevoNombre && nuevoNombre.trim() !== "") {
         const nombreLimpio = nuevoNombre.trim();
-        const tx = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
+        const tx = db.transaction("alimentos", "readwrite");
         tx.objectStore("alimentos").delete(nombre);
         tx.objectStore("alimentos").put({ nombre: nombreLimpio, categoria: "Otros" });
-        tx.objectStore("ingredientes_base").put({ nombre: nombreLimpio });
         tx.oncomplete = () => cargarLista();
       }
     }
@@ -284,7 +258,7 @@
       if (!elementoActual) return;
       let currentX = e.touches[0].clientX;
       let diff = currentX - touchStartX;
-      if (diff < -150) diff = -150; // Lope de desplazamiento para mostrar botones
+      if (diff < -150) diff = -150;
       if (diff > 0) diff = 0;
       elementoActual.style.transform = `translateX(${diff}px)`;
     }
