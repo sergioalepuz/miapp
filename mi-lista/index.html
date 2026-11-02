@@ -18,7 +18,6 @@
     }
     * { box-sizing: border-box; }
     
-    /* El HTML tiene fondo azul para cubrir la status bar de iOS desde arriba del todo */
     html {
       background-color: var(--azul);
       margin: 0;
@@ -35,11 +34,9 @@
       flex-direction: column;
     }
 
-    /* Vistas SPA */
     .vista { display: none; flex-direction: column; flex: 1; }
     .vista.activa { display: flex; }
 
-    /* Barra superior azul Mi Lista (Cubre la status bar) */
     .barra-lista {
       position: relative;
       display: flex;
@@ -57,28 +54,13 @@
       border: 1px solid #ddd; border-radius: 10px; background: #fff; outline: none;
     }
     .btn-blanco {
-      background: #fff;
-      border: 0;
-      color: var(--azul);
-      font-size: 17px;
-      font-weight: 700;
-      height: 40px;
-      padding: 0 14px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
+      background: #fff; border: 0; color: var(--azul);
+      font-size: 17px; font-weight: 700; height: 40px; padding: 0 14px;
+      border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
     .btn-blanco:active { opacity: 0.85; }
-    .btn-puntos {
-      width: 44px;
-      padding: 0;
-      font-size: 22px;
-      line-height: 1;
-    }
+    .btn-puntos { width: 44px; padding: 0; font-size: 22px; line-height: 1; }
 
-    /* Barra superior azul Menú Semanal */
     .barra-comidas {
       position: relative;
       display: flex;
@@ -91,49 +73,22 @@
       padding-right: 12px;
       color: #fff;
     }
-    .titulo-fecha {
-      font-size: 17px;
-      font-weight: 700;
-      text-align: center;
-      flex: 1;
-    }
+    .titulo-fecha { font-size: 17px; font-weight: 700; text-align: center; flex: 1; }
     .cont-derecha { display: flex; gap: 8px; }
 
-    /* Menú flotante estilo tarjeta iOS (amplio y limpio) */
     .menu-panel-ios {
-      display: none;
-      position: absolute;
-      right: 12px;
-      top: calc(100% + 4px);
-      z-index: 100;
-      width: 190px;
-      background: #fdfdfd;
-      border-radius: 16px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.18);
-      overflow: hidden;
-      border: 1px solid #e5e5e5;
+      display: none; position: absolute; right: 12px; top: calc(100% + 4px);
+      z-index: 100; width: 190px; background: #fdfdfd; border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.18); overflow: hidden; border: 1px solid #e5e5e5;
     }
     .menu-panel-ios button {
-      display: block;
-      width: 100%;
-      text-align: left;
-      background: none;
-      border: 0;
-      border-top: 1px solid #f0f0f0;
-      padding: 14px 18px;
-      font-size: 17px;
-      font-weight: 500;
-      color: #111;
-      cursor: pointer;
+      display: block; width: 100%; text-align: left; background: none; border: 0;
+      border-top: 1px solid #f0f0f0; padding: 14px 18px; font-size: 17px; font-weight: 500; color: #111; cursor: pointer;
     }
     .menu-panel-ios button:first-child { border-top: 0; }
-    .menu-panel-ios button.destacado {
-      background-color: #efefef;
-      font-weight: 700;
-    }
+    .menu-panel-ios button.destacado { background-color: #efefef; font-weight: 700; }
     .menu-panel-ios button:active { background-color: #e5e5e5; }
 
-    /* Sugerencias de búsqueda en la lista */
     #sugerencias {
       display: none; position: absolute; left: 12px; right: 12px; top: calc(100% - 4px);
       z-index: 5; background: #fff; border: 1px solid #ddd; border-radius: 10px;
@@ -146,13 +101,9 @@
     .sugerencia:first-child { border-top: 0; }
     .sugerencia small { color: #888; font-size: 14px; }
 
-    /* Elementos de Mi Lista */
     #lista { flex: 1; background: var(--fondo); }
     .grupo { position: relative; }
-    .grupo.arrastrando {
-      z-index: 10; background: var(--fondo);
-      box-shadow: 0 6px 18px rgba(0,0,0,.3);
-    }
+    .grupo.arrastrando { z-index: 10; background: var(--fondo); box-shadow: 0 6px 18px rgba(0,0,0,.3); }
     .seccion {
       position: relative; display: flex; align-items: center; justify-content: center;
       background: var(--azul); color: #fff; font-size: 17px; padding: 6px 56px;
@@ -160,109 +111,54 @@
     }
     .asa {
       position: absolute; right: 0; top: 0; bottom: 0; width: 56px;
-      display: flex; align-items: center; justify-content: center;
-      touch-action: none; cursor: grab;
+      display: flex; align-items: center; justify-content: center; touch-action: none; cursor: grab;
     }
-    .fila { position: relative; overflow: hidden; border-bottom: 1px solid #eee; }
-    .borrar, .editar {
-      position: absolute; top: 0; padding: 0; color: #fff; border: 0;
-      display: flex; align-items: center; justify-content: center;
+    .fila { position: relative; overflow: hidden; border-bottom: 1px solid #eee; background: #fff; }
+    .borrar {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 80px; background: var(--rojo);
+      color: #fff; border: 0; display: flex; align-items: center; justify-content: center;
     }
-    .borrar { right: 0; bottom: 0; width: 80px; background: var(--rojo); }
-    .editar { left: 0; height: 100%; width: auto; aspect-ratio: 1 / 1; background: var(--azul); }
+    .editar {
+      position: absolute; left: 0; top: 0; bottom: 0; width: auto; aspect-ratio: 1 / 1;
+      background: var(--azul); color: #fff; border: 0; display: flex; align-items: center; justify-content: center;
+    }
     .item {
       position: relative; display: flex; align-items: center; justify-content: space-between;
-      background: #fff; font-weight: 600;
-      padding: 8px 16px; font-size: 26px;
+      background: #fff; font-weight: 600; padding: 8px 16px; font-size: 26px;
       touch-action: pan-y; user-select: none; -webkit-user-select: none;
     }
     .item.tachado span { text-decoration: line-through; color: #999; }
 
-    /* Rejilla Semanal Comidas */
-    .tabla-semana {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 10px 14px;
-      overflow-y: auto;
-      background: #fff;
+    .registro {
+      position: relative; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      background: #fff; font-size: 20px; font-weight: 600; padding: 14px 16px;
+      touch-action: pan-y; user-select: none; -webkit-user-select: none;
     }
-    .fila-iconos {
-      display: grid;
-      grid-template-columns: 70px 1fr 1fr 1fr;
-      align-items: center;
-      padding-bottom: 8px;
-    }
-    .icono-toma {
-      text-align: center;
-      color: #555;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+    .registro small { color: #888; font-size: 14px; font-weight: 400; text-align: right; }
+    .vacio { padding: 24px 16px; color: #888; text-align: center; }
+
+    .tabla-semana { flex: 1; display: flex; flex-direction: column; padding: 10px 14px; overflow-y: auto; background: #fff; }
+    .fila-iconos { display: grid; grid-template-columns: 70px 1fr 1fr 1fr; align-items: center; padding-bottom: 8px; }
+    .icono-toma { text-align: center; color: #555; display: flex; justify-content: center; align-items: center; }
     .icono-toma svg { width: 22px; height: 22px; stroke: #444; }
     
     .fila-dia {
-      display: grid;
-      grid-template-columns: 70px 1fr 1fr 1fr;
-      align-items: center;
-      border-top: 1px solid #a8d5e5;
-      padding: 8px 0;
-      border-radius: 6px;
-      min-height: 65px;
+      display: grid; grid-template-columns: 70px 1fr 1fr 1fr; align-items: center;
+      border-top: 1px solid #a8d5e5; padding: 8px 0; border-radius: 6px; min-height: 65px;
     }
     .fila-dia.hoy { background-color: var(--gris-hoy); }
-    .col-dia {
-      text-align: center;
-      line-height: 1.2;
-      font-weight: 500;
-      color: #455a64;
-    }
+    .col-dia { text-align: center; line-height: 1.2; font-weight: 500; color: #455a64; }
     .col-dia .nombre-dia { font-size: 15px; }
     .col-dia .num-dia { font-size: 15px; }
 
-    .celda-contenido {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2px 4px;
-      gap: 4px;
-      width: 100%;
-    }
-    .lista-platos-celda {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      width: 100%;
-      align-items: center;
-    }
+    .celda-contenido { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px 4px; gap: 4px; width: 100%; }
+    .lista-platos-celda { display: flex; flex-direction: column; gap: 4px; width: 100%; align-items: center; }
     .plato-item-badge {
-      background: #fff;
-      border: 1px solid #b2dfdb;
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #2c3e50;
-      text-align: center;
-      width: 95%;
-      word-break: break-word;
-      line-height: 1.2;
-      cursor: pointer;
+      background: #fff; border: 1px solid #b2dfdb; border-radius: 6px; padding: 4px 8px;
+      font-size: 14px; font-weight: 600; color: #2c3e50; text-align: center; width: 95%; word-break: break-word; line-height: 1.2; cursor: pointer;
     }
-    .btn-mas {
-      background: none;
-      border: 0;
-      color: #1b9de2;
-      font-size: 22px;
-      font-weight: bold;
-      cursor: pointer;
-      padding: 0 8px;
-      line-height: 1;
-    }
+    .btn-mas { background: none; border: 0; color: #1b9de2; font-size: 22px; font-weight: bold; cursor: pointer; padding: 0 8px; line-height: 1; }
 
-    /* Modales y Paneles Secundarios */
     #pantalla {
       display: none; position: fixed; inset: 0; z-index: 25; background: var(--fondo);
       flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
@@ -274,8 +170,7 @@
     }
     #atras {
       position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-      height: 34px; padding: 0 12px; border: 0; border-radius: 8px;
-      background: #fff; color: var(--azul); font-size: 15px; font-weight: 600;
+      height: 34px; padding: 0 12px; border: 0; border-radius: 8px; background: #fff; color: var(--azul); font-size: 15px; font-weight: 600;
     }
     #mas {
       position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
@@ -283,42 +178,15 @@
       background: #fff; color: var(--azul); display: flex; align-items: center; justify-content: center;
     }
     #contenidoPantalla { flex: 1; overflow-y: auto; }
-    .registro {
-      display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      background: #fff; font-size: 20px; font-weight: 600;
-      padding: 8px 16px; min-height: 54px;
-      touch-action: pan-y; user-select: none; -webkit-user-select: none;
-    }
-    .registro small { color: #888; font-size: 14px; font-weight: 400; text-align: right; }
-    .vacio { padding: 24px 16px; color: #888; text-align: center; }
 
-    /* Modal Comidas */
     .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #fff;
-      z-index: 200;
-      flex-direction: column;
-      padding-top: env(safe-area-inset-top);
-      padding-bottom: env(safe-area-inset-bottom);
+      display: none; position: fixed; inset: 0; background: #fff; z-index: 200;
+      flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
     }
     .modal.abierto { display: flex; }
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-      border-bottom: 1px solid #eee;
-    }
-    .btn-texto-verde {
-      background: none; border: 0; color: var(--verde-apple);
-      font-size: 17px; font-weight: 600; cursor: pointer;
-    }
-    .buscador-box {
-      display: flex; align-items: center; padding: 12px 16px;
-      border-bottom: 1px solid #eee; gap: 10px;
-    }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #eee; }
+    .btn-texto-verde { background: none; border: 0; color: var(--verde-apple); font-size: 17px; font-weight: 600; cursor: pointer; }
+    .buscador-box { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; gap: 10px; }
     .buscador-box svg { width: 20px; height: 20px; stroke: #666; }
     .buscador-input { flex: 1; border: 0; font-size: 17px; outline: none; background: transparent; }
     .lista-platos { flex: 1; overflow-y: auto; }
@@ -352,7 +220,6 @@
     }
     .sugerencias-ingredientes div { padding: 10px 14px; font-size: 16px; border-bottom: 1px solid #eee; }
 
-    /* Velos emergentes */
     .velo {
       position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.4);
       display: none; align-items: center; justify-content: center;
@@ -871,7 +738,7 @@
       await escribir("secciones", nuevas);
     }
 
-    function activarGestos(item, alimento, editar) {
+    function activarGestos(item, objetoDatos, editar) {
       let x0 = 0, y0 = 0, dx = 0;
       let activo = false, arrastrando = false;
       let reposo = 0;
@@ -913,7 +780,7 @@
           if (reposo !== 0) {
             reposo = 0; mover(0);
           } else if (editar) {
-            await alternarTachado(alimento);
+            await alternarTachado(objetoDatos);
           }
         }
       };
@@ -938,6 +805,22 @@
       const pregunta = "¿Eliminar «" + alimento.nombre + "» de los alimentos?" + (enLista(alimento) ? " También se quitará de la lista." : "");
       if (!(await confirmar(pregunta, "Eliminar"))) return;
       await pedir(tabla("alimentos", "readwrite").delete(alimento.clave));
+      await pintar();
+      refrescarPantalla();
+    }
+
+    async function eliminarCategoriaTotal(categoria) {
+      if (categoria.clave === SECCION_POR_DEFECTO) {
+        aviso("La categoría Otros no se puede eliminar");
+        return;
+      }
+      const alimentos = await pedir(tabla("alimentos").getAll());
+      const total = alimentos.filter(a => a.seccion === categoria.clave).length;
+      let pregunta = "¿Eliminar la categoría «" + categoria.nombre + "»?";
+      if (total === 1) pregunta += " Su alimento pasará a «Otros».";
+      else if (total > 1) pregunta += " Sus " + total + " alimentos pasarán a «Otros».";
+      if (!(await confirmar(pregunta, "Eliminar"))) return;
+      await eliminarCategoria(categoria.clave);
       await pintar();
       refrescarPantalla();
     }
@@ -1019,7 +902,7 @@
         contenidoPantalla.appendChild(fila);
 
         activarGestos(registro, a, null);
-        registro.onclick = (e) => {
+        registro.onclick = () => {
           if (registro.style.transform && registro.style.transform !== "translateX(0px)") {
             registro.cerrarFila();
           } else {
@@ -1035,16 +918,36 @@
       const alimentos = await pedir(tabla("alimentos").getAll());
       contenidoPantalla.innerHTML = "";
       for (const s of secciones) {
-        const total = alimentos.filter(a => a.seccion === s.clave).length;
         const fila = document.createElement("div");
-        fila.className = "registro";
+        fila.className = "fila";
+
+        const papelera = document.createElement("button");
+        papelera.className = "borrar";
+        papelera.innerHTML = ICONO_PAPELERA;
+        papelera.setAttribute("aria-label", "Eliminar categoría");
+        papelera.onclick = () => eliminarCategoriaTotal(s);
+
+        const registro = document.createElement("div");
+        registro.className = "registro";
+
+        const total = alimentos.filter(a => a.seccion === s.clave).length;
         const nombre = document.createElement("span");
         nombre.textContent = s.nombre;
         const cuantos = document.createElement("small");
         cuantos.textContent = total === 1 ? "1 alimento" : total + " alimentos";
-        fila.append(nombre, cuantos);
-        fila.onclick = () => abrirEditorCategoria(s);
+        registro.append(nombre, cuantos);
+
+        fila.append(papelera, registro);
         contenidoPantalla.appendChild(fila);
+
+        activarGestos(registro, s, null);
+        registro.onclick = () => {
+          if (registro.style.transform && registro.style.transform !== "translateX(0px)") {
+            registro.cerrarFila();
+          } else {
+            abrirEditorCategoria(s);
+          }
+        };
       }
     }
 
@@ -1177,16 +1080,8 @@
         const eliminar = document.createElement("button");
         eliminar.className = "peligro"; eliminar.textContent = "Eliminar";
         eliminar.onclick = async () => {
-          const alimentos = await pedir(tabla("alimentos").getAll());
-          const total = alimentos.filter(a => a.seccion === categoria.clave).length;
-          let pregunta = "¿Eliminar la categoría «" + categoria.nombre + "»?";
-          if (total === 1) pregunta += " Su alimento pasará a «Otros».";
-          else if (total > 1) pregunta += " Sus " + total + " alimentos pasarán a «Otros».";
-          if (!(await confirmar(pregunta, "Eliminar"))) return;
-          await eliminarCategoria(categoria.clave);
+          await eliminarCategoriaTotal(categoria);
           velo.classList.remove("abierto");
-          await pintar();
-          refrescarPantalla();
         };
         acciones.appendChild(eliminar);
       }
