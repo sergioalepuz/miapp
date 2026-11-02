@@ -127,7 +127,6 @@
     .col-dia .nombre-dia { font-size: 15px; }
     .col-dia .num-dia { font-size: 15px; }
 
-    /* Estilo de la celda de contenido con platos e insignia con borde */
     .celda-contenido {
       display: flex;
       flex-direction: column;
@@ -156,7 +155,10 @@
       width: 95%;
       word-break: break-word;
       line-height: 1.2;
+      cursor: pointer;
     }
+    .plato-item-badge:active { background: #f0f0f0; }
+
     .btn-mas {
       background: none;
       border: 0;
@@ -168,7 +170,7 @@
       line-height: 1;
     }
 
-    /* Modal de selección */
+    /* Modal general de selección */
     .modal {
       display: none;
       position: fixed;
@@ -224,14 +226,14 @@
     .item-plato:active { background: #f0f0f0; }
     .item-plato.seleccionado { background: #e3f2fd; color: #1b9de2; font-weight: bold; }
 
-    /* Estado deshabilitado en gris para la cabecera */
+    /* Estado deshabilitado en gris */
     .deshabilitado-gris {
       opacity: 0.35;
       pointer-events: none;
       background-color: #f9f9f9;
     }
 
-    /* Panel de creación de nuevo plato */
+    /* Panel de creación/edición de plato */
     .panel-nuevo-plato {
       display: none;
       background: #fff;
@@ -315,6 +317,55 @@
     .sugerencias-ingredientes div:hover {
       background: #f5f5f5;
     }
+
+    /* --- Menú Flotante Estilo iOS (Action Sheet) --- */
+    .overlay-menu {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .overlay-menu.abierto { display: flex; }
+    .menu-flotante-ios {
+      background: #fdfdfd;
+      width: 100%;
+      max-width: 340px;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      overflow: hidden;
+      animation: escalaModal 0.2s ease;
+    }
+    @keyframes escalaModal {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .menu-flotante-titulo {
+      padding: 22px 20px;
+      font-size: 22px;
+      font-weight: 500;
+      color: #111;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .menu-flotante-opcion {
+      width: 100%;
+      background: none;
+      border: 0;
+      padding: 18px 20px;
+      text-align: left;
+      font-size: 18px;
+      color: #007aff;
+      cursor: pointer;
+    }
+    .menu-flotante-opcion:active { background: #f0f0f0; }
+    .menu-flotante-opcion.quitar {
+      color: #ff3b30;
+      border-top: 1px solid #f0f0f0;
+    }
   </style>
 </head>
 <body>
@@ -351,7 +402,6 @@
 
   <!-- MODAL SELECCIONAR / BUSCAR PLATO -->
   <div class="modal" id="modalSeleccion">
-    
     <div id="zonaSuperiorModal">
       <div class="modal-header">
         <button class="btn-texto-verde" id="btnCancelarSel">Cancelar</button>
@@ -364,11 +414,11 @@
       </div>
     </div>
 
-    <!-- Panel para crear plato nuevo -->
+    <!-- Panel para crear / editar plato -->
     <div class="panel-nuevo-plato" id="panelNuevoPlato">
       <div class="modal-header" style="padding: 0 0 12px 0; border: none;">
         <button class="btn-texto-verde" id="btnCancelarNuevo">Cancelar</button>
-        <span style="font-weight: 600; font-size: 16px;">Nuevo plato</span>
+        <span style="font-weight: 600; font-size: 16px;" id="tituloPanelNuevo">Nuevo plato</span>
         <button class="btn-texto-verde" id="btnAceptarNuevo">Aceptar</button>
       </div>
       
@@ -395,6 +445,15 @@
     <div class="lista-platos" id="listaPlatos"></div>
   </div>
 
+  <!-- MENÚ FLOTANTE AL PULSAR SOBRE UN PLATO ASIGNADO -->
+  <div class="overlay-menu" id="overlayMenuPlato">
+    <div class="menu-flotante-ios">
+      <div class="menu-flotante-titulo" id="menuPlatoTitulo">Nombre plato</div>
+      <button class="menu-flotante-opcion" id="btnMenuEditar">Editar plato</button>
+      <button class="menu-flotante-opcion quitar" id="btnMenuQuitar">Quitar</button>
+    </div>
+  </div>
+
   <script>
     const DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
     const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -404,6 +463,9 @@
     let slotActivo = null;
     let platoSeleccionado = null;
     let listaIngredientesNuevos = [];
+    
+    // Control del menú contextual de plato asignado
+    let platoActivoCtx = null; // { fechaStr, toma, nombrePlato }
 
     function abrirBD() {
       return new Promise((ok, fallo) => {
@@ -464,7 +526,6 @@
         const fechaStr = formatearFechaStr(d);
         const esHoy = d.getTime() === hoy.getTime();
 
-        // Ahora permitimos múltiples platos guardados en formato de array por slot
         const desayunoArr = (await pedir(store.get(`${fechaStr}_desayuno`)))?.platos || [];
         const comidaArr = (await pedir(store.get(`${fechaStr}_comida`)))?.platos || [];
         const cenaArr = (await pedir(store.get(`${fechaStr}_cena`)))?.platos || [];
@@ -478,15 +539,15 @@
             <div class="num-dia">${d.getDate()}</div>
           </div>
           <div class="celda-contenido">
-            <div class="lista-platos-celda">${generarHtmlPlatos(desayunoArr)}</div>
+            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'desayuno', desayunoArr)}</div>
             <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'desayuno')">+</button>
           </div>
           <div class="celda-contenido">
-            <div class="lista-platos-celda">${generarHtmlPlatos(comidaArr)}</div>
+            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'comida', comidaArr)}</div>
             <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'comida')">+</button>
           </div>
           <div class="celda-contenido">
-            <div class="lista-platos-celda">${generarHtmlPlatos(cenaArr)}</div>
+            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'cena', cenaArr)}</div>
             <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'cena')">+</button>
           </div>
         `;
@@ -494,10 +555,76 @@
       }
     }
 
-    function generarHtmlPlatos(arrayPlatos) {
+    function generarHtmlPlatos(fechaStr, toma, arrayPlatos) {
       if (!arrayPlatos || arrayPlatos.length === 0) return "";
-      return arrayPlatos.map(plato => `<div class="plato-item-badge">${plato}</div>`).join("");
+      return arrayPlatos.map(plato => `
+        <div class="plato-item-badge" onclick="abrirMenuPlato('${fechaStr}', '${toma}', '${escapeHtml(plato)}')">${plato}</div>
+      `).join("");
     }
+
+    function escapeHtml(text) {
+      return text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    // --- Menú Contextual al pulsar plato de la rejilla ---
+    function abrirMenuPlato(fechaStr, toma, nombrePlato) {
+      platoActivoCtx = { fechaStr, toma, nombrePlato };
+      document.getElementById("menuPlatoTitulo").textContent = nombrePlato;
+      document.getElementById("overlayMenuPlato").classList.add("abierto");
+    }
+
+    document.getElementById("overlayMenuPlato").onclick = (e) => {
+      if (e.target === document.getElementById("overlayMenuPlato")) {
+        document.getElementById("overlayMenuPlato").classList.remove("abierto");
+      }
+    };
+
+    // Botón Quitar plato de la semana
+    document.getElementById("btnMenuQuitar").onclick = async () => {
+      if (!platoActivoCtx) return;
+      const { fechaStr, toma, nombrePlato } = platoActivoCtx;
+      const keyId = `${fechaStr}_${toma}`;
+
+      const tx = db.transaction("menu", "readwrite");
+      const store = tx.objectStore("menu");
+      const actualObj = await pedir(store.get(keyId));
+
+      if (actualObj && actualObj.platos) {
+        actualObj.platos = actualObj.platos.filter(p => p !== nombrePlato);
+        store.put({ id: keyId, platos: actualObj.platos });
+      }
+
+      tx.oncomplete = () => {
+        document.getElementById("overlayMenuPlato").classList.remove("abierto");
+        renderizarSemana();
+      };
+    };
+
+    // Botón Editar plato (abre modal de edición de receta)
+    document.getElementById("btnMenuEditar").onclick = async () => {
+      if (!platoActivoCtx) return;
+      const nombrePlato = platoActivoCtx.nombrePlato;
+      document.getElementById("overlayMenuPlato").classList.remove("abierto");
+
+      // Buscar ingredientes actuales del plato en la BD
+      const tx = db.transaction("platos", "readonly");
+      const platoData = await pedir(tx.objectStore("platos").get(nombrePlato));
+      
+      const ingredientesActuales = platoData?.ingredientes || [];
+
+      // Configurar modal en modo edición
+      document.getElementById("tituloPanelNuevo").textContent = "Editar plato";
+      document.getElementById("inputNuevoNombre").value = nombrePlato;
+      document.getElementById("inputNuevoIngrediente").value = "";
+      listaIngredientesNuevos = [...ingredientesActuales];
+      renderizarChipsIngredientes();
+
+      document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
+      document.getElementById("panelNuevoPlato").classList.add("abierto");
+      document.getElementById("listaPlatos").style.display = "none";
+      document.getElementById("modalSeleccion").classList.add("abierto");
+    };
+
 
     // Modal Selección de plato
     async function abrirSeleccion(fechaStr, toma) {
@@ -561,6 +688,7 @@
     };
 
     function abrirFormNuevoPlato(nombreInicial) {
+      document.getElementById("tituloPanelNuevo").textContent = "Nuevo plato";
       document.getElementById("inputNuevoNombre").value = nombreInicial;
       document.getElementById("inputNuevoIngrediente").value = "";
       listaIngredientesNuevos = [];
@@ -669,7 +797,6 @@
       const actualObj = await pedir(store.get(keyId));
       
       let platosActuales = actualObj?.platos || [];
-      // Añadir el nuevo plato sin sobrescribir los anteriores (permite múltiples platos)
       if (!platosActuales.includes(platoSeleccionado)) {
         platosActuales.push(platoSeleccionado);
       }
@@ -682,7 +809,7 @@
       };
     }
 
-    // Guardar nuevo plato y sus ingredientes, y asignarlo al día
+    // Guardar nuevo plato o cambios de edición
     document.getElementById("btnAceptarNuevo").onclick = async () => {
       const nombre = document.getElementById("inputNuevoNombre").value.trim();
       if (!nombre) return;
@@ -690,18 +817,21 @@
       const pend = inputIng.value.trim();
       if (pend) anadirIngrediente(pend);
 
-      const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
       const tx = db.transaction(["platos", "menu", "ingredientes_base"], "readwrite");
       
       tx.objectStore("platos").put({ nombre, ingredientes: listaIngredientesNuevos });
-      
-      const stMenu = tx.objectStore("menu");
-      const actualObj = await pedir(stMenu.get(keyId));
-      let platosActuales = actualObj?.platos || [];
-      if (!platosActuales.includes(nombre)) {
-        platosActuales.push(nombre);
+
+      // Si veníamos desde edición de un plato ya asignado en slot
+      if (slotActivo) {
+        const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
+        const stMenu = tx.objectStore("menu");
+        const actualObj = await pedir(stMenu.get(keyId));
+        let platosActuales = actualObj?.platos || [];
+        if (!platosActuales.includes(nombre)) {
+          platosActuales.push(nombre);
+        }
+        stMenu.put({ id: keyId, platos: platosActuales });
       }
-      stMenu.put({ id: keyId, platos: platosActuales });
 
       listaIngredientesNuevos.forEach(ing => {
         tx.objectStore("ingredientes_base").put({ nombre: ing });
