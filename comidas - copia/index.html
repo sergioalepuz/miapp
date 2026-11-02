@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Menú Semanal</title>
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <style>
+    :root { 
+      --azul: #1b9de2; 
+      --fondo: #f6f6f6; 
+      --texto: #2c3e50;
+      --gris-hoy: #dcdcdc;
+      --verde-apple: #2e7d32;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; height: 100%; }
+    body {
+      font-family: -apple-system, system-ui, "Segoe UI", sans-serif;
+      background: #fff;
+      color: var(--texto);
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Barra superior azul */
+    .barra {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--azul);
+      padding: 10px 12px;
+      color: #fff;
+    }
+    .titulo-fecha {
+      font-size: 17px;
+      font-weight: 700;
+      text-align: center;
+      flex: 1;
+    }
+    .btn-hdr {
+      background: #fff;
+      border: 0;
+      color: var(--azul);
+      font-size: 18px;
+      font-weight: 700;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .btn-hdr:active { opacity: 0.8; }
+    .cont-derecha { display: flex; gap: 8px; }
+
+    /* Menú flotante de los tres puntos */
+    #menuPanel {
+      display: none;
+      position: absolute;
+      right: 12px;
+      top: calc(100% + 4px);
+      z-index: 100;
+      min-width: 190px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.2);
+      overflow: hidden;
+    }
+    #menuPanel button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: 0;
+      border-top: 1px solid #eee;
+      padding: 14px 16px;
+      font-size: 16px;
+      font-weight: 500;
+      color: #111;
+    }
+    #menuPanel button:first-child { border-top: 0; }
+
+    /* Rejilla Semanal */
+    .tabla-semana {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 14px;
+      overflow-y: auto;
+    }
+    .fila-iconos {
+      display: grid;
+      grid-template-columns: 70px 1fr 1fr 1fr;
+      align-items: center;
+      padding-bottom: 8px;
+    }
+    .icono-toma {
+      text-align: center;
+      color: #555;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .icono-toma svg { width: 22px; height: 22px; stroke: #444; }
+    
+    .fila-dia {
+      display: grid;
+      grid-template-columns: 70px 1fr 1fr 1fr;
+      align-items: center;
+      border-top: 1px solid #a8d5e5;
+      padding: 8px 0;
+      border-radius: 6px;
+      min-height: 65px;
+    }
+    .fila-dia.hoy { background-color: var(--gris-hoy); }
+    .col-dia {
+      text-align: center;
+      line-height: 1.2;
+      font-weight: 500;
+      color: #455a64;
+    }
+    .col-dia .nombre-dia { font-size: 15px; }
+    .col-dia .num-dia { font-size: 15px; }
+
+    .celda-contenido {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 4px;
+      gap: 4px;
+      width: 100%;
+    }
+    .lista-platos-celda {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+      align-items: center;
+    }
+    .plato-item-badge {
+      background: #fff;
+      border: 1px solid #b2dfdb;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #2c3e50;
+      text-align: center;
+      width: 95%;
+      word-break: break-word;
+      line-height: 1.2;
+      cursor: pointer;
+    }
+    .plato-item-badge:active { background: #f0f0f0; }
+
+    .btn-mas {
+      background: none;
+      border: 0;
+      color: #1b9de2;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0 8px;
+      line-height: 1;
+    }
+
+    /* Modal general de selección */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      z-index: 200;
+      flex-direction: column;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .modal.abierto { display: flex; }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid #eee;
+    }
+    .btn-texto-verde {
+      background: none;
+      border: 0;
+      color: var(--verde-apple);
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .buscador-box {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid #eee;
+      gap: 10px;
+    }
+    .buscador-box svg { width: 20px; height: 20px; stroke: #666; }
+    .buscador-input {
+      flex: 1;
+      border: 0;
+      font-size: 17px;
+      outline: none;
+      background: transparent;
+    }
+    .lista-platos {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .item-plato {
+      padding: 16px;
+      font-size: 18px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+    .item-plato:active { background: #f0f0f0; }
+
+    /* Estado deshabilitado en gris */
+    .deshabilitado-gris {
+      opacity: 0.35;
+      pointer-events: none;
+      background-color: #f9f9f9;
+    }
+
+    /* Panel de creación/edición de plato */
+    .panel-nuevo-plato {
+      display: none;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      z-index: 250;
+    }
+    .panel-nuevo-plato.abierto { display: block; }
+    
+    .campo-form {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .campo-form label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--verde-apple);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .campo-form input {
+      width: 100%;
+      font-size: 17px;
+      padding: 8px 0;
+      border: 0;
+      border-bottom: 1px solid var(--verde-apple);
+      outline: none;
+    }
+
+    /* Chips de ingredientes */
+    .contenedor-ingredientes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .chip-ingrediente {
+      background: #e8f5e9;
+      color: var(--verde-apple);
+      border: 1px solid #c8e6c9;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chip-ingrediente button {
+      background: none;
+      border: 0;
+      color: var(--verde-apple);
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    /* Desplegable de sugerencias */
+    .sugerencias-ingredientes {
+      display: none;
+      position: absolute;
+      left: 0; right: 0; top: 100%;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-height: 150px;
+      overflow-y: auto;
+      z-index: 300;
+    }
+    .sugerencias-ingredientes div {
+      padding: 10px 14px;
+      font-size: 16px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+    .sugerencias-ingredientes div:hover {
+      background: #f5f5f5;
+    }
+
+    /* --- Menú Flotante Estilo iOS --- */
+    .overlay-menu {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .overlay-menu.abierto { display: flex; }
+    .menu-flotante-ios {
+      background: #fdfdfd;
+      width: 100%;
+      max-width: 340px;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      overflow: hidden;
+      animation: escalaModal 0.2s ease;
+    }
+    @keyframes escalaModal {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .menu-flotante-titulo {
+      padding: 22px 20px;
+      font-size: 22px;
+      font-weight: 500;
+      color: #111;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .menu-flotante-opcion {
+      width: 100%;
+      background: none;
+      border: 0;
+      padding: 18px 20px;
+      text-align: left;
+      font-size: 18px;
+      color: #007aff;
+      cursor: pointer;
+    }
+    .menu-flotante-opcion:active { background: #f0f0f0; }
+    .menu-flotante-opcion.quitar {
+      color: #ff3b30;
+      border-top: 1px solid #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barra superior -->
+  <div class="barra">
+    <button class="btn-hdr" id="ant">‹</button>
+    <div class="titulo-fecha" id="tituloFecha">--</div>
+    <div class="cont-derecha">
+      <button class="btn-hdr" id="sig">›</button>
+      <button class="btn-hdr" id="menu">···</button>
+    </div>
+    <div id="menuPanel">
+      <button id="menuExportar">Exportar a Mi Lista</button>
+    </div>
+  </div>
+
+  <!-- Rejilla semanal -->
+  <div class="tabla-semana">
+    <div class="fila-iconos">
+      <div></div>
+      <div class="icono-toma">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 2v2M4.93 4.93l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M12 18a6 6 0 0 0 6-6H6a6 6 0 0 0 6 6z"/><line x1="2" y1="18" x2="22" y2="18"/></svg>
+      </div>
+      <div class="icono-toma">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </div>
+      <div class="icono-toma">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </div>
+    </div>
+    <div id="contenedorDias"></div>
+  </div>
+
+  <!-- MODAL SELECCIONAR / BUSCAR PLATO -->
+  <div class="modal" id="modalSeleccion">
+    <div id="zonaSuperiorModal">
+      <div class="modal-header">
+        <button class="btn-texto-verde" id="btnCancelarSel">Cancelar</button>
+        <span style="font-weight: 600; font-size: 17px;" id="tituloModalSel">Seleccionar Plato</span>
+        <button class="btn-texto-verde" id="btnAceptarSel">Aceptar</button>
+      </div>
+      <div class="buscador-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="buscador-input" id="inputBuscar" placeholder="Buscar" autocomplete="off">
+      </div>
+    </div>
+
+    <!-- Panel para crear / editar plato -->
+    <div class="panel-nuevo-plato" id="panelNuevoPlato">
+      <div class="modal-header" style="padding: 0 0 12px 0; border: none;">
+        <button class="btn-texto-verde" id="btnCancelarNuevo">Cancelar</button>
+        <span style="font-weight: 600; font-size: 16px;" id="tituloPanelNuevo">Nuevo plato</span>
+        <button class="btn-texto-verde" id="btnAceptarNuevo">Aceptar</button>
+      </div>
+      
+      <div class="campo-form">
+        <label>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16M6 16l6-12 6 12M8 12h8"/></svg>
+          Nombre
+        </label>
+        <input type="text" id="inputNuevoNombre" autocomplete="off">
+      </div>
+
+      <div class="campo-form" style="margin-bottom: 8px;">
+        <label>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg>
+          Ingredientes
+        </label>
+        
+        <div class="contenedor-ingredientes" id="contenedorChips"></div>
+        <input type="text" id="inputNuevoIngrediente" placeholder="añadir..." autocomplete="off">
+        <div class="sugerencias-ingredientes" id="sugerenciasIng"></div>
+      </div>
+    </div>
+
+    <div class="lista-platos" id="listaPlatos"></div>
+  </div>
+
+  <!-- MENÚ FLOTANTE AL PULSAR SOBRE UN PLATO ASIGNADO -->
+  <div class="overlay-menu" id="overlayMenuPlato">
+    <div class="menu-flotante-ios">
+      <div class="menu-flotante-titulo" id="menuPlatoTitulo">Nombre plato</div>
+      <button class="menu-flotante-opcion" id="btnMenuEditar">Editar plato</button>
+      <button class="menu-flotante-opcion quitar" id="btnMenuQuitar">Quitar</button>
+    </div>
+  </div>
+
+  <script>
+    const DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
+    const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+    let db;
+    let fechaLunesActual = getLunes(new Date());
+    let slotActivo = null;
+    let listaIngredientesNuevos = [];
+    let platoActivoCtx = null;
+
+    function abrirBD() {
+      return new Promise((ok, fallo) => {
+        const req = indexedDB.open("menu_comidas_db", 2);
+        req.onupgradeneeded = () => {
+          const d = req.result;
+          if (!d.objectStoreNames.contains("alimentos")) {
+            d.createObjectStore("alimentos", { keyPath: "nombre" });
+          }
+          if (!d.objectStoreNames.contains("platos")) {
+            d.createObjectStore("platos", { keyPath: "nombre" });
+          }
+          if (!d.objectStoreNames.contains("menu")) {
+            d.createObjectStore("menu", { keyPath: "id" });
+          }
+          if (!d.objectStoreNames.contains("ingredientes_base")) {
+            d.createObjectStore("ingredientes_base", { keyPath: "nombre" });
+          }
+        };
+        req.onsuccess = () => ok(req.result);
+        req.onerror = () => fallo(req.error);
+      });
+    }
+
+    const pedir = req => new Promise((ok, fallo) => {
+      req.onsuccess = () => ok(req.result);
+      req.onerror = () => fallo(req.error);
+    });
+
+    function getLunes(d) {
+      const date = new Date(d);
+      const day = date.getDay();
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+      date.setDate(diff);
+      date.setHours(0,0,0,0);
+      return date;
+    }
+
+    function formatearFechaStr(d) {
+      return d.toISOString().split('T')[0];
+    }
+
+    async function renderizarSemana() {
+      const hoy = new Date();
+      hoy.setHours(0,0,0,0);
+
+      const domingo = new Date(fechaLunesActual);
+      domingo.setDate(domingo.getDate() + 6);
+
+      document.getElementById("tituloFecha").textContent = `${fechaLunesActual.getDate()} ${MESES[fechaLunesActual.getMonth()]} - ${domingo.getDate()} ${MESES[domingo.getMonth()]}`;
+
+      const cont = document.getElementById("contenedorDias");
+      cont.innerHTML = "";
+
+      const tx = db.transaction("menu", "readonly");
+      const store = tx.objectStore("menu");
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(fechaLunesActual);
+        d.setDate(d.getDate() + i);
+        const fechaStr = formatearFechaStr(d);
+        const esHoy = d.getTime() === hoy.getTime();
+
+        const desayunoArr = (await pedir(store.get(`${fechaStr}_desayuno`)))?.platos || [];
+        const comidaArr = (await pedir(store.get(`${fechaStr}_comida`)))?.platos || [];
+        const cenaArr = (await pedir(store.get(`${fechaStr}_cena`)))?.platos || [];
+
+        const fila = document.createElement("div");
+        fila.className = "fila-dia" + (esHoy ? " hoy" : "");
+
+        fila.innerHTML = `
+          <div class="col-dia">
+            <div class="nombre-dia">${DIAS[i]}</div>
+            <div class="num-dia">${d.getDate()}</div>
+          </div>
+          <div class="celda-contenido">
+            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'desayuno', desayunoArr)}</div>
+            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'desayuno')">+</button>
+          </div>
+          <div class="celda-contenido">
+            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'comida', comidaArr)}</div>
+            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'comida')">+</button>
+          </div>
+          <div class="celda-contenido">
+            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'cena', cenaArr)}</div>
+            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'cena')">+</button>
+          </div>
+        `;
+        cont.appendChild(fila);
+      }
+    }
+
+    function generarHtmlPlatos(fechaStr, toma, arrayPlatos) {
+      if (!arrayPlatos || arrayPlatos.length === 0) return "";
+      return arrayPlatos.map(plato => `
+        <div class="plato-item-badge" onclick="abrirMenuPlato('${fechaStr}', '${toma}', '${escapeHtml(plato)}')">${plato}</div>
+      `).join("");
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    // --- Menú Contextual al pulsar plato de la rejilla ---
+    function abrirMenuPlato(fechaStr, toma, nombrePlato) {
+      platoActivoCtx = { fechaStr, toma, nombrePlato };
+      document.getElementById("menuPlatoTitulo").textContent = nombrePlato;
+      document.getElementById("overlayMenuPlato").classList.add("abierto");
+    }
+
+    document.getElementById("overlayMenuPlato").onclick = (e) => {
+      if (e.target === document.getElementById("overlayMenuPlato")) {
+        document.getElementById("overlayMenuPlato").classList.remove("abierto");
+      }
+    };
+
+    document.getElementById("btnMenuQuitar").onclick = async () => {
+      if (!platoActivoCtx) return;
+      const { fechaStr, toma, nombrePlato } = platoActivoCtx;
+      const keyId = `${fechaStr}_${toma}`;
+
+      const tx = db.transaction("menu", "readwrite");
+      const store = tx.objectStore("menu");
+      const actualObj = await pedir(store.get(keyId));
+
+      if (actualObj && actualObj.platos) {
+        const index = actualObj.platos.indexOf(nombrePlato);
+        if (index > -1) {
+          actualObj.platos.splice(index, 1);
+        }
+        store.put({ id: keyId, platos: actualObj.platos });
+      }
+
+      tx.oncomplete = () => {
+        document.getElementById("overlayMenuPlato").classList.remove("abierto");
+        renderizarSemana();
+      };
+    };
+
+    document.getElementById("btnMenuEditar").onclick = async () => {
+      if (!platoActivoCtx) return;
+      const nombrePlato = platoActivoCtx.nombrePlato;
+      document.getElementById("overlayMenuPlato").classList.remove("abierto");
+
+      const tx = db.transaction("platos", "readonly");
+      const platoData = await pedir(tx.objectStore("platos").get(nombrePlato));
+      const ingredientesActuales = platoData?.ingredientes || [];
+
+      document.getElementById("tituloPanelNuevo").textContent = "Editar plato";
+      document.getElementById("inputNuevoNombre").value = nombrePlato;
+      document.getElementById("inputNuevoIngrediente").value = "";
+      listaIngredientesNuevos = [...ingredientesActuales];
+      renderizarChipsIngredientes();
+
+      document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
+      document.getElementById("panelNuevoPlato").classList.add("abierto");
+      document.getElementById("listaPlatos").style.display = "none";
+      document.getElementById("modalSeleccion").classList.add("abierto");
+    };
+
+    // Modal Selección de plato
+    async function abrirSeleccion(fechaStr, toma) {
+      slotActivo = { fechaStr, toma };
+      document.getElementById("inputBuscar").value = "";
+      
+      document.getElementById("panelNuevoPlato").classList.remove("abierto");
+      document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
+      document.getElementById("listaPlatos").style.display = "block";
+      
+      await cargarListaPlatos("");
+      document.getElementById("modalSeleccion").classList.add("abierto");
+      document.getElementById("inputBuscar").focus();
+    }
+
+    async function cargarListaPlatos(filtro) {
+      const tx = db.transaction("platos", "readonly");
+      const platos = await pedir(tx.objectStore("platos").getAll());
+      
+      platos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+
+      const listaEl = document.getElementById("listaPlatos");
+      listaEl.innerHTML = "";
+
+      const txt = filtro.trim().toLowerCase();
+      const filtrados = txt 
+        ? platos.filter(p => p.nombre.toLowerCase().startsWith(txt))
+        : platos;
+
+      for (const p of filtrados) {
+        const div = document.createElement("div");
+        div.className = "item-plato";
+        div.textContent = p.nombre;
+        div.onclick = () => {
+          seleccionarEIr(p.nombre);
+        };
+        listaEl.appendChild(div);
+      }
+    }
+
+    document.getElementById("inputBuscar").oninput = (e) => {
+      cargarListaPlatos(e.target.value);
+    };
+
+    document.getElementById("inputBuscar").onkeydown = async (e) => {
+      if (e.key === "Enter") {
+        const valor = e.target.value.trim();
+        if (!valor) return;
+        const tx = db.transaction("platos", "readonly");
+        const existente = await pedir(tx.objectStore("platos").get(valor));
+        if (existente) {
+          seleccionarEIr(valor);
+        } else {
+          abrirFormNuevoPlato(valor);
+        }
+      }
+    };
+
+    async function seleccionarEIr(nombrePlato) {
+      if (!slotActivo) return;
+      const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
+      
+      const tx = db.transaction("menu", "readwrite");
+      const store = tx.objectStore("menu");
+      const actualObj = await pedir(store.get(keyId));
+      
+      let platosActuales = actualObj?.platos || [];
+      platosActuales.push(nombrePlato);
+
+      store.put({ id: keyId, platos: platosActuales });
+
+      tx.oncomplete = () => {
+        document.getElementById("modalSeleccion").classList.remove("abierto");
+        renderizarSemana();
+      };
+    }
+
+    function abrirFormNuevoPlato(nombreInicial) {
+      document.getElementById("tituloPanelNuevo").textContent = "Nuevo plato";
+      document.getElementById("inputNuevoNombre").value = nombreInicial;
+      document.getElementById("inputNuevoIngrediente").value = "";
+      listaIngredientesNuevos = [];
+      renderizarChipsIngredientes();
+      
+      document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
+      document.getElementById("panelNuevoPlato").classList.add("abierto");
+      document.getElementById("listaPlatos").style.display = "none";
+      document.getElementById("inputNuevoIngrediente").focus();
+    }
+
+    function cerrarFormNuevoPlato() {
+      document.getElementById("panelNuevoPlato").classList.remove("abierto");
+      document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
+      document.getElementById("listaPlatos").style.display = "block";
+      document.getElementById("inputBuscar").focus();
+    }
+
+    // --- LÓGICA DE INGREDIENTES Y SUGERENCIAS ---
+    const inputIng = document.getElementById("inputNuevoIngrediente");
+    const sugerenciasIngEl = document.getElementById("sugerenciasIng");
+
+    inputIng.oninput = async () => {
+      const txt = inputIng.value.trim().toLowerCase();
+      if (!txt) {
+        sugerenciasIngEl.style.display = "none";
+        return;
+      }
+      // Lee tanto de ingredientes_base como de la tabla unificada de alimentos de Mi Lista
+      const tx = db.transaction(["ingredientes_base", "alimentos"], "readonly");
+      const ingBase = await pedir(tx.objectStore("ingredientes_base").getAll());
+      const alimentosLista = await pedir(tx.objectStore("alimentos").getAll());
+      
+      // Combinar ambos catálogos sin duplicados
+      const mapaUnico = new Map();
+      ingBase.forEach(i => mapaUnico.set(i.nombre.toLowerCase(), i.nombre));
+      alimentosLista.forEach(a => mapaUnico.set(a.nombre.toLowerCase(), a.nombre));
+      
+      const todos = Array.from(mapaUnico.values()).map(nombre => ({ nombre }));
+      todos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+
+      const coincidencias = todos.filter(i => i.nombre.toLowerCase().startsWith(txt));
+
+      sugerenciasIngEl.innerHTML = "";
+      if (coincidencias.length) {
+        coincidencias.forEach(i => {
+          const item = document.createElement("div");
+          item.textContent = i.nombre;
+          item.onclick = () => {
+            anadirIngrediente(i.nombre);
+            inputIng.value = "";
+            sugerenciasIngEl.style.display = "none";
+            inputIng.focus();
+          };
+          sugerenciasIngEl.appendChild(item);
+        });
+        sugerenciasIngEl.style.display = "block";
+      } else {
+        sugerenciasIngEl.style.display = "none";
+      }
+    };
+
+    inputIng.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const valor = inputIng.value.trim();
+        if (valor) {
+          anadirIngrediente(valor);
+          inputIng.value = "";
+          sugerenciasIngEl.style.display = "none";
+        }
+      }
+    };
+
+    function anadirIngrediente(nombre) {
+      const fmt = nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase();
+      if (!listaIngredientesNuevos.includes(fmt)) {
+        listaIngredientesNuevos.push(fmt);
+        renderizarChipsIngredientes();
+      }
+    }
+
+    function renderizarChipsIngredientes() {
+      const cont = document.getElementById("contenedorChips");
+      cont.innerHTML = "";
+      listaIngredientesNuevos.forEach((ing, index) => {
+        const chip = document.createElement("div");
+        chip.className = "chip-ingrediente";
+        chip.innerHTML = `${ing} <button onclick="eliminarChip(${index})">✕</button>`;
+        cont.appendChild(chip);
+      });
+    }
+
+    function eliminarChip(index) {
+      listaIngredientesNuevos.splice(index, 1);
+      renderizarChipsIngredientes();
+    }
+
+    document.getElementById("btnAceptarSel").onclick = () => {
+      const valor = document.getElementById("inputBuscar").value.trim();
+      if (valor) {
+        seleccionarEIr(valor);
+      }
+    };
+
+    document.getElementById("btnAceptarNuevo").onclick = async () => {
+      const nombre = document.getElementById("inputNuevoNombre").value.trim();
+      if (!nombre) return;
+
+      const pend = inputIng.value.trim();
+      if (pend) anadirIngrediente(pend);
+
+      const tx = db.transaction(["platos", "menu", "ingredientes_base", "alimentos"], "readwrite");
+      
+      tx.objectStore("platos").put({ nombre, ingredientes: listaIngredientesNuevos });
+
+      if (slotActivo) {
+        const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
+        const stMenu = tx.objectStore("menu");
+        const actualObj = await pedir(stMenu.get(keyId));
+        let platosActuales = actualObj?.platos || [];
+        platosActuales.push(nombre);
+        stMenu.put({ id: keyId, platos: platosActuales });
+      }
+
+      // Al guardar ingredientes nuevos, también se añaden automáticamente como alimentos en Mi Lista
+      listaIngredientesNuevos.forEach(ing => {
+        tx.objectStore("ingredientes_base").put({ nombre: ing });
+        tx.objectStore("alimentos").put({ nombre: ing });
+      });
+
+      tx.oncomplete = () => {
+        document.getElementById("modalSeleccion").classList.remove("abierto");
+        renderizarSemana();
+      };
+    };
+
+    document.getElementById("btnCancelarSel").onclick = () => {
+      document.getElementById("modalSeleccion").classList.remove("abierto");
+    };
+
+    document.getElementById("btnCancelarNuevo").onclick = () => {
+      cerrarFormNuevoPlato();
+    };
+
+    // Navegación de semanas
+    document.getElementById("ant").onclick = () => {
+      fechaLunesActual.setDate(fechaLunesActual.getDate() - 7);
+      renderizarSemana();
+    };
+
+    document.getElementById("sig").onclick = () => {
+      fechaLunesActual.setDate(fechaLunesActual.getDate() + 7);
+      renderizarSemana();
+    };
+
+    // Menú superior
+    const menuPanel = document.getElementById("menuPanel");
+    document.getElementById("menu").onclick = (e) => {
+      e.stopPropagation();
+      menuPanel.style.display = menuPanel.style.display === "block" ? "none" : "block";
+    };
+    document.addEventListener("click", () => { menuPanel.style.display = "none"; });
+
+    // Inicialización
+    (async () => {
+      db = await abrirBD();
+      renderizarSemana();
+    })();
+  </script>
+</body>
+</html>

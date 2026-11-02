@@ -27,7 +27,6 @@
       font-size: 20px; font-weight: 700; padding: 4px;
     }
 
-    /* Menú de los tres puntos */
     #menuPanel {
       display: none; position: absolute; right: 12px; top: calc(100% - 4px); z-index: 6;
       min-width: 190px; background: #fff; border: 1px solid #ddd; border-radius: 10px;
@@ -39,7 +38,6 @@
     }
     #menuPanel button:first-child { border-top: 0; }
 
-    /* Sugerencias al escribir */
     #sugerencias {
       display: none; position: absolute; left: 12px; right: 12px; top: calc(100% - 4px);
       z-index: 5; background: #fff; border: 1px solid #ddd; border-radius: 8px;
@@ -52,7 +50,6 @@
     .sugerencia:first-child { border-top: 0; }
     .sugerencia small { color: #888; font-size: 14px; }
 
-    /* Sección: cabecera azul + sus alimentos, todo en un grupo que se puede arrastrar */
     .grupo { position: relative; }
     .grupo.arrastrando {
       z-index: 10; background: var(--fondo);
@@ -69,25 +66,21 @@
       touch-action: none; cursor: grab;
     }
 
-    /* Cada fila: detrás hay dos botones (azul a la izquierda, rojo a la derecha) y el item se desliza por encima */
     .fila { position: relative; overflow: hidden; border-bottom: 1px solid #eee; }
     .borrar, .editar {
       position: absolute; top: 0; padding: 0; color: #fff; border: 0;
       display: flex; align-items: center; justify-content: center;
     }
     .borrar { right: 0; bottom: 0; width: 80px; background: var(--rojo); }
-    /* Cuadrado: el ancho es igual al alto de la fila */
     .editar { left: 0; height: 100%; width: auto; aspect-ratio: 1 / 1; background: var(--azul); }
     .item {
       position: relative; display: flex; align-items: center; justify-content: space-between;
       background: #fff; font-weight: 600;
-      padding: 4px 16px;   /* margen: arriba y abajo / a los lados */
-      font-size: 30px;     /* tamaño de la letra */
+      padding: 4px 16px; font-size: 30px;
       touch-action: pan-y; user-select: none; -webkit-user-select: none;
     }
     .item.tachado span { text-decoration: line-through; color: #999; }
 
-    /* Pantallas de mantenimiento (Alimentos y Categorías) */
     #pantalla {
       display: none; position: fixed; inset: 0; z-index: 25; background: var(--fondo);
       flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
@@ -98,7 +91,6 @@
       padding: 14px 56px; background: var(--azul); color: #fff; font-size: 18px; font-weight: 600;
     }
     
-    /* Botón Atrás estilo botón rectangular con esquinas redondeadas igual que el + */
     #atras {
       position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
       height: 34px; padding: 0 12px; border: 0; border-radius: 8px;
@@ -106,7 +98,6 @@
       display: flex; align-items: center; justify-content: center;
     }
 
-    /* Botón + : símbolo azul sobre fondo blanco */
     #mas {
       position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
       width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px;
@@ -122,7 +113,6 @@
     .registro small { color: #888; font-size: 14px; font-weight: 400; text-align: right; }
     .vacio { padding: 24px 16px; color: #888; text-align: center; }
 
-    /* Ventanas pequeñas (editar y confirmar) */
     .velo {
       position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.4);
       display: none; align-items: center; justify-content: center;
@@ -141,7 +131,6 @@
       width: 100%; font-size: 16px; padding: 10px;
       border: 1px solid #ddd; border-radius: 8px; background: #fff;
     }
-    /* Botones de las ventanas: centrados */
     .acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 16px; padding: 0 8px 4px; }
     .acciones button {
       border: 0; background: none; padding: 8px 10px;
@@ -150,7 +139,6 @@
     .acciones .guardar { font-weight: 700; }
     .acciones .peligro { color: var(--rojo); font-weight: 700; }
 
-    /* Mensaje: aparece al instante y se desvanece despacio al quitar .visible */
     #aviso {
       position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 70px);
       transform: translateX(-50%); z-index: 50; width: max-content; max-width: 90vw; text-align: center;
@@ -193,13 +181,13 @@
   <script>
     const SECCIONES_INICIALES = ["Otros", "Fruta", "Verdura", "Carne", "Pescado", "Lácteos", "Panadería", "Limpieza"];
     const SECCION_POR_DEFECTO = "otros";
-    const OPCION_NUEVA = "__nueva__"; // opción "Nueva categoría…" del desplegable
+    const OPCION_NUEVA = "__nueva__";
 
     const ICONO_ASA = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 8h16M4 12h16M4 16h16"/></svg>';
     const ICONO_LAPIZ = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
     const ICONO_PAPELERA = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
 
-    const ANCHO_PAPELERA = 80; // debe coincidir con el width de .borrar
+    const ANCHO_PAPELERA = 80;
 
     const entrada = document.getElementById("entrada");
     const sugerenciasEl = document.getElementById("sugerencias");
@@ -215,16 +203,13 @@
     const avisoEl = document.getElementById("aviso");
 
     const clave = texto => texto.trim().toLowerCase();
-    // Para comparar sin distinguir mayúsculas ni tildes (Limón = limon)
     const normalizar = texto => texto.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    // Formato de los alimentos: primera letra en mayúscula y el resto en minúscula
     const formatear = texto => {
       const t = texto.trim().replace(/\s+/g, " ").toLocaleLowerCase("es");
       return t.charAt(0).toLocaleUpperCase("es") + t.slice(1);
     };
     const porOrden = (a, b) => (a.orden ?? 9999) - (b.orden ?? 9999);
     const porNombre = (a, b) => a.nombre.localeCompare(b.nombre, "es");
-    // Un alimento está en la lista salvo que se haya quitado (los antiguos sin marca cuentan como "en la lista")
     const enLista = a => a.enLista !== false;
     const pedir = req => new Promise((ok, fallo) => {
       req.onsuccess = () => ok(req.result);
@@ -234,23 +219,33 @@
     let db;
     const tabla = (nombre, modo = "readonly") => db.transaction(nombre, modo).objectStore(nombre);
 
-    // Base de datos: tablas "secciones" (las categorías, con su orden) y "alimentos" (el catálogo de alimentos).
-    // La clave (nombre en minúsculas) hace que no se puedan repetir.
     function abrirBD() {
       return new Promise((ok, fallo) => {
-        const req = indexedDB.open("miapp", 1);
+        const req = indexedDB.open("miapp", 2);
         req.onupgradeneeded = () => {
           const d = req.result;
-          const secciones = d.createObjectStore("secciones", { keyPath: "clave" });
-          d.createObjectStore("alimentos", { keyPath: "clave" });
-          SECCIONES_INICIALES.forEach((n, i) => secciones.add({ clave: clave(n), nombre: n, orden: i }));
+          if (!d.objectStoreNames.contains("secciones")) {
+            const secciones = d.createObjectStore("secciones", { keyPath: "clave" });
+            SECCIONES_INICIALES.forEach((n, i) => secciones.add({ clave: clave(n), nombre: n, orden: i }));
+          }
+          if (!d.objectStoreNames.contains("alimentos")) {
+            d.createObjectStore("alimentos", { keyPath: "clave" });
+          }
+          if (!d.objectStoreNames.contains("platos")) {
+            d.createObjectStore("platos", { keyPath: "nombre" });
+          }
+          if (!d.objectStoreNames.contains("menu")) {
+            d.createObjectStore("menu", { keyPath: "id" });
+          }
+          if (!d.objectStoreNames.contains("ingredientes_base")) {
+            d.createObjectStore("ingredientes_base", { keyPath: "nombre" });
+          }
         };
         req.onsuccess = () => ok(req.result);
         req.onerror = () => fallo(req.error);
       });
     }
 
-    // Guarda varios registros de una tabla de una vez
     function escribir(nombreTabla, registros) {
       return new Promise((ok, fallo) => {
         const t = db.transaction(nombreTabla, "readwrite");
@@ -261,7 +256,6 @@
       });
     }
 
-    // Las secciones guardadas antes de existir el orden reciben uno
     async function asegurarOrden() {
       const secciones = await pedir(tabla("secciones").getAll());
       if (secciones.every(s => typeof s.orden === "number")) return;
@@ -272,7 +266,6 @@
       await escribir("secciones", secciones);
     }
 
-    // Pone en el formato correcto los alimentos que ya estaban guardados
     async function normalizarNombres() {
       const alimentos = await pedir(tabla("alimentos").getAll());
       for (const a of alimentos) {
@@ -292,7 +285,6 @@
       temporizadorAviso = setTimeout(() => avisoEl.classList.remove("visible"), 2000);
     }
 
-    // Ventana de confirmación: devuelve true si se acepta y false si se cancela
     function confirmar(mensaje, textoAceptar) {
       return new Promise(resolver => {
         cajaConfirmar.innerHTML = "";
@@ -322,14 +314,12 @@
       });
     }
 
-    // Vuelve a poner en la lista un alimento que ya estaba guardado en el catálogo
     async function ponerEnLista(alimento) {
       alimento.enLista = true;
       alimento.tachado = false;
       await pedir(tabla("alimentos", "readwrite").put(alimento));
     }
 
-    // Sugerencias: todos los alimentos guardados que empiezan por lo que escribes
     let ultimaBusqueda = 0;
     async function sugerir() {
       const id = ++ultimaBusqueda;
@@ -340,7 +330,7 @@
       }
       const alimentos = await pedir(tabla("alimentos").getAll());
       const secciones = await pedir(tabla("secciones").getAll());
-      if (id !== ultimaBusqueda) return; // llegó una búsqueda más reciente
+      if (id !== ultimaBusqueda) return;
 
       const nombreSeccion = Object.fromEntries(secciones.map(s => [s.clave, s.nombre]));
       const coincidencias = alimentos
@@ -358,7 +348,6 @@
         const nombre = document.createElement("span");
         nombre.textContent = a.nombre;
         const seccion = document.createElement("small");
-        // La marca ✓ indica que ya está en la lista
         seccion.textContent = (enLista(a) ? "✓ " : "") + (nombreSeccion[a.seccion] || "");
         fila.append(nombre, seccion);
         fila.onclick = async () => {
@@ -385,11 +374,14 @@
           aviso("Ya está en la lista");
           return;
         }
-        await ponerEnLista(existente); // estaba guardado: vuelve a su categoría
+        await ponerEnLista(existente);
       } else {
-        await pedir(tabla("alimentos", "readwrite").add({
+        const t = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
+        t.objectStore("alimentos").put({
           clave: clave(nombre), nombre, seccion: SECCION_POR_DEFECTO, tachado: false, enLista: true
-        }));
+        });
+        t.objectStore("ingredientes_base").put({ nombre });
+        await new Promise((ok, fallo) => { t.oncomplete = ok; t.onerror = fallo; });
       }
       entrada.value = "";
       sugerir();
@@ -404,7 +396,7 @@
         const items = alimentos
           .filter(a => a.seccion === s.clave && enLista(a))
           .sort(porNombre);
-        if (!items.length) continue; // una sección sin alimentos en la lista no se muestra
+        if (!items.length) continue;
 
         const grupo = document.createElement("div");
         grupo.className = "grupo";
@@ -426,13 +418,11 @@
           const fila = document.createElement("div");
           fila.className = "fila";
 
-          // Botón azul cuadrado (aparece al deslizar a la derecha)
           const editar = document.createElement("button");
           editar.className = "editar";
           editar.innerHTML = ICONO_LAPIZ;
           editar.setAttribute("aria-label", "Editar");
 
-          // Botón rojo (aparece al deslizar a la izquierda)
           const papelera = document.createElement("button");
           papelera.className = "borrar";
           papelera.innerHTML = ICONO_PAPELERA;
@@ -459,7 +449,6 @@
       }
     }
 
-    // Arrastrar una sección (desde el icono de las tres rayas) para cambiar su orden
     function activarArrastreSeccion(grupo, asa) {
       let inicioY = 0, topInicial = 0, activo = false;
 
@@ -506,8 +495,6 @@
       asa.addEventListener("pointercancel", soltar);
     }
 
-    // Guarda el orden que ha quedado en pantalla.
-    // Las secciones que ahora no se ven (sin alimentos en la lista) conservan su sitio.
     async function guardarOrden() {
       const visibles = [...lista.children].map(g => g.dataset.clave);
       const todas = (await pedir(tabla("secciones").getAll())).sort(porOrden);
@@ -521,17 +508,14 @@
       await escribir("secciones", nuevas);
     }
 
-    // Pulsar = tachar/destachar.
-    // Deslizar a la izquierda = papelera (roja). Deslizar a la derecha = editar (azul, cuadrado).
     function activarGestos(item, alimento, editar) {
       let x0 = 0, y0 = 0, dx = 0;
       let activo = false, arrastrando = false;
-      let reposo = 0; // 0 = cerrado; negativo = papelera visible; positivo = cuadro azul visible
+      let reposo = 0;
 
-      const anchoEditar = () => editar.offsetWidth; // el cuadrado mide lo mismo que el alto de la fila
+      const anchoEditar = () => editar.offsetWidth;
       const mover = px => { item.style.transform = "translateX(" + px + "px)"; };
 
-      // Permite cerrar la fila desde fuera (al abrir la ventana de edición)
       item.cerrarFila = () => {
         item.style.transition = "transform .2s";
         reposo = 0;
@@ -589,7 +573,6 @@
       pintar();
     }
 
-    // La papelera quita el alimento de la lista, pero sigue guardado en la tabla alimentos
     async function quitarDeLista(alimento) {
       alimento.enLista = false;
       alimento.tachado = false;
@@ -597,7 +580,6 @@
       pintar();
     }
 
-    // Menú ··· > Eliminar: quita de la lista todos los alimentos tachados (con confirmación)
     async function eliminarTachados() {
       const alimentos = await pedir(tabla("alimentos").getAll());
       const tachados = alimentos.filter(a => enLista(a) && a.tachado);
@@ -614,7 +596,6 @@
       pintar();
     }
 
-    // Devuelve la clave de una categoría; si no existe, la crea al final de las demás
     async function asegurarSeccion(texto) {
       const nombre = texto.trim().replace(/\s+/g, " ");
       const todas = await pedir(tabla("secciones").getAll());
@@ -625,8 +606,7 @@
       return clave(nombre);
     }
 
-    // ---------- Pantallas de mantenimiento ----------
-    let pantallaActual = null; // "alimentos" o "categorias"
+    let pantallaActual = null;
 
     function abrirPantalla(tipo, titulo) {
       pantallaActual = tipo;
@@ -634,7 +614,6 @@
       pantalla.classList.add("abierta");
     }
 
-    // Vuelve a dibujar la pantalla de mantenimiento si está abierta (conserva el desplazamiento)
     async function refrescarPantalla() {
       if (!pantalla.classList.contains("abierta")) return;
       const y = contenidoPantalla.scrollTop;
@@ -643,7 +622,6 @@
       contenidoPantalla.scrollTop = y;
     }
 
-    // Menú ··· > Alimentos: todos los alimentos de la base de datos, por orden alfabético
     async function mostrarAlimentos() {
       abrirPantalla("alimentos", "Alimentos");
       const alimentos = (await pedir(tabla("alimentos").getAll())).sort(porNombre);
@@ -664,7 +642,6 @@
         const nombre = document.createElement("span");
         nombre.textContent = a.nombre;
         const categoria = document.createElement("small");
-        // La marca ✓ indica que está en la lista
         categoria.textContent = (enLista(a) ? "✓ " : "") + (nombreSeccion[a.seccion] || "");
         fila.append(nombre, categoria);
         fila.onclick = () => abrirEditor(a, true);
@@ -672,7 +649,6 @@
       }
     }
 
-    // Menú ··· > Categorías: todas las categorías por orden alfabético, con su número de alimentos
     async function mostrarCategorias() {
       abrirPantalla("categorias", "Categorías");
       const secciones = (await pedir(tabla("secciones").getAll())).sort(porNombre);
@@ -693,8 +669,6 @@
       }
     }
 
-    // Ventana para cambiar el nombre y la categoría de un alimento, o para crear uno nuevo (alimento = null).
-    // Si viene de Alimentos (mantenimiento) también permite eliminarlo de la base de datos.
     async function abrirEditor(alimento, mantenimiento) {
       const nuevo = !alimento;
       const secciones = (await pedir(tabla("secciones").getAll())).sort(porOrden);
@@ -730,7 +704,6 @@
       opcionNueva.textContent = "+ Nueva categoría…";
       desplegable.appendChild(opcionNueva);
 
-      // Casilla para escribir el nombre de una categoría nueva (solo se ve si eliges "Nueva categoría…")
       const campoNueva = document.createElement("input");
       campoNueva.type = "text";
       campoNueva.placeholder = "Nombre de la nueva categoría";
@@ -791,7 +764,7 @@
           return;
         }
         velo.classList.remove("abierto");
-        await pintar();          // si está en la lista, se actualiza su nombre y su categoría
+        await pintar();
         refrescarPantalla();
       };
       guardar.onclick = guardarCambios;
@@ -805,23 +778,24 @@
       if (nuevo) campo.focus();
     }
 
-    // Añade un alimento nuevo a la base de datos (sin ponerlo en la lista). Devuelve false si ya existe.
     async function crearAlimento(nombre, seccion) {
       const existente = await pedir(tabla("alimentos").get(clave(nombre)));
       if (existente) return false;
-      await pedir(tabla("alimentos", "readwrite").add({
+      const t = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
+      t.objectStore("alimentos").put({
         clave: clave(nombre), nombre, seccion, tachado: false, enLista: false
-      }));
+      });
+      t.objectStore("ingredientes_base").put({ nombre });
+      await new Promise((ok, fallo) => { t.oncomplete = ok; t.onerror = fallo; });
       return true;
     }
 
-    // Guarda el nombre y la categoría nuevos. Como el nombre es la clave del registro,
-    // si cambia hay que crear el nuevo y borrar el antiguo (devuelve false si ya existe otro igual).
     function guardarEdicion(alimento, nombre, seccion) {
       return new Promise((ok, fallo) => {
         const nuevaClave = clave(nombre);
-        const t = db.transaction("alimentos", "readwrite");
+        const t = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
         const st = t.objectStore("alimentos");
+        const stIng = t.objectStore("ingredientes_base");
         t.oncomplete = () => ok(true);
         t.onerror = () => fallo(t.error);
 
@@ -829,16 +803,16 @@
         existente.onsuccess = () => {
           const cambiaClave = nuevaClave !== alimento.clave;
           if (cambiaClave && existente.result) {
-            ok(false); // ya hay otro alimento con ese nombre: no se guarda nada
+            ok(false);
             return;
           }
           if (cambiaClave) st.delete(alimento.clave);
           st.put({ ...alimento, clave: nuevaClave, nombre, seccion });
+          stIng.put({ nombre });
         };
       });
     }
 
-    // Ventana para cambiar el nombre de una categoría o eliminarla, o para crear una nueva (categoria = null)
     async function abrirEditorCategoria(categoria) {
       const nueva = !categoria;
       if (!nueva && categoria.clave === SECCION_POR_DEFECTO) {
@@ -901,7 +875,7 @@
             aviso("Ya existe esa categoría");
             return;
           }
-          await asegurarSeccion(nombre); // se añade al final de las demás
+          await asegurarSeccion(nombre);
         } else {
           if (clave(nombre) === SECCION_POR_DEFECTO) {
             aviso("Ya existe esa categoría");
@@ -927,8 +901,6 @@
       if (nueva) campo.focus();
     }
 
-    // Cambia el nombre de una categoría y actualiza todos los alimentos que pertenecían a ella
-    // (devuelve false si ya existe otra categoría con ese nombre)
     function renombrarCategoria(categoria, nombre) {
       return new Promise((ok, fallo) => {
         const nuevaClave = clave(nombre);
@@ -942,11 +914,11 @@
         existente.onsuccess = () => {
           const cambiaClave = nuevaClave !== categoria.clave;
           if (cambiaClave && existente.result) {
-            ok(false); // ya hay otra categoría con ese nombre: no se guarda nada
+            ok(false);
             return;
           }
           if (!cambiaClave) {
-            sec.put({ ...categoria, nombre }); // solo cambian mayúsculas o espacios
+            sec.put({ ...categoria, nombre });
             return;
           }
           sec.delete(categoria.clave);
@@ -961,7 +933,6 @@
       });
     }
 
-    // Elimina una categoría: todos sus alimentos pasan a "Otros"
     function eliminarCategoria(claveCategoria) {
       return new Promise((ok, fallo) => {
         const t = db.transaction(["secciones", "alimentos"], "readwrite");
@@ -980,7 +951,6 @@
       });
     }
 
-    // ---------- Pantalla siempre encendida ----------
     let bloqueoPantalla = null;
     let pidiendoBloqueo = false;
     async function mantenerPantallaEncendida() {
@@ -990,27 +960,23 @@
         bloqueoPantalla = await navigator.wakeLock.request("screen");
         bloqueoPantalla.addEventListener("release", () => { bloqueoPantalla = null; });
       } catch (e) {
-        bloqueoPantalla = null; // el móvil puede rechazarlo (por ejemplo, con poca batería)
+        bloqueoPantalla = null;
       } finally {
         pidiendoBloqueo = false;
       }
     }
-    // El bloqueo se pierde al salir de la app: se pide de nuevo al volver
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") mantenerPantallaEncendida();
     });
-    // Por si el móvil exige un toque para concederlo
     document.addEventListener("pointerdown", mantenerPantallaEncendida);
     mantenerPantallaEncendida();
 
-    // ---------- Eventos ----------
     velo.onclick = e => { if (e.target === velo) velo.classList.remove("abierto"); };
     document.getElementById("ok").onclick = anadir;
     entrada.onkeydown = e => { if (e.key === "Enter") anadir(); };
     entrada.addEventListener("input", sugerir);
     entrada.addEventListener("focus", sugerir);
 
-    // Botón ··· : abre y cierra el menú
     document.getElementById("menu").onclick = () => {
       const abierto = menuPanel.style.display === "block";
       menuPanel.style.display = abierto ? "none" : "block";
@@ -1030,13 +996,11 @@
     };
     document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
 
-    // Botón + de las pantallas de mantenimiento: añade un alimento o una categoría nueva
     document.getElementById("mas").onclick = () => {
       if (pantallaActual === "alimentos") abrirEditor(null, true);
       else abrirEditorCategoria(null);
     };
 
-    // Al tocar fuera se cierran las sugerencias y el menú
     document.addEventListener("pointerdown", e => {
       if (!e.target.closest(".barra")) sugerenciasEl.style.display = "none";
       if (!e.target.closest("#menuPanel, #menu")) menuPanel.style.display = "none";
@@ -1045,7 +1009,7 @@
     (async () => {
       db = await abrirBD();
       await asegurarOrden();
-      await asegurarSeccion("Otros"); // la categoría por defecto siempre debe existir
+      await asegurarSeccion("Otros");
       await normalizarNombres();
       pintar();
     })();

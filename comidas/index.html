@@ -24,7 +24,6 @@
       flex-direction: column;
     }
 
-    /* Barra superior azul */
     .barra {
       position: relative;
       display: flex;
@@ -57,7 +56,6 @@
     .btn-hdr:active { opacity: 0.8; }
     .cont-derecha { display: flex; gap: 8px; }
 
-    /* Menú flotante de los tres puntos */
     #menuPanel {
       display: none;
       position: absolute;
@@ -85,7 +83,6 @@
     }
     #menuPanel button:first-child { border-top: 0; }
 
-    /* Rejilla Semanal */
     .tabla-semana {
       flex: 1;
       display: flex;
@@ -170,7 +167,6 @@
       line-height: 1;
     }
 
-    /* Modal general de selección */
     .modal {
       display: none;
       position: fixed;
@@ -225,14 +221,12 @@
     }
     .item-plato:active { background: #f0f0f0; }
 
-    /* Estado deshabilitado en gris */
     .deshabilitado-gris {
       opacity: 0.35;
       pointer-events: none;
       background-color: #f9f9f9;
     }
 
-    /* Panel de creación/edición de plato */
     .panel-nuevo-plato {
       display: none;
       background: #fff;
@@ -265,7 +259,6 @@
       outline: none;
     }
 
-    /* Chips de ingredientes */
     .contenedor-ingredientes {
       display: flex;
       flex-wrap: wrap;
@@ -294,7 +287,6 @@
       padding: 0;
     }
 
-    /* Desplegable de sugerencias */
     .sugerencias-ingredientes {
       display: none;
       position: absolute;
@@ -317,7 +309,6 @@
       background: #f5f5f5;
     }
 
-    /* --- Menú Flotante Estilo iOS --- */
     .overlay-menu {
       display: none;
       position: fixed;
@@ -369,7 +360,6 @@
 </head>
 <body>
 
-  <!-- Barra superior -->
   <div class="barra">
     <button class="btn-hdr" id="ant">‹</button>
     <div class="titulo-fecha" id="tituloFecha">--</div>
@@ -382,7 +372,6 @@
     </div>
   </div>
 
-  <!-- Rejilla semanal -->
   <div class="tabla-semana">
     <div class="fila-iconos">
       <div></div>
@@ -399,7 +388,6 @@
     <div id="contenedorDias"></div>
   </div>
 
-  <!-- MODAL SELECCIONAR / BUSCAR PLATO -->
   <div class="modal" id="modalSeleccion">
     <div id="zonaSuperiorModal">
       <div class="modal-header">
@@ -413,7 +401,6 @@
       </div>
     </div>
 
-    <!-- Panel para crear / editar plato -->
     <div class="panel-nuevo-plato" id="panelNuevoPlato">
       <div class="modal-header" style="padding: 0 0 12px 0; border: none;">
         <button class="btn-texto-verde" id="btnCancelarNuevo">Cancelar</button>
@@ -444,7 +431,6 @@
     <div class="lista-platos" id="listaPlatos"></div>
   </div>
 
-  <!-- MENÚ FLOTANTE AL PULSAR SOBRE UN PLATO ASIGNADO -->
   <div class="overlay-menu" id="overlayMenuPlato">
     <div class="menu-flotante-ios">
       <div class="menu-flotante-titulo" id="menuPlatoTitulo">Nombre plato</div>
@@ -465,11 +451,14 @@
 
     function abrirBD() {
       return new Promise((ok, fallo) => {
-        const req = indexedDB.open("menu_comidas_db", 2);
+        const req = indexedDB.open("miapp", 2);
         req.onupgradeneeded = () => {
           const d = req.result;
+          if (!d.objectStoreNames.contains("secciones")) {
+            d.createObjectStore("secciones", { keyPath: "clave" });
+          }
           if (!d.objectStoreNames.contains("alimentos")) {
-            d.createObjectStore("alimentos", { keyPath: "nombre" });
+            d.createObjectStore("alimentos", { keyPath: "clave" });
           }
           if (!d.objectStoreNames.contains("platos")) {
             d.createObjectStore("platos", { keyPath: "nombre" });
@@ -565,7 +554,6 @@
       return text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
     }
 
-    // --- Menú Contextual al pulsar plato de la rejilla ---
     function abrirMenuPlato(fechaStr, toma, nombrePlato) {
       platoActivoCtx = { fechaStr, toma, nombrePlato };
       document.getElementById("menuPlatoTitulo").textContent = nombrePlato;
@@ -622,7 +610,6 @@
       document.getElementById("modalSeleccion").classList.add("abierto");
     };
 
-    // Modal Selección de plato
     async function abrirSeleccion(fechaStr, toma) {
       slotActivo = { fechaStr, toma };
       document.getElementById("inputBuscar").value = "";
@@ -718,7 +705,6 @@
       document.getElementById("inputBuscar").focus();
     }
 
-    // --- LÓGICA DE INGREDIENTES Y SUGERENCIAS ---
     const inputIng = document.getElementById("inputNuevoIngrediente");
     const sugerenciasIngEl = document.getElementById("sugerenciasIng");
 
@@ -728,12 +714,10 @@
         sugerenciasIngEl.style.display = "none";
         return;
       }
-      // Lee tanto de ingredientes_base como de la tabla unificada de alimentos de Mi Lista
       const tx = db.transaction(["ingredientes_base", "alimentos"], "readonly");
       const ingBase = await pedir(tx.objectStore("ingredientes_base").getAll());
       const alimentosLista = await pedir(tx.objectStore("alimentos").getAll());
       
-      // Combinar ambos catálogos sin duplicados
       const mapaUnico = new Map();
       ingBase.forEach(i => mapaUnico.set(i.nombre.toLowerCase(), i.nombre));
       alimentosLista.forEach(a => mapaUnico.set(a.nombre.toLowerCase(), a.nombre));
@@ -825,10 +809,15 @@
         stMenu.put({ id: keyId, platos: platosActuales });
       }
 
-      // Al guardar ingredientes nuevos, también se añaden automáticamente como alimentos en Mi Lista
       listaIngredientesNuevos.forEach(ing => {
         tx.objectStore("ingredientes_base").put({ nombre: ing });
-        tx.objectStore("alimentos").put({ nombre: ing });
+        tx.objectStore("alimentos").put({
+          clave: ing.trim().toLowerCase(),
+          nombre: ing,
+          seccion: "otros",
+          tachado: false,
+          enLista: false
+        });
       });
 
       tx.oncomplete = () => {
@@ -845,7 +834,6 @@
       cerrarFormNuevoPlato();
     };
 
-    // Navegación de semanas
     document.getElementById("ant").onclick = () => {
       fechaLunesActual.setDate(fechaLunesActual.getDate() - 7);
       renderizarSemana();
@@ -856,7 +844,6 @@
       renderizarSemana();
     };
 
-    // Menú superior
     const menuPanel = document.getElementById("menuPanel");
     document.getElementById("menu").onclick = (e) => {
       e.stopPropagation();
@@ -864,7 +851,6 @@
     };
     document.addEventListener("click", () => { menuPanel.style.display = "none"; });
 
-    // Inicialización
     (async () => {
       db = await abrirBD();
       renderizarSemana();
