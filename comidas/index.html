@@ -107,14 +107,15 @@
       align-items: center;
     }
     .icono-toma svg { width: 22px; height: 22px; stroke: #444; }
+    
     .fila-dia {
       display: grid;
       grid-template-columns: 70px 1fr 1fr 1fr;
       align-items: center;
       border-top: 1px solid #a8d5e5;
-      padding: 10px 0;
+      padding: 8px 0;
       border-radius: 6px;
-      min-height: 55px;
+      min-height: 65px;
     }
     .fila-dia.hoy { background-color: var(--gris-hoy); }
     .col-dia {
@@ -126,25 +127,45 @@
     .col-dia .nombre-dia { font-size: 15px; }
     .col-dia .num-dia { font-size: 15px; }
 
+    /* Estilo de la celda de contenido con platos e insignia con borde */
     .celda-contenido {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      padding: 0 4px;
-      text-align: center;
-      font-size: 13px;
+      justify-content: center;
+      padding: 2px 4px;
+      gap: 4px;
+      width: 100%;
+    }
+    .lista-platos-celda {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+      align-items: center;
+    }
+    .plato-item-badge {
+      background: #fff;
+      border: 1px solid #b2dfdb;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 14px;
       font-weight: 600;
-      color: #333;
+      color: #2c3e50;
+      text-align: center;
+      width: 95%;
       word-break: break-word;
+      line-height: 1.2;
     }
     .btn-mas {
       background: none;
       border: 0;
       color: #1b9de2;
-      font-size: 24px;
+      font-size: 22px;
       font-weight: bold;
       cursor: pointer;
-      padding: 4px 12px;
+      padding: 0 8px;
+      line-height: 1;
     }
 
     /* Modal de selección */
@@ -443,9 +464,10 @@
         const fechaStr = formatearFechaStr(d);
         const esHoy = d.getTime() === hoy.getTime();
 
-        const desayuno = (await pedir(store.get(`${fechaStr}_desayuno`)))?.plato || "";
-        const comida = (await pedir(store.get(`${fechaStr}_comida`)))?.plato || "";
-        const cena = (await pedir(store.get(`${fechaStr}_cena`)))?.plato || "";
+        // Ahora permitimos múltiples platos guardados en formato de array por slot
+        const desayunoArr = (await pedir(store.get(`${fechaStr}_desayuno`)))?.platos || [];
+        const comidaArr = (await pedir(store.get(`${fechaStr}_comida`)))?.platos || [];
+        const cenaArr = (await pedir(store.get(`${fechaStr}_cena`)))?.platos || [];
 
         const fila = document.createElement("div");
         fila.className = "fila-dia" + (esHoy ? " hoy" : "");
@@ -455,12 +477,26 @@
             <div class="nombre-dia">${DIAS[i]}</div>
             <div class="num-dia">${d.getDate()}</div>
           </div>
-          <div class="celda-contenido">${desayuno ? desayuno : `<button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'desayuno')">+</button>`}</div>
-          <div class="celda-contenido">${comida ? comida : `<button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'comida')">+</button>`}</div>
-          <div class="celda-contenido">${cena ? cena : `<button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'cena')">+</button>`}</div>
+          <div class="celda-contenido">
+            <div class="lista-platos-celda">${generarHtmlPlatos(desayunoArr)}</div>
+            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'desayuno')">+</button>
+          </div>
+          <div class="celda-contenido">
+            <div class="lista-platos-celda">${generarHtmlPlatos(comidaArr)}</div>
+            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'comida')">+</button>
+          </div>
+          <div class="celda-contenido">
+            <div class="lista-platos-celda">${generarHtmlPlatos(cenaArr)}</div>
+            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'cena')">+</button>
+          </div>
         `;
         cont.appendChild(fila);
       }
+    }
+
+    function generarHtmlPlatos(arrayPlatos) {
+      if (!arrayPlatos || arrayPlatos.length === 0) return "";
+      return arrayPlatos.map(plato => `<div class="plato-item-badge">${plato}</div>`).join("");
     }
 
     // Modal Selección de plato
@@ -473,24 +509,21 @@
       document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
       document.getElementById("listaPlatos").style.display = "block";
       
-      await cargarListaPlatos(""); // Carga todos los platos ordenados alfabéticamente
+      await cargarListaPlatos("");
       document.getElementById("modalSeleccion").classList.add("abierto");
       document.getElementById("inputBuscar").focus();
     }
 
-    // Cargar y filtrar platos ordenados alfabéticamente
     async function cargarListaPlatos(filtro) {
       const tx = db.transaction("platos", "readonly");
       const platos = await pedir(tx.objectStore("platos").getAll());
       
-      // Ordenar alfabéticamente por nombre (A-Z)
       platos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
 
       const listaEl = document.getElementById("listaPlatos");
       listaEl.innerHTML = "";
 
       const txt = filtro.trim().toLowerCase();
-      // Filtrar platos que EMPIECEN por las letras escritas (ej: A, Ar...)
       const filtrados = txt 
         ? platos.filter(p => p.nombre.toLowerCase().startsWith(txt))
         : platos;
@@ -559,7 +592,6 @@
       const tx = db.transaction("ingredientes_base", "readonly");
       const todos = await pedir(tx.objectStore("ingredientes_base").getAll());
       
-      // Ordenar sugerencias alfabéticamente y filtrar los que empiecen por el texto
       todos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
       const coincidencias = todos.filter(i => i.nombre.toLowerCase().startsWith(txt));
 
@@ -630,15 +662,27 @@
 
     async function guardarAsignacion() {
       if (!slotActivo || !platoSeleccionado) return;
+      const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
+      
       const tx = db.transaction("menu", "readwrite");
-      tx.objectStore("menu").put({ id: `${slotActivo.fechaStr}_${slotActivo.toma}`, plato: platoSeleccionado });
+      const store = tx.objectStore("menu");
+      const actualObj = await pedir(store.get(keyId));
+      
+      let platosActuales = actualObj?.platos || [];
+      // Añadir el nuevo plato sin sobrescribir los anteriores (permite múltiples platos)
+      if (!platosActuales.includes(platoSeleccionado)) {
+        platosActuales.push(platoSeleccionado);
+      }
+
+      store.put({ id: keyId, platos: platosActuales });
+
       tx.oncomplete = () => {
         document.getElementById("modalSeleccion").classList.remove("abierto");
         renderizarSemana();
       };
     }
 
-    // Guardar nuevo plato y sus ingredientes
+    // Guardar nuevo plato y sus ingredientes, y asignarlo al día
     document.getElementById("btnAceptarNuevo").onclick = async () => {
       const nombre = document.getElementById("inputNuevoNombre").value.trim();
       if (!nombre) return;
@@ -646,16 +690,21 @@
       const pend = inputIng.value.trim();
       if (pend) anadirIngrediente(pend);
 
+      const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
       const tx = db.transaction(["platos", "menu", "ingredientes_base"], "readwrite");
-      const stPlatos = tx.objectStore("platos");
+      
+      tx.objectStore("platos").put({ nombre, ingredientes: listaIngredientesNuevos });
+      
       const stMenu = tx.objectStore("menu");
-      const stIng = tx.objectStore("ingredientes_base");
-
-      stPlatos.put({ nombre, ingredientes: listaIngredientesNuevos });
-      stMenu.put({ id: `${slotActivo.fechaStr}_${slotActivo.toma}`, plato: nombre });
+      const actualObj = await pedir(stMenu.get(keyId));
+      let platosActuales = actualObj?.platos || [];
+      if (!platosActuales.includes(nombre)) {
+        platosActuales.push(nombre);
+      }
+      stMenu.put({ id: keyId, platos: platosActuales });
 
       listaIngredientesNuevos.forEach(ing => {
-        stIng.put({ nombre: ing });
+        tx.objectStore("ingredientes_base").put({ nombre: ing });
       });
 
       tx.oncomplete = () => {
