@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Mi lista</title>
   <style>
-    :root { --azul: #1b9de2; --fondo: #f6f6f6; }
+    :root { --azul: #1b9de2; --fondo: #f6f6f6; --rojo: #e53935; }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; }
     body {
@@ -23,6 +23,18 @@
       background: none; border: 0; color: var(--azul);
       font-size: 20px; font-weight: 700; padding: 4px;
     }
+
+    /* Menú de los tres puntos */
+    #menuPanel {
+      display: none; position: absolute; right: 12px; top: calc(100% - 4px); z-index: 6;
+      min-width: 190px; background: #fff; border: 1px solid #ddd; border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.2); overflow: hidden;
+    }
+    #menuPanel button {
+      display: block; width: 100%; text-align: left; background: none; border: 0;
+      border-top: 1px solid #eee; padding: 14px 16px; font-size: 18px; font-weight: 500; color: #111;
+    }
+    #menuPanel button:first-child { border-top: 0; }
 
     /* Sugerencias al escribir */
     #sugerencias {
@@ -44,7 +56,7 @@
       box-shadow: 0 6px 18px rgba(0,0,0,.3);
     }
     .seccion {
-      position: relative; display: flex; align-items: center; justify-content: center; gap: 6px;
+      position: relative; display: flex; align-items: center; justify-content: center;
       background: var(--azul); color: #fff; font-size: 17px; padding: 6px 56px;
       user-select: none; -webkit-user-select: none; border-bottom: 1px solid #eee;
     }
@@ -57,56 +69,76 @@
     /* Cada fila: detrás hay dos botones (azul a la izquierda, rojo a la derecha) y el item se desliza por encima */
     .fila { position: relative; overflow: hidden; border-bottom: 1px solid #eee; }
     .borrar, .editar {
-      position: absolute; top: 0; bottom: 0; width: 80px; color: #fff; border: 0;
+      position: absolute; top: 0; padding: 0; color: #fff; border: 0;
       display: flex; align-items: center; justify-content: center;
     }
-    .borrar { right: 0; background: #e53935; }
-    .editar { left: 0; background: var(--azul); }
+    .borrar { right: 0; bottom: 0; width: 80px; background: var(--rojo); }
+    /* Cuadrado: el ancho es igual al alto de la fila */
+    .editar { left: 0; height: 100%; width: auto; aspect-ratio: 1 / 1; background: var(--azul); }
     .item {
       position: relative; display: flex; align-items: center; justify-content: space-between;
-      background: #fff; padding: 10px 16px; font-size: 30px; font-weight: 600;
+      background: #fff; font-weight: 600;
+      padding: 4px 16px;
+      font-size: 33px;
       touch-action: pan-y; user-select: none; -webkit-user-select: none;
     }
     .item.tachado span { text-decoration: line-through; color: #999; }
-    .item button { background: none; border: 0; color: var(--azul); padding: 8px; }
 
+    /* Pantallas de mantenimiento (Alimentos y Categorías) */
+    #pantalla {
+      display: none; position: fixed; inset: 0; z-index: 25; background: var(--fondo);
+      flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+    }
+    #pantalla.abierta { display: flex; }
+    .cabecera {
+      position: relative; display: flex; align-items: center; justify-content: center;
+      padding: 14px; background: var(--azul); color: #fff; font-size: 18px; font-weight: 600;
+    }
+    .cabecera button {
+      position: absolute; left: 0; top: 0; bottom: 0; padding: 0 14px;
+      background: none; border: 0; color: #fff; font-size: 17px;
+    }
+    #contenidoPantalla { flex: 1; overflow-y: auto; }
+    .registro {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      background: #fff; border-bottom: 1px solid #eee; padding: 14px 16px;
+      font-size: 20px; font-weight: 600;
+    }
+    .registro small { color: #888; font-size: 14px; font-weight: 400; text-align: right; }
+    .vacio { padding: 24px 16px; color: #888; text-align: center; }
+
+    /* Ventanas pequeñas (editar y confirmar) */
     .velo {
-      position: fixed; inset: 0; background: rgba(0,0,0,.4);
+      position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.4);
       display: none; align-items: center; justify-content: center;
     }
     .velo.abierto { display: flex; }
+    .velo-confirmar { z-index: 40; }
     .caja {
       background: #fff; border-radius: 14px; width: min(80%, 320px);
       max-height: 70%; overflow-y: auto; padding: 8px 0;
     }
     .caja h2 { margin: 0; padding: 10px 16px; font-size: 15px; color: #666; font-weight: 600; }
-    .caja button {
-      display: block; width: 100%; text-align: left; background: none;
-      border: 0; border-top: 1px solid #eee; padding: 12px 16px; font-size: 18px;
-    }
-    .caja button.actual { color: var(--azul); font-weight: 700; }
-    .nueva { display: flex; gap: 8px; align-items: center; padding: 10px 16px 6px; border-top: 1px solid #eee; }
-    .nueva input { flex: 1; min-width: 0; font-size: 16px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; }
-    .nueva button { width: auto; border: 0; padding: 8px 4px; color: var(--azul); font-weight: 700; font-size: 18px; }
-
-    /* Ventana para editar un alimento */
+    .caja .mensaje { margin: 0; padding: 8px 16px 0; font-size: 17px; line-height: 1.35; }
     .editor { padding: 0 16px 8px; }
     .editor label { display: block; font-size: 13px; color: #666; margin: 12px 0 4px; }
     .editor input, .editor select {
       width: 100%; font-size: 16px; padding: 10px;
       border: 1px solid #ddd; border-radius: 8px; background: #fff;
     }
-    .editor .acciones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
-    .editor .acciones button {
-      display: inline-block; width: auto; border: 0; background: none;
-      padding: 8px 12px; font-size: 18px; color: var(--azul); font-weight: 600;
+    .acciones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding: 0 8px 4px; }
+    .acciones button {
+      border: 0; background: none; padding: 8px 12px;
+      font-size: 18px; color: var(--azul); font-weight: 600;
     }
-    .editor .acciones .guardar { font-weight: 700; }
+    .acciones .guardar { font-weight: 700; }
+    .acciones .peligro { color: var(--rojo); font-weight: 700; }
+    .acciones .izquierda { margin-right: auto; }
 
     /* Mensaje: aparece al instante y se desvanece despacio al quitar .visible */
     #aviso {
       position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 70px);
-      transform: translateX(-50%); z-index: 20; white-space: nowrap;
+      transform: translateX(-50%); z-index: 50; width: max-content; max-width: 90vw; text-align: center;
       background: #333; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 16px;
       opacity: 0; pointer-events: none; transition: opacity 1s;
     }
@@ -119,30 +151,49 @@
     <button id="ok">Ok</button>
     <button id="menu">···</button>
     <div id="sugerencias"></div>
+    <div id="menuPanel">
+      <button id="menuEliminar">Eliminar</button>
+      <button id="menuAlimentos">Alimentos</button>
+      <button id="menuCategorias">Categorías</button>
+    </div>
   </div>
 
   <div id="lista"></div>
 
+  <div id="pantalla">
+    <div class="cabecera">
+      <button id="atras">‹ Atrás</button>
+      <span id="tituloPantalla"></span>
+    </div>
+    <div id="contenidoPantalla"></div>
+  </div>
+
   <div class="velo" id="velo"><div class="caja" id="caja"></div></div>
+  <div class="velo velo-confirmar" id="veloConfirmar"><div class="caja" id="cajaConfirmar"></div></div>
   <div id="aviso"></div>
 
   <script>
     const SECCIONES_INICIALES = ["Otros", "Fruta", "Verdura", "Carne", "Pescado", "Lácteos", "Panadería", "Limpieza"];
     const SECCION_POR_DEFECTO = "otros";
+    const OPCION_NUEVA = "__nueva__"; // opción "Nueva categoría…" del desplegable
 
-    const ICONO_CAPAS = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 8l11 6 11-6-11-6zm0 14.5L3.6 12 1 13.4l11 6.1 11-6.1-2.6-1.4L12 16.5zm0 4L3.6 16 1 17.4l11 6.1 11-6.1-2.6-1.4L12 20.5z"/></svg>';
     const ICONO_ASA = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 8h16M4 12h16M4 16h16"/></svg>';
     const ICONO_LAPIZ = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
-    const ICONO_LAPIZ_GRANDE = ICONO_LAPIZ.replace('width="22" height="22"', 'width="26" height="26"');
     const ICONO_PAPELERA = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
 
-    const ANCHO_BOTON = 80; // debe coincidir con el width de .borrar y .editar
+    const ANCHO_PAPELERA = 80; // debe coincidir con el width de .borrar
 
     const entrada = document.getElementById("entrada");
     const sugerenciasEl = document.getElementById("sugerencias");
+    const menuPanel = document.getElementById("menuPanel");
     const lista = document.getElementById("lista");
+    const pantalla = document.getElementById("pantalla");
+    const tituloPantalla = document.getElementById("tituloPantalla");
+    const contenidoPantalla = document.getElementById("contenidoPantalla");
     const velo = document.getElementById("velo");
     const caja = document.getElementById("caja");
+    const veloConfirmar = document.getElementById("veloConfirmar");
+    const cajaConfirmar = document.getElementById("cajaConfirmar");
     const avisoEl = document.getElementById("aviso");
 
     const clave = texto => texto.trim().toLowerCase();
@@ -154,6 +205,7 @@
       return t.charAt(0).toLocaleUpperCase("es") + t.slice(1);
     };
     const porOrden = (a, b) => (a.orden ?? 9999) - (b.orden ?? 9999);
+    const porNombre = (a, b) => a.nombre.localeCompare(b.nombre, "es");
     // Un alimento está en la lista salvo que se haya quitado (los antiguos sin marca cuentan como "en la lista")
     const enLista = a => a.enLista !== false;
     const pedir = req => new Promise((ok, fallo) => {
@@ -164,7 +216,7 @@
     let db;
     const tabla = (nombre, modo = "readonly") => db.transaction(nombre, modo).objectStore(nombre);
 
-    // Base de datos: tablas "secciones" (con su orden) y "alimentos" (el catálogo de todo lo que has escrito).
+    // Base de datos: tablas "secciones" (las categorías, con su orden) y "alimentos" (el catálogo de alimentos).
     // La clave (nombre en minúsculas) hace que no se puedan repetir.
     function abrirBD() {
       return new Promise((ok, fallo) => {
@@ -180,12 +232,12 @@
       });
     }
 
-    // Guarda varias secciones de una vez
-    function escribirSecciones(secciones) {
+    // Guarda varios registros de una tabla de una vez
+    function escribir(nombreTabla, registros) {
       return new Promise((ok, fallo) => {
-        const t = db.transaction("secciones", "readwrite");
-        const st = t.objectStore("secciones");
-        secciones.forEach(s => st.put(s));
+        const t = db.transaction(nombreTabla, "readwrite");
+        const st = t.objectStore(nombreTabla);
+        registros.forEach(r => st.put(r));
         t.oncomplete = ok;
         t.onerror = () => fallo(t.error);
       });
@@ -199,7 +251,7 @@
       const pos = s => { const i = base.indexOf(s.clave); return i === -1 ? 1000 : i; };
       secciones.sort((a, b) => pos(a) - pos(b));
       secciones.forEach((s, i) => { s.orden = i; });
-      await escribirSecciones(secciones);
+      await escribir("secciones", secciones);
     }
 
     // Pone en el formato correcto los alimentos que ya estaban guardados
@@ -220,6 +272,36 @@
       avisoEl.classList.add("visible");
       clearTimeout(temporizadorAviso);
       temporizadorAviso = setTimeout(() => avisoEl.classList.remove("visible"), 2000);
+    }
+
+    // Ventana de confirmación: devuelve true si se acepta y false si se cancela
+    function confirmar(mensaje, textoAceptar) {
+      return new Promise(resolver => {
+        cajaConfirmar.innerHTML = "";
+        const texto = document.createElement("p");
+        texto.className = "mensaje";
+        texto.textContent = mensaje;
+
+        const acciones = document.createElement("div");
+        acciones.className = "acciones";
+        const cancelar = document.createElement("button");
+        cancelar.textContent = "Cancelar";
+        const aceptar = document.createElement("button");
+        aceptar.className = "peligro";
+        aceptar.textContent = textoAceptar;
+
+        const cerrar = valor => {
+          veloConfirmar.classList.remove("abierto");
+          resolver(valor);
+        };
+        cancelar.onclick = () => cerrar(false);
+        aceptar.onclick = () => cerrar(true);
+        veloConfirmar.onclick = e => { if (e.target === veloConfirmar) cerrar(false); };
+
+        acciones.append(cancelar, aceptar);
+        cajaConfirmar.append(texto, acciones);
+        veloConfirmar.classList.add("abierto");
+      });
     }
 
     // Vuelve a poner en la lista un alimento que ya estaba guardado en el catálogo
@@ -245,7 +327,7 @@
       const nombreSeccion = Object.fromEntries(secciones.map(s => [s.clave, s.nombre]));
       const coincidencias = alimentos
         .filter(a => normalizar(a.nombre).startsWith(texto))
-        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+        .sort(porNombre);
 
       sugerenciasEl.innerHTML = "";
       if (!coincidencias.length) {
@@ -285,7 +367,7 @@
           aviso("Ya está en la lista");
           return;
         }
-        await ponerEnLista(existente); // estaba guardado: vuelve a su sección
+        await ponerEnLista(existente); // estaba guardado: vuelve a su categoría
       } else {
         await pedir(tabla("alimentos", "readwrite").add({
           clave: clave(nombre), nombre, seccion: SECCION_POR_DEFECTO, tachado: false, enLista: true
@@ -303,7 +385,7 @@
       for (const s of secciones) {
         const items = alimentos
           .filter(a => a.seccion === s.clave && enLista(a))
-          .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+          .sort(porNombre);
         if (!items.length) continue; // una sección sin alimentos en la lista no se muestra
 
         const grupo = document.createElement("div");
@@ -312,8 +394,9 @@
 
         const cab = document.createElement("div");
         cab.className = "seccion";
-        cab.innerHTML = ICONO_CAPAS + "<span></span>";
-        cab.querySelector("span").textContent = s.nombre;
+        const tituloSeccion = document.createElement("span");
+        tituloSeccion.textContent = s.nombre;
+        cab.appendChild(tituloSeccion);
         const asa = document.createElement("div");
         asa.className = "asa";
         asa.innerHTML = ICONO_ASA;
@@ -325,10 +408,10 @@
           const fila = document.createElement("div");
           fila.className = "fila";
 
-          // Botón azul (aparece al deslizar a la derecha)
+          // Botón azul cuadrado (aparece al deslizar a la derecha)
           const editar = document.createElement("button");
           editar.className = "editar";
-          editar.innerHTML = ICONO_LAPIZ_GRANDE;
+          editar.innerHTML = ICONO_LAPIZ;
           editar.setAttribute("aria-label", "Editar");
 
           // Botón rojo (aparece al deslizar a la izquierda)
@@ -342,18 +425,14 @@
           item.className = "item" + (a.tachado ? " tachado" : "");
           const nombre = document.createElement("span");
           nombre.textContent = a.nombre;
-          const lapiz = document.createElement("button");
-          lapiz.innerHTML = ICONO_LAPIZ;
-          lapiz.setAttribute("aria-label", "Cambiar sección");
-          lapiz.onclick = () => abrirSelector(a);
-          item.append(nombre, lapiz);
+          item.appendChild(nombre);
 
           fila.append(editar, papelera, item);
           grupo.appendChild(fila);
-          activarGestos(item, a);
+          activarGestos(item, a, editar);
           editar.onclick = () => {
             item.cerrarFila();
-            abrirEditor(a);
+            abrirEditor(a, false);
           };
         }
 
@@ -421,16 +500,17 @@
       });
       const porClave = Object.fromEntries(todas.map(s => [s.clave, s]));
       const nuevas = orden.map((c, i) => { porClave[c].orden = i; return porClave[c]; });
-      await escribirSecciones(nuevas);
+      await escribir("secciones", nuevas);
     }
 
     // Pulsar = tachar/destachar.
-    // Deslizar a la izquierda = papelera (roja). Deslizar a la derecha = editar (azul).
-    function activarGestos(item, alimento) {
+    // Deslizar a la izquierda = papelera (roja). Deslizar a la derecha = editar (azul, cuadrado).
+    function activarGestos(item, alimento, editar) {
       let x0 = 0, y0 = 0, dx = 0;
       let activo = false, arrastrando = false;
-      let reposo = 0; // 0 = cerrado, -ANCHO_BOTON = papelera visible, ANCHO_BOTON = lápiz visible
+      let reposo = 0; // 0 = cerrado; negativo = papelera visible; positivo = cuadro azul visible
 
+      const anchoEditar = () => editar.offsetWidth; // el cuadrado mide lo mismo que el alto de la fila
       const mover = px => { item.style.transform = "translateX(" + px + "px)"; };
 
       // Permite cerrar la fila desde fuera (al abrir la ventana de edición)
@@ -441,7 +521,6 @@
       };
 
       item.addEventListener("pointerdown", e => {
-        if (e.target.closest("button")) return; // el lápiz de la derecha va aparte
         activo = true;
         arrastrando = false;
         x0 = e.clientX;
@@ -459,7 +538,7 @@
           item.setPointerCapture(e.pointerId);
         }
         if (arrastrando) {
-          mover(Math.max(-ANCHO_BOTON, Math.min(ANCHO_BOTON, reposo + dx)));
+          mover(Math.max(-ANCHO_PAPELERA, Math.min(anchoEditar(), reposo + dx)));
         }
       });
 
@@ -469,8 +548,8 @@
         item.style.transition = "transform .2s";
         if (arrastrando) {
           const final = reposo + dx;
-          if (final < -ANCHO_BOTON / 2) reposo = -ANCHO_BOTON;
-          else if (final > ANCHO_BOTON / 2) reposo = ANCHO_BOTON;
+          if (final < -ANCHO_PAPELERA / 2) reposo = -ANCHO_PAPELERA;
+          else if (final > anchoEditar() / 2) reposo = anchoEditar();
           else reposo = 0;
           mover(reposo);
         } else if (e.type === "pointerup") {
@@ -500,8 +579,105 @@
       pintar();
     }
 
-    // Ventana para cambiar el nombre y la sección de un alimento
-    async function abrirEditor(alimento) {
+    // Menú ··· > Eliminar: quita de la lista todos los alimentos tachados (con confirmación)
+    async function eliminarTachados() {
+      const alimentos = await pedir(tabla("alimentos").getAll());
+      const tachados = alimentos.filter(a => enLista(a) && a.tachado);
+      if (!tachados.length) {
+        aviso("No hay alimentos tachados");
+        return;
+      }
+      const pregunta = tachados.length === 1
+        ? "¿Eliminar de la lista el alimento tachado?"
+        : "¿Eliminar de la lista los " + tachados.length + " alimentos tachados?";
+      if (!(await confirmar(pregunta, "Eliminar"))) return;
+      tachados.forEach(a => { a.enLista = false; a.tachado = false; });
+      await escribir("alimentos", tachados);
+      pintar();
+    }
+
+    // Devuelve la clave de una categoría; si no existe, la crea al final de las demás
+    async function asegurarSeccion(texto) {
+      const nombre = texto.trim().replace(/\s+/g, " ");
+      const todas = await pedir(tabla("secciones").getAll());
+      const existente = todas.find(s => s.clave === clave(nombre));
+      if (existente) return existente.clave;
+      const orden = todas.reduce((m, s) => Math.max(m, s.orden ?? 0), -1) + 1;
+      await pedir(tabla("secciones", "readwrite").add({ clave: clave(nombre), nombre, orden }));
+      return clave(nombre);
+    }
+
+    // ---------- Pantallas de mantenimiento ----------
+    let pantallaActual = null; // "alimentos" o "categorias"
+
+    function abrirPantalla(tipo, titulo) {
+      pantallaActual = tipo;
+      tituloPantalla.textContent = titulo;
+      pantalla.classList.add("abierta");
+    }
+
+    // Vuelve a dibujar la pantalla de mantenimiento si está abierta (conserva el desplazamiento)
+    async function refrescarPantalla() {
+      if (!pantalla.classList.contains("abierta")) return;
+      const y = contenidoPantalla.scrollTop;
+      if (pantallaActual === "alimentos") await mostrarAlimentos();
+      else await mostrarCategorias();
+      contenidoPantalla.scrollTop = y;
+    }
+
+    // Menú ··· > Alimentos: todos los alimentos de la base de datos, por orden alfabético
+    async function mostrarAlimentos() {
+      abrirPantalla("alimentos", "Alimentos");
+      const alimentos = (await pedir(tabla("alimentos").getAll())).sort(porNombre);
+      const secciones = await pedir(tabla("secciones").getAll());
+      const nombreSeccion = Object.fromEntries(secciones.map(s => [s.clave, s.nombre]));
+
+      contenidoPantalla.innerHTML = "";
+      if (!alimentos.length) {
+        const vacio = document.createElement("div");
+        vacio.className = "vacio";
+        vacio.textContent = "Todavía no hay alimentos";
+        contenidoPantalla.appendChild(vacio);
+        return;
+      }
+      for (const a of alimentos) {
+        const fila = document.createElement("div");
+        fila.className = "registro";
+        const nombre = document.createElement("span");
+        nombre.textContent = a.nombre;
+        const categoria = document.createElement("small");
+        // La marca ✓ indica que está en la lista
+        categoria.textContent = (enLista(a) ? "✓ " : "") + (nombreSeccion[a.seccion] || "");
+        fila.append(nombre, categoria);
+        fila.onclick = () => abrirEditor(a, true);
+        contenidoPantalla.appendChild(fila);
+      }
+    }
+
+    // Menú ··· > Categorías: todas las categorías por orden alfabético, con su número de alimentos
+    async function mostrarCategorias() {
+      abrirPantalla("categorias", "Categorías");
+      const secciones = (await pedir(tabla("secciones").getAll())).sort(porNombre);
+      const alimentos = await pedir(tabla("alimentos").getAll());
+
+      contenidoPantalla.innerHTML = "";
+      for (const s of secciones) {
+        const total = alimentos.filter(a => a.seccion === s.clave).length;
+        const fila = document.createElement("div");
+        fila.className = "registro";
+        const nombre = document.createElement("span");
+        nombre.textContent = s.nombre;
+        const cuantos = document.createElement("small");
+        cuantos.textContent = total === 1 ? "1 alimento" : total + " alimentos";
+        fila.append(nombre, cuantos);
+        fila.onclick = () => abrirEditorCategoria(s);
+        contenidoPantalla.appendChild(fila);
+      }
+    }
+
+    // Ventana para cambiar el nombre y la categoría de un alimento.
+    // Si viene de Alimentos (mantenimiento) también permite eliminarlo de la base de datos.
+    async function abrirEditor(alimento, mantenimiento) {
       const secciones = (await pedir(tabla("secciones").getAll())).sort(porOrden);
       caja.innerHTML = "";
 
@@ -520,7 +696,7 @@
       campo.autocomplete = "off";
 
       const etiquetaSeccion = document.createElement("label");
-      etiquetaSeccion.textContent = "Sección";
+      etiquetaSeccion.textContent = "Categoría";
       const desplegable = document.createElement("select");
       for (const s of secciones) {
         const o = document.createElement("option");
@@ -529,9 +705,43 @@
         if (s.clave === alimento.seccion) o.selected = true;
         desplegable.appendChild(o);
       }
+      const opcionNueva = document.createElement("option");
+      opcionNueva.value = OPCION_NUEVA;
+      opcionNueva.textContent = "+ Nueva categoría…";
+      desplegable.appendChild(opcionNueva);
+
+      // Casilla para escribir el nombre de una categoría nueva (solo se ve si eliges "Nueva categoría…")
+      const campoNueva = document.createElement("input");
+      campoNueva.type = "text";
+      campoNueva.placeholder = "Nombre de la nueva categoría";
+      campoNueva.autocomplete = "off";
+      campoNueva.style.display = "none";
+      campoNueva.style.marginTop = "8px";
+      desplegable.onchange = () => {
+        const nueva = desplegable.value === OPCION_NUEVA;
+        campoNueva.style.display = nueva ? "block" : "none";
+        if (nueva) campoNueva.focus();
+      };
 
       const acciones = document.createElement("div");
       acciones.className = "acciones";
+
+      if (mantenimiento) {
+        const eliminar = document.createElement("button");
+        eliminar.className = "peligro izquierda";
+        eliminar.textContent = "Eliminar";
+        eliminar.onclick = async () => {
+          const pregunta = "¿Eliminar «" + alimento.nombre + "» de los alimentos?" +
+            (enLista(alimento) ? " También se quitará de la lista." : "");
+          if (!(await confirmar(pregunta, "Eliminar"))) return;
+          await pedir(tabla("alimentos", "readwrite").delete(alimento.clave));
+          velo.classList.remove("abierto");
+          await pintar();
+          refrescarPantalla();
+        };
+        acciones.appendChild(eliminar);
+      }
+
       const cancelar = document.createElement("button");
       cancelar.textContent = "Cancelar";
       cancelar.onclick = () => velo.classList.remove("abierto");
@@ -545,24 +755,34 @@
           aviso("Escribe un nombre");
           return;
         }
-        const guardado = await guardarEdicion(alimento, nombre, desplegable.value);
+        let seccion = desplegable.value;
+        if (seccion === OPCION_NUEVA) {
+          if (!campoNueva.value.trim()) {
+            aviso("Escribe el nombre de la categoría");
+            return;
+          }
+          seccion = await asegurarSeccion(campoNueva.value);
+        }
+        const guardado = await guardarEdicion(alimento, nombre, seccion);
         if (!guardado) {
           aviso("Ya existe ese alimento");
           return;
         }
         velo.classList.remove("abierto");
-        pintar();
+        await pintar();          // si está en la lista, se actualiza su nombre y su categoría
+        refrescarPantalla();
       };
       guardar.onclick = guardarCambios;
       campo.onkeydown = e => { if (e.key === "Enter") guardarCambios(); };
+      campoNueva.onkeydown = e => { if (e.key === "Enter") guardarCambios(); };
 
       acciones.append(cancelar, guardar);
-      editor.append(etiquetaNombre, campo, etiquetaSeccion, desplegable, acciones);
+      editor.append(etiquetaNombre, campo, etiquetaSeccion, desplegable, campoNueva, acciones);
       caja.appendChild(editor);
       velo.classList.add("abierto");
     }
 
-    // Guarda el nombre y la sección nuevos. Como el nombre es la clave del registro,
+    // Guarda el nombre y la categoría nuevos. Como el nombre es la clave del registro,
     // si cambia hay que crear el nuevo y borrar el antiguo (devuelve false si ya existe otro igual).
     function guardarEdicion(alimento, nombre, seccion) {
       return new Promise((ok, fallo) => {
@@ -585,75 +805,171 @@
       });
     }
 
-    async function abrirSelector(alimento) {
-      const secciones = (await pedir(tabla("secciones").getAll())).sort(porOrden);
+    // Ventana para cambiar el nombre de una categoría o eliminarla
+    async function abrirEditorCategoria(categoria) {
+      if (categoria.clave === SECCION_POR_DEFECTO) {
+        aviso("La categoría Otros no se puede modificar");
+        return;
+      }
       caja.innerHTML = "";
+
       const titulo = document.createElement("h2");
-      titulo.textContent = "Sección de " + alimento.nombre;
+      titulo.textContent = "Editar categoría";
       caja.appendChild(titulo);
 
-      for (const s of secciones) {
-        const b = document.createElement("button");
-        b.textContent = s.nombre;
-        if (s.clave === alimento.seccion) b.className = "actual";
-        b.onclick = () => mover(alimento, s.clave);
-        caja.appendChild(b);
-      }
-
-      // Casilla para escribir una sección nueva
-      const nueva = document.createElement("div");
-      nueva.className = "nueva";
+      const editor = document.createElement("div");
+      editor.className = "editor";
+      const etiqueta = document.createElement("label");
+      etiqueta.textContent = "Nombre";
       const campo = document.createElement("input");
       campo.type = "text";
-      campo.placeholder = "Nueva sección";
+      campo.value = categoria.nombre;
       campo.autocomplete = "off";
-      const guardar = document.createElement("button");
-      guardar.textContent = "Ok";
-      const crear = () => crearSeccion(alimento, campo.value);
-      guardar.onclick = crear;
-      campo.onkeydown = e => { if (e.key === "Enter") crear(); };
-      nueva.append(campo, guardar);
-      caja.appendChild(nueva);
 
+      const acciones = document.createElement("div");
+      acciones.className = "acciones";
+
+      const eliminar = document.createElement("button");
+      eliminar.className = "peligro izquierda";
+      eliminar.textContent = "Eliminar";
+      eliminar.onclick = async () => {
+        const alimentos = await pedir(tabla("alimentos").getAll());
+        const total = alimentos.filter(a => a.seccion === categoria.clave).length;
+        let pregunta = "¿Eliminar la categoría «" + categoria.nombre + "»?";
+        if (total === 1) pregunta += " Su alimento pasará a «Otros».";
+        else if (total > 1) pregunta += " Sus " + total + " alimentos pasarán a «Otros».";
+        if (!(await confirmar(pregunta, "Eliminar"))) return;
+        await eliminarCategoria(categoria.clave);
+        velo.classList.remove("abierto");
+        await pintar();
+        refrescarPantalla();
+      };
+
+      const cancelar = document.createElement("button");
+      cancelar.textContent = "Cancelar";
+      cancelar.onclick = () => velo.classList.remove("abierto");
+      const guardar = document.createElement("button");
+      guardar.className = "guardar";
+      guardar.textContent = "Guardar";
+
+      const guardarCambios = async () => {
+        const nombre = campo.value.trim().replace(/\s+/g, " ");
+        if (!nombre) {
+          aviso("Escribe un nombre");
+          return;
+        }
+        if (clave(nombre) === SECCION_POR_DEFECTO) {
+          aviso("Ya existe esa categoría");
+          return;
+        }
+        const guardado = await renombrarCategoria(categoria, nombre);
+        if (!guardado) {
+          aviso("Ya existe esa categoría");
+          return;
+        }
+        velo.classList.remove("abierto");
+        await pintar();
+        refrescarPantalla();
+      };
+      guardar.onclick = guardarCambios;
+      campo.onkeydown = e => { if (e.key === "Enter") guardarCambios(); };
+
+      acciones.append(eliminar, cancelar, guardar);
+      editor.append(etiqueta, campo, acciones);
+      caja.appendChild(editor);
       velo.classList.add("abierto");
     }
 
-    async function mover(alimento, seccion) {
-      alimento.seccion = seccion;
-      await pedir(tabla("alimentos", "readwrite").put(alimento));
-      velo.classList.remove("abierto");
-      pintar();
+    // Cambia el nombre de una categoría y actualiza todos los alimentos que pertenecían a ella
+    // (devuelve false si ya existe otra categoría con ese nombre)
+    function renombrarCategoria(categoria, nombre) {
+      return new Promise((ok, fallo) => {
+        const nuevaClave = clave(nombre);
+        const t = db.transaction(["secciones", "alimentos"], "readwrite");
+        const sec = t.objectStore("secciones");
+        const alim = t.objectStore("alimentos");
+        t.oncomplete = () => ok(true);
+        t.onerror = () => fallo(t.error);
+
+        const existente = sec.get(nuevaClave);
+        existente.onsuccess = () => {
+          const cambiaClave = nuevaClave !== categoria.clave;
+          if (cambiaClave && existente.result) {
+            ok(false); // ya hay otra categoría con ese nombre: no se guarda nada
+            return;
+          }
+          if (!cambiaClave) {
+            sec.put({ ...categoria, nombre }); // solo cambian mayúsculas o espacios
+            return;
+          }
+          sec.delete(categoria.clave);
+          sec.put({ ...categoria, clave: nuevaClave, nombre });
+          const todos = alim.getAll();
+          todos.onsuccess = () => {
+            todos.result
+              .filter(a => a.seccion === categoria.clave)
+              .forEach(a => alim.put({ ...a, seccion: nuevaClave }));
+          };
+        };
+      });
     }
 
-    async function crearSeccion(alimento, texto) {
-      const nombre = texto.trim();
-      if (!nombre) return;
-      try {
-        // La sección nueva se coloca al final
-        const todas = await pedir(tabla("secciones").getAll());
-        const orden = todas.reduce((m, s) => Math.max(m, s.orden ?? 0), -1) + 1;
-        await pedir(tabla("secciones", "readwrite").add({ clave: clave(nombre), nombre, orden }));
-      } catch (e) {
-        // Si ya existe, no se duplica: se usa la que ya hay
-        if (e.name !== "ConstraintError") { console.error(e); return; }
-      }
-      await mover(alimento, clave(nombre));
+    // Elimina una categoría: todos sus alimentos pasan a "Otros"
+    function eliminarCategoria(claveCategoria) {
+      return new Promise((ok, fallo) => {
+        const t = db.transaction(["secciones", "alimentos"], "readwrite");
+        const sec = t.objectStore("secciones");
+        const alim = t.objectStore("alimentos");
+        t.oncomplete = () => ok();
+        t.onerror = () => fallo(t.error);
+
+        const todos = alim.getAll();
+        todos.onsuccess = () => {
+          todos.result
+            .filter(a => a.seccion === claveCategoria)
+            .forEach(a => alim.put({ ...a, seccion: SECCION_POR_DEFECTO }));
+          sec.delete(claveCategoria);
+        };
+      });
     }
 
+    // ---------- Eventos ----------
     velo.onclick = e => { if (e.target === velo) velo.classList.remove("abierto"); };
     document.getElementById("ok").onclick = anadir;
     entrada.onkeydown = e => { if (e.key === "Enter") anadir(); };
     entrada.addEventListener("input", sugerir);
     entrada.addEventListener("focus", sugerir);
 
-    // Al tocar fuera de la barra superior se cierran las sugerencias
+    // Botón ··· : abre y cierra el menú
+    document.getElementById("menu").onclick = () => {
+      const abierto = menuPanel.style.display === "block";
+      menuPanel.style.display = abierto ? "none" : "block";
+      sugerenciasEl.style.display = "none";
+    };
+    document.getElementById("menuEliminar").onclick = () => {
+      menuPanel.style.display = "none";
+      eliminarTachados();
+    };
+    document.getElementById("menuAlimentos").onclick = () => {
+      menuPanel.style.display = "none";
+      mostrarAlimentos();
+    };
+    document.getElementById("menuCategorias").onclick = () => {
+      menuPanel.style.display = "none";
+      mostrarCategorias();
+    };
+    document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
+
+    // Al tocar fuera se cierran las sugerencias y el menú
     document.addEventListener("pointerdown", e => {
       if (!e.target.closest(".barra")) sugerenciasEl.style.display = "none";
+      if (!e.target.closest("#menuPanel, #menu")) menuPanel.style.display = "none";
     });
 
     (async () => {
       db = await abrirBD();
       await asegurarOrden();
+      await asegurarSeccion("Otros"); // la categoría por defecto siempre debe existir
       await normalizarNombres();
       pintar();
     })();
