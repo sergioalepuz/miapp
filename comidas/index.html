@@ -465,9 +465,12 @@
 
     function abrirBD() {
       return new Promise((ok, fallo) => {
-        const req = indexedDB.open("menu_comidas_db", 1);
+        const req = indexedDB.open("menu_comidas_db", 2);
         req.onupgradeneeded = () => {
           const d = req.result;
+          if (!d.objectStoreNames.contains("alimentos")) {
+            d.createObjectStore("alimentos", { keyPath: "nombre" });
+          }
           if (!d.objectStoreNames.contains("platos")) {
             d.createObjectStore("platos", { keyPath: "nombre" });
           }
@@ -481,48 +484,6 @@
         req.onsuccess = () => ok(req.result);
         req.onerror = () => fallo(req.error);
       });
-    }
-
-    // Importación automática de alimentos de "Mi Lista"
-    // Importación automática robusta de alimentos de "Mi Lista"
-    async function importarAlimentosMiLista() {
-      const nombresBD posibles = ["mi_lista_db", "milista", "lista_db"];
-      
-      for (let nombreBD of posibles) {
-        try {
-          const reqLista = indexedDB.open(nombreBD);
-          reqLista.onsuccess = () => {
-            const dbLista = reqLista.result;
-            // Buscar cualquier almacén disponible que pueda contener los alimentos
-            const stores = Array.from(dbLista.objectStoreNames);
-            const storeName = stores.find(s => s.includes("alimento") || s.includes("producto") || s.includes("item"));
-            
-            if (storeName) {
-              const txL = dbLista.transaction(storeName, "readonly");
-              const storeL = txL.objectStore(storeName);
-              const reqAll = storeL.getAll();
-
-              reqAll.onsuccess = () => {
-                const alimentos = reqAll.result || [];
-                if (alimentos.length > 0) {
-                  const txC = db.transaction("ingredientes_base", "readwrite");
-                  const storeC = txC.objectStore("ingredientes_base");
-                  alimentos.forEach(a => {
-                    // Extraer el nombre independientemente de la estructura del objeto
-                    const nombreStr = typeof a === 'string' ? a : (a.nombre || a.key || a.titulo);
-                    if (nombreStr) {
-                      const fmt = nombreStr.charAt(0).toUpperCase() + nombreStr.slice(1).toLowerCase();
-                      storeC.put({ nombre: fmt });
-                    }
-                  });
-                }
-              };
-            }
-          };
-        } catch (e) {
-          console.log("Intentando conectar con BD:", nombreBD);
-        }
-      }
     }
 
     const pedir = req => new Promise((ok, fallo) => {
@@ -767,10 +728,19 @@
         sugerenciasIngEl.style.display = "none";
         return;
       }
-      const tx = db.transaction("ingredientes_base", "readonly");
-      const todos = await pedir(tx.objectStore("ingredientes_base").getAll());
+      // Lee tanto de ingredientes_base como de la tabla unificada de alimentos de Mi Lista
+      const tx = db.transaction(["ingredientes_base", "alimentos"], "readonly");
+      const ingBase = await pedir(tx.objectStore("ingredientes_base").getAll());
+      const alimentosLista = await pedir(tx.objectStore("alimentos").getAll());
       
+      // Combinar ambos catálogos sin duplicados
+      const mapaUnico = new Map();
+      ingBase.forEach(i => mapaUnico.set(i.nombre.toLowerCase(), i.nombre));
+      alimentosLista.forEach(a => mapaUnico.set(a.nombre.toLowerCase(), a.nombre));
+      
+      const todos = Array.from(mapaUnico.values()).map(nombre => ({ nombre }));
       todos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+
       const coincidencias = todos.filter(i => i.nombre.toLowerCase().startsWith(txt));
 
       sugerenciasIngEl.innerHTML = "";
@@ -842,7 +812,7 @@
       const pend = inputIng.value.trim();
       if (pend) anadirIngrediente(pend);
 
-      const tx = db.transaction(["platos", "menu", "ingredientes_base"], "readwrite");
+      const tx = db.transaction(["platos", "menu", "ingredientes_base", "alimentos"], "readwrite");
       
       tx.objectStore("platos").put({ nombre, ingredientes: listaIngredientesNuevos });
 
@@ -855,8 +825,10 @@
         stMenu.put({ id: keyId, platos: platosActuales });
       }
 
+      // Al guardar ingredientes nuevos, también se añaden automáticamente como alimentos en Mi Lista
       listaIngredientesNuevos.forEach(ing => {
         tx.objectStore("ingredientes_base").put({ nombre: ing });
+        tx.objectStore("alimentos").put({ nombre: ing });
       });
 
       tx.oncomplete = () => {
@@ -895,7 +867,6 @@
     // Inicialización
     (async () => {
       db = await abrirBD();
-      await importarAlimentosMiLista();
       renderizarSemana();
     })();
   </script>
