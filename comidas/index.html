@@ -796,10 +796,13 @@
       const pend = inputIng.value.trim();
       if (pend) anadirIngrediente(pend);
 
+      // Transacción que incluye tanto platos, menú, ingredientes_base como alimentos
       const tx = db.transaction(["platos", "menu", "ingredientes_base", "alimentos"], "readwrite");
       
+      // 1. Guardar el plato
       tx.objectStore("platos").put({ nombre, ingredientes: listaIngredientesNuevos });
 
+      // 2. Si se abrió desde un hueco del menú, asignarlo al día/toma
       if (slotActivo) {
         const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
         const stMenu = tx.objectStore("menu");
@@ -809,14 +812,18 @@
         stMenu.put({ id: keyId, platos: platosActuales });
       }
 
+      // 3. Sincronizar cada ingrediente con la base de datos unificada de alimentos de Mi Lista
       listaIngredientesNuevos.forEach(ing => {
+        const claveIng = ing.trim().toLowerCase();
+        // Guardar en ingredientes_base
         tx.objectStore("ingredientes_base").put({ nombre: ing });
+        // Guardar en alimentos para que aparezca en el mantenimiento de Mi Lista
         tx.objectStore("alimentos").put({
-          clave: ing.trim().toLowerCase(),
+          clave: claveIng,
           nombre: ing,
-          seccion: "otros",
+          seccion: "otros",     // Categoría por defecto en la lista
           tachado: false,
-          enLista: false
+          enLista: false        // Se guardan en el catálogo pero sin marcar como "en la lista" de compra activa
         });
       });
 
