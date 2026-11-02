@@ -147,7 +147,7 @@
       padding: 4px 12px;
     }
 
-    /* Modales de selección y creación */
+    /* Modal de selección */
     .modal {
       display: none;
       position: fixed;
@@ -203,20 +203,24 @@
     .item-plato:active { background: #f0f0f0; }
     .item-plato.seleccionado { background: #e3f2fd; color: #1b9de2; font-weight: bold; }
 
-    /* Submodal para crear plato nuevo */
-    .submodal-nuevo {
-      display: none;
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      background: #fff;
-      border-top-left-radius: 16px;
-      border-top-right-radius: 16px;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-      padding: 16px;
-      z-index: 250;
-      border: 1px solid #ddd;
+    /* Estado deshabilitado para la parte superior al crear nuevo plato */
+    .deshabilitado-gris {
+      opacity: 0.35;
+      pointer-events: none;
+      background-color: #f9f9f9;
     }
-    .submodal-nuevo.abierto { display: block; }
+
+    /* Panel desplegable debajo de la búsqueda para crear plato nuevo */
+    .panel-nuevo-plato {
+      display: none;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      z-index: 250;
+    }
+    .panel-nuevo-plato.abierto { display: block; }
+    
     .campo-form {
       position: relative;
       margin-bottom: 16px;
@@ -326,19 +330,22 @@
 
   <!-- MODAL SELECCIONAR / BUSCAR PLATO -->
   <div class="modal" id="modalSeleccion">
-    <div class="modal-header">
-      <button class="btn-texto-verde" id="btnCancelarSel">Cancelar</button>
-      <span style="font-weight: 600; font-size: 17px;" id="tituloModalSel">Seleccionar Plato</span>
-      <button class="btn-texto-verde" id="btnAceptarSel">Aceptar</button>
+    
+    <!-- Cabecera principal (se pone gris al crear plato nuevo) -->
+    <div id="zonaSuperiorModal">
+      <div class="modal-header">
+        <button class="btn-texto-verde" id="btnCancelarSel">Cancelar</button>
+        <span style="font-weight: 600; font-size: 17px;" id="tituloModalSel">Seleccionar Plato</span>
+        <button class="btn-texto-verde" id="btnAceptarSel">Aceptar</button>
+      </div>
+      <div class="buscador-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="buscador-input" id="inputBuscar" placeholder="Buscar" autocomplete="off">
+      </div>
     </div>
-    <div class="buscador-box">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" class="buscador-input" id="inputBuscar" placeholder="Buscar" autocomplete="off">
-    </div>
-    <div class="lista-platos" id="listaPlatos"></div>
 
-    <!-- Submodal para crear plato nuevo -->
-    <div class="submodal-nuevo" id="submodalNuevo">
+    <!-- Panel de creación de plato nuevo (aparece justo debajo de la búsqueda) -->
+    <div class="panel-nuevo-plato" id="panelNuevoPlato">
       <div class="modal-header" style="padding: 0 0 12px 0; border: none;">
         <button class="btn-texto-verde" id="btnCancelarNuevo">Cancelar</button>
         <span style="font-weight: 600; font-size: 16px;">Nuevo plato</span>
@@ -359,13 +366,13 @@
           Ingredientes
         </label>
         
-        <!-- Contenedor donde se muestran los ingredientes añadidos -->
         <div class="contenedor-ingredientes" id="contenedorChips"></div>
-
         <input type="text" id="inputNuevoIngrediente" placeholder="añadir..." autocomplete="off">
         <div class="sugerencias-ingredientes" id="sugerenciasIng"></div>
       </div>
     </div>
+
+    <div class="lista-platos" id="listaPlatos"></div>
   </div>
 
   <script>
@@ -376,7 +383,7 @@
     let fechaLunesActual = getLunes(new Date());
     let slotActivo = null;
     let platoSeleccionado = null;
-    let listaIngredientesNuevos = []; // Guarda la lista de ingredientes para el nuevo plato
+    let listaIngredientesNuevos = [];
 
     function abrirBD() {
       return new Promise((ok, fallo) => {
@@ -462,7 +469,11 @@
       slotActivo = { fechaStr, toma };
       platoSeleccionado = null;
       document.getElementById("inputBuscar").value = "";
-      document.getElementById("submodalNuevo").classList.remove("abierto");
+      
+      // Resetear estados visuales
+      document.getElementById("panelNuevoPlato").classList.remove("abierto");
+      document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
+      
       await cargarListaPlatos("");
       document.getElementById("modalSeleccion").classList.add("abierto");
       document.getElementById("inputBuscar").focus();
@@ -513,8 +524,19 @@
       document.getElementById("inputNuevoIngrediente").value = "";
       listaIngredientesNuevos = [];
       renderizarChipsIngredientes();
-      document.getElementById("submodalNuevo").classList.add("abierto");
+      
+      // Deshabilitar visualmente la parte superior en gris y abrir el panel debajo
+      document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
+      document.getElementById("panelNuevoPlato").classList.add("abierto");
+      document.getElementById("listaPlatos").style.display = "none"; // Ocultar lista de platos de fondo
       document.getElementById("inputNuevoIngrediente").focus();
+    }
+
+    function cerrarFormNuevoPlato() {
+      document.getElementById("panelNuevoPlato").classList.remove("abierto");
+      document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
+      document.getElementById("listaPlatos").style.display = "block";
+      document.getElementById("inputBuscar").focus();
     }
 
     // --- LÓGICA DE INGREDIENTES Y SUGERENCIAS ---
@@ -563,7 +585,6 @@
     };
 
     function anadirIngrediente(nombre) {
-      // Formatear primera letra mayúscula
       const fmt = nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase();
       if (!listaIngredientesNuevos.includes(fmt)) {
         listaIngredientesNuevos.push(fmt);
@@ -612,7 +633,6 @@
       const nombre = document.getElementById("inputNuevoNombre").value.trim();
       if (!nombre) return;
 
-      // Si hay texto pendiente en el input de ingrediente, lo añadimos
       const pend = inputIng.value.trim();
       if (pend) anadirIngrediente(pend);
 
@@ -621,17 +641,14 @@
       const stMenu = tx.objectStore("menu");
       const stIng = tx.objectStore("ingredientes_base");
 
-      // Guardar el plato
       stPlatos.put({ nombre, ingredientes: listaIngredientesNuevos });
       stMenu.put({ id: `${slotActivo.fechaStr}_${slotActivo.toma}`, plato: nombre });
 
-      // Guardar ingredientes en la base de datos global de ingredientes
       listaIngredientesNuevos.forEach(ing => {
         stIng.put({ nombre: ing });
       });
 
       tx.oncomplete = () => {
-        document.getElementById("submodalNuevo").classList.remove("abierto");
         document.getElementById("modalSeleccion").classList.remove("abierto");
         renderizarSemana();
       };
@@ -642,7 +659,7 @@
     };
 
     document.getElementById("btnCancelarNuevo").onclick = () => {
-      document.getElementById("submodalNuevo").classList.remove("abierto");
+      cerrarFormNuevoPlato();
     };
 
     // Navegación de semanas
