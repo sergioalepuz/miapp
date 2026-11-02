@@ -24,6 +24,7 @@
       flex-direction: column;
     }
 
+    /* Barra superior azul */
     .barra {
       position: relative;
       display: flex;
@@ -56,6 +57,7 @@
     .btn-hdr:active { opacity: 0.8; }
     .cont-derecha { display: flex; gap: 8px; }
 
+    /* Menú flotante de los tres puntos */
     #menuPanel {
       display: none;
       position: absolute;
@@ -80,9 +82,11 @@
       font-size: 16px;
       font-weight: 500;
       color: #111;
+      cursor: pointer;
     }
     #menuPanel button:first-child { border-top: 0; }
 
+    /* Rejilla Semanal */
     .tabla-semana {
       flex: 1;
       display: flex;
@@ -167,6 +171,7 @@
       line-height: 1;
     }
 
+    /* Modal general (Selección y Mantenimiento) */
     .modal {
       display: none;
       position: fixed;
@@ -227,6 +232,7 @@
       background-color: #f9f9f9;
     }
 
+    /* Panel de creación/edición de plato */
     .panel-nuevo-plato {
       display: none;
       background: #fff;
@@ -259,6 +265,7 @@
       outline: none;
     }
 
+    /* Chips de ingredientes */
     .contenedor-ingredientes {
       display: flex;
       flex-wrap: wrap;
@@ -287,6 +294,7 @@
       padding: 0;
     }
 
+    /* Desplegable de sugerencias */
     .sugerencias-ingredientes {
       display: none;
       position: absolute;
@@ -309,6 +317,7 @@
       background: #f5f5f5;
     }
 
+    /* Menú Flotante Estilo iOS */
     .overlay-menu {
       display: none;
       position: fixed;
@@ -360,6 +369,7 @@
 </head>
 <body>
 
+  <!-- Barra superior -->
   <div class="barra">
     <button class="btn-hdr" id="ant">‹</button>
     <div class="titulo-fecha" id="tituloFecha">--</div>
@@ -368,10 +378,11 @@
       <button class="btn-hdr" id="menu">···</button>
     </div>
     <div id="menuPanel">
-      <button id="menuExportar">Exportar a Mi Lista</button>
+      <button id="menuComidas">Comidas</button>
     </div>
   </div>
 
+  <!-- Rejilla semanal -->
   <div class="tabla-semana">
     <div class="fila-iconos">
       <div></div>
@@ -388,6 +399,7 @@
     <div id="contenedorDias"></div>
   </div>
 
+  <!-- MODAL SELECCIONAR / GESTIONAR COMIDAS -->
   <div class="modal" id="modalSeleccion">
     <div id="zonaSuperiorModal">
       <div class="modal-header">
@@ -401,6 +413,7 @@
       </div>
     </div>
 
+    <!-- Panel para crear / editar plato -->
     <div class="panel-nuevo-plato" id="panelNuevoPlato">
       <div class="modal-header" style="padding: 0 0 12px 0; border: none;">
         <button class="btn-texto-verde" id="btnCancelarNuevo">Cancelar</button>
@@ -431,6 +444,7 @@
     <div class="lista-platos" id="listaPlatos"></div>
   </div>
 
+  <!-- MENÚ FLOTANTE AL PULSAR SOBRE UN PLATO ASIGNADO EN LA REJILLA -->
   <div class="overlay-menu" id="overlayMenuPlato">
     <div class="menu-flotante-ios">
       <div class="menu-flotante-titulo" id="menuPlatoTitulo">Nombre plato</div>
@@ -448,6 +462,8 @@
     let slotActivo = null;
     let listaIngredientesNuevos = [];
     let platoActivoCtx = null;
+    let modoMantenimiento = false; // true cuando se abre desde el menú de los 3 puntos -> Comidas
+    let nombrePlatoOriginalEdicion = "";
 
     function abrirBD() {
       return new Promise((ok, fallo) => {
@@ -593,7 +609,12 @@
       if (!platoActivoCtx) return;
       const nombrePlato = platoActivoCtx.nombrePlato;
       document.getElementById("overlayMenuPlato").classList.remove("abierto");
+      abrirFormEditorExistente(nombrePlato);
+    };
 
+    // Abrir formulario para editar un plato existente
+    async function abrirFormEditorExistente(nombrePlato) {
+      nombrePlatoOriginalEdicion = nombrePlato;
       const tx = db.transaction("platos", "readonly");
       const platoData = await pedir(tx.objectStore("platos").get(nombrePlato));
       const ingredientesActuales = platoData?.ingredientes || [];
@@ -608,16 +629,37 @@
       document.getElementById("panelNuevoPlato").classList.add("abierto");
       document.getElementById("listaPlatos").style.display = "none";
       document.getElementById("modalSeleccion").classList.add("abierto");
-    };
+    }
 
+    // Modal Selección desde un botón "+" de la rejilla
     async function abrirSeleccion(fechaStr, toma) {
+      modoMantenimiento = false;
       slotActivo = { fechaStr, toma };
+      document.getElementById("tituloModalSel").textContent = "Seleccionar Plato";
+      document.getElementById("btnAceptarSel").style.display = "block";
       document.getElementById("inputBuscar").value = "";
       
       document.getElementById("panelNuevoPlato").classList.remove("abierto");
       document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
       document.getElementById("listaPlatos").style.display = "block";
       
+      await cargarListaPlatos("");
+      document.getElementById("modalSeleccion").classList.add("abierto");
+      document.getElementById("inputBuscar").focus();
+    }
+
+    // Modal de Mantenimiento de Comidas (desde los ...)
+    async function abrirMantenimientoComidas() {
+      modoMantenimiento = true;
+      slotActivo = null;
+      document.getElementById("tituloModalSel").textContent = "Comidas";
+      document.getElementById("btnAceptarSel").style.display = "none"; // En mantenimiento no se usa botón aceptar directo
+      document.getElementById("inputBuscar").value = "";
+
+      document.getElementById("panelNuevoPlato").classList.remove("abierto");
+      document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
+      document.getElementById("listaPlatos").style.display = "block";
+
       await cargarListaPlatos("");
       document.getElementById("modalSeleccion").classList.add("abierto");
       document.getElementById("inputBuscar").focus();
@@ -642,7 +684,13 @@
         div.className = "item-plato";
         div.textContent = p.nombre;
         div.onclick = () => {
-          seleccionarEIr(p.nombre);
+          if (modoMantenimiento) {
+            // En modo mantenimiento, al pulsar sobre una comida se abre para editarla
+            abrirFormEditorExistente(p.nombre);
+          } else {
+            // En modo selección, se asigna directamente al día
+            seleccionarEIr(p.nombre);
+          }
         };
         listaEl.appendChild(div);
       }
@@ -659,7 +707,11 @@
         const tx = db.transaction("platos", "readonly");
         const existente = await pedir(tx.objectStore("platos").get(valor));
         if (existente) {
-          seleccionarEIr(valor);
+          if (modoMantenimiento) {
+            abrirFormEditorExistente(existente.nombre);
+          } else {
+            seleccionarEIr(valor);
+          }
         } else {
           abrirFormNuevoPlato(valor);
         }
@@ -686,6 +738,7 @@
     }
 
     function abrirFormNuevoPlato(nombreInicial) {
+      nombrePlatoOriginalEdicion = "";
       document.getElementById("tituloPanelNuevo").textContent = "Nuevo plato";
       document.getElementById("inputNuevoNombre").value = nombreInicial;
       document.getElementById("inputNuevoIngrediente").value = "";
@@ -782,20 +835,17 @@
       renderizarChipsIngredientes();
     }
 
-    // Modificamos el botón Aceptar superior para que guarde o asigne directamente
+    // Botón Aceptar del buscador en la ventana modal de Selección
     document.getElementById("btnAceptarSel").onclick = async () => {
       const valor = document.getElementById("inputBuscar").value.trim();
       if (!valor) return;
 
-      // Comprobamos si el plato ya existe en la base de datos
       const tx = db.transaction("platos", "readonly");
       const existente = await pedir(tx.objectStore("platos").get(valor));
 
       if (existente) {
-        // Si ya existe, lo seleccionamos e insertamos directamente en el menú
         seleccionarEIr(valor);
       } else {
-        // Si no existe, lo creamos de forma automática sin ingredientes y lo asignamos
         const txWrite = db.transaction(["platos", "menu"], "readwrite");
         txWrite.objectStore("platos").put({ nombre: valor, ingredientes: [] });
 
@@ -815,46 +865,64 @@
       }
     };
 
+    // Botón Aceptar de la ventana de creación/edición de plato
     document.getElementById("btnAceptarNuevo").onclick = async () => {
-      const nombre = document.getElementById("inputNuevoNombre").value.trim();
-      if (!nombre) return;
+      const nuevoNombre = document.getElementById("inputNuevoNombre").value.trim();
+      if (!nuevoNombre) return;
 
       const pend = inputIng.value.trim();
       if (pend) anadirIngrediente(pend);
 
-      // Transacción que incluye tanto platos, menú, ingredientes_base como alimentos
       const tx = db.transaction(["platos", "menu", "ingredientes_base", "alimentos"], "readwrite");
-      
-      // 1. Guardar el plato
-      tx.objectStore("platos").put({ nombre, ingredientes: listaIngredientesNuevos });
+      const stPlatos = tx.objectStore("platos");
+      const stMenu = tx.objectStore("menu");
 
-      // 2. Si se abrió desde un hueco del menú, asignarlo al día/toma
-      if (slotActivo) {
+      // Si se cambió el nombre a un plato existente, eliminamos la clave antigua
+      if (nombrePlatoOriginalEdicion && nombrePlatoOriginalEdicion !== nuevoNombre) {
+        stPlatos.delete(nombrePlatoOriginalEdicion);
+
+        // Actualizamos las referencias de ese plato en el menú semanal
+        const todosMenus = await pedir(stMenu.getAll());
+        todosMenus.forEach(itemMenu => {
+          if (itemMenu.platos && itemMenu.platos.includes(nombrePlatoOriginalEdicion)) {
+            const actualizados = itemMenu.platos.map(p => p === nombrePlatoOriginalEdicion ? nuevoNombre : p);
+            stMenu.put({ id: itemMenu.id, platos: actualizados });
+          }
+        });
+      }
+
+      // Guardamos/actualizamos el plato
+      stPlatos.put({ nombre: nuevoNombre, ingredientes: listaIngredientesNuevos });
+
+      // Si venimos de la asignación directa a un hueco del menú y es un plato totalmente nuevo
+      if (slotActivo && !nombrePlatoOriginalEdicion) {
         const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
-        const stMenu = tx.objectStore("menu");
         const actualObj = await pedir(stMenu.get(keyId));
         let platosActuales = actualObj?.platos || [];
-        platosActuales.push(nombre);
+        platosActuales.push(nuevoNombre);
         stMenu.put({ id: keyId, platos: platosActuales });
       }
 
-      // 3. Sincronizar cada ingrediente con la base de datos unificada de alimentos de Mi Lista
+      // Guardar ingredientes en la base compartida
       listaIngredientesNuevos.forEach(ing => {
-        const claveIng = ing.trim().toLowerCase();
-        // Guardar en ingredientes_base
         tx.objectStore("ingredientes_base").put({ nombre: ing });
-        // Guardar en alimentos para que aparezca en el mantenimiento de Mi Lista
         tx.objectStore("alimentos").put({
-          clave: claveIng,
+          clave: ing.trim().toLowerCase(),
           nombre: ing,
-          seccion: "otros",     // Categoría por defecto en la lista
+          seccion: "otros",
           tachado: false,
-          enLista: false        // Se guardan en el catálogo pero sin marcar como "en la lista" de compra activa
+          enLista: false
         });
       });
 
-      tx.oncomplete = () => {
-        document.getElementById("modalSeleccion").classList.remove("abierto");
+      tx.oncomplete = async () => {
+        if (modoMantenimiento) {
+          // En modo mantenimiento volvemos a la lista de comidas
+          cerrarFormNuevoPlato();
+          await cargarListaPlatos("");
+        } else {
+          document.getElementById("modalSeleccion").classList.remove("abierto");
+        }
         renderizarSemana();
       };
     };
@@ -877,11 +945,18 @@
       renderizarSemana();
     };
 
+    // Menú de tres puntos (···)
     const menuPanel = document.getElementById("menuPanel");
     document.getElementById("menu").onclick = (e) => {
       e.stopPropagation();
       menuPanel.style.display = menuPanel.style.display === "block" ? "none" : "block";
     };
+
+    document.getElementById("menuComidas").onclick = () => {
+      menuPanel.style.display = "none";
+      abrirMantenimientoComidas();
+    };
+
     document.addEventListener("click", () => { menuPanel.style.display = "none"; });
 
     (async () => {
