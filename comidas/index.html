@@ -224,7 +224,6 @@
       cursor: pointer;
     }
     .item-plato:active { background: #f0f0f0; }
-    .item-plato.seleccionado { background: #e3f2fd; color: #1b9de2; font-weight: bold; }
 
     /* Estado deshabilitado en gris */
     .deshabilitado-gris {
@@ -318,7 +317,7 @@
       background: #f5f5f5;
     }
 
-    /* --- Menú Flotante Estilo iOS (Action Sheet) --- */
+    /* --- Menú Flotante Estilo iOS --- */
     .overlay-menu {
       display: none;
       position: fixed;
@@ -461,11 +460,8 @@
     let db;
     let fechaLunesActual = getLunes(new Date());
     let slotActivo = null;
-    let platoSeleccionado = null;
     let listaIngredientesNuevos = [];
-    
-    // Control del menú contextual de plato asignado
-    let platoActivoCtx = null; // { fechaStr, toma, nombrePlato }
+    let platoActivoCtx = null;
 
     function abrirBD() {
       return new Promise((ok, fallo) => {
@@ -579,7 +575,6 @@
       }
     };
 
-    // Botón Quitar plato de la semana
     document.getElementById("btnMenuQuitar").onclick = async () => {
       if (!platoActivoCtx) return;
       const { fechaStr, toma, nombrePlato } = platoActivoCtx;
@@ -590,7 +585,10 @@
       const actualObj = await pedir(store.get(keyId));
 
       if (actualObj && actualObj.platos) {
-        actualObj.platos = actualObj.platos.filter(p => p !== nombrePlato);
+        const index = actualObj.platos.indexOf(nombrePlato);
+        if (index > -1) {
+          actualObj.platos.splice(index, 1); // Borra solo una instancia para permitir duplicados correctamente
+        }
         store.put({ id: keyId, platos: actualObj.platos });
       }
 
@@ -600,19 +598,15 @@
       };
     };
 
-    // Botón Editar plato (abre modal de edición de receta)
     document.getElementById("btnMenuEditar").onclick = async () => {
       if (!platoActivoCtx) return;
       const nombrePlato = platoActivoCtx.nombrePlato;
       document.getElementById("overlayMenuPlato").classList.remove("abierto");
 
-      // Buscar ingredientes actuales del plato en la BD
       const tx = db.transaction("platos", "readonly");
       const platoData = await pedir(tx.objectStore("platos").get(nombrePlato));
-      
       const ingredientesActuales = platoData?.ingredientes || [];
 
-      // Configurar modal en modo edición
       document.getElementById("tituloPanelNuevo").textContent = "Editar plato";
       document.getElementById("inputNuevoNombre").value = nombrePlato;
       document.getElementById("inputNuevoIngrediente").value = "";
@@ -625,11 +619,9 @@
       document.getElementById("modalSeleccion").classList.add("abierto");
     };
 
-
     // Modal Selección de plato
     async function abrirSeleccion(fechaStr, toma) {
       slotActivo = { fechaStr, toma };
-      platoSeleccionado = null;
       document.getElementById("inputBuscar").value = "";
       
       document.getElementById("panelNuevoPlato").classList.remove("abierto");
@@ -657,12 +649,11 @@
 
       for (const p of filtrados) {
         const div = document.createElement("div");
-        div.className = "item-plato" + (platoSeleccionado === p.nombre ? " seleccionado" : "");
+        div.className = "item-plato";
         div.textContent = p.nombre;
+        // Al pulsar directamente sobre un plato de la lista, se asigna y vuelve de inmediato
         div.onclick = () => {
-          document.querySelectorAll(".item-plato").forEach(el => el.classList.remove("seleccionado"));
-          div.classList.add("seleccionado");
-          platoSeleccionado = p.nombre;
+          seleccionarEIr(p.nombre);
         };
         listaEl.appendChild(div);
       }
@@ -679,13 +670,32 @@
         const tx = db.transaction("platos", "readonly");
         const existente = await pedir(tx.objectStore("platos").get(valor));
         if (existente) {
-          platoSeleccionado = valor;
-          guardarAsignacion();
+          seleccionarEIr(valor);
         } else {
           abrirFormNuevoPlato(valor);
         }
       }
     };
+
+    async function seleccionarEIr(nombrePlato) {
+      if (!slotActivo) return;
+      const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
+      
+      const tx = db.transaction("menu", "readwrite");
+      const store = tx.objectStore("menu");
+      const actualObj = await pedir(store.get(keyId));
+      
+      let platosActuales = actualObj?.platos || [];
+      // Permite duplicados añadiendo el plato de nuevo al array
+      platosActuales.push(nombrePlato);
+
+      store.put({ id: keyId, platos: platosActuales });
+
+      tx.oncomplete = () => {
+        document.getElementById("modalSeleccion").classList.remove("abierto");
+        renderizarSemana();
+      };
+    }
 
     function abrirFormNuevoPlato(nombreInicial) {
       document.getElementById("tituloPanelNuevo").textContent = "Nuevo plato";
@@ -778,36 +788,13 @@
       renderizarChipsIngredientes();
     }
 
-    // Aceptar selección
+    // Botón Aceptar superior (por si se usa el buscador con texto escrito)
     document.getElementById("btnAceptarSel").onclick = () => {
-      if (platoSeleccionado) {
-        guardarAsignacion();
-      } else {
-        const valor = document.getElementById("inputBuscar").value.trim();
-        if (valor) abrirFormNuevoPlato(valor);
+      const valor = document.getElementById("inputBuscar").value.trim();
+      if (valor) {
+        seleccionarEIr(valor);
       }
     };
-
-    async function guardarAsignacion() {
-      if (!slotActivo || !platoSeleccionado) return;
-      const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
-      
-      const tx = db.transaction("menu", "readwrite");
-      const store = tx.objectStore("menu");
-      const actualObj = await pedir(store.get(keyId));
-      
-      let platosActuales = actualObj?.platos || [];
-      if (!platosActuales.includes(platoSeleccionado)) {
-        platosActuales.push(platoSeleccionado);
-      }
-
-      store.put({ id: keyId, platos: platosActuales });
-
-      tx.oncomplete = () => {
-        document.getElementById("modalSeleccion").classList.remove("abierto");
-        renderizarSemana();
-      };
-    }
 
     // Guardar nuevo plato o cambios de edición
     document.getElementById("btnAceptarNuevo").onclick = async () => {
@@ -821,15 +808,12 @@
       
       tx.objectStore("platos").put({ nombre, ingredientes: listaIngredientesNuevos });
 
-      // Si veníamos desde edición de un plato ya asignado en slot
       if (slotActivo) {
         const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
         const stMenu = tx.objectStore("menu");
         const actualObj = await pedir(stMenu.get(keyId));
         let platosActuales = actualObj?.platos || [];
-        if (!platosActuales.includes(nombre)) {
-          platosActuales.push(nombre);
-        }
+        platosActuales.push(nombre); // Permite duplicados al crear nuevo
         stMenu.put({ id: keyId, platos: platosActuales });
       }
 
