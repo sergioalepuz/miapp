@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Mi lista</title>
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <style>
     :root { --azul: #1b9de2; --fondo: #f6f6f6; --rojo: #e53935; }
     * { box-sizing: border-box; }
@@ -92,12 +93,17 @@
     #pantalla.abierta { display: flex; }
     .cabecera {
       position: relative; display: flex; align-items: center; justify-content: center;
-      padding: 14px; background: var(--azul); color: #fff; font-size: 18px; font-weight: 600;
+      padding: 14px 56px; background: var(--azul); color: #fff; font-size: 18px; font-weight: 600;
     }
+    
+    /* Botón Atrás estilo botón rectangular con esquinas redondeadas igual que el + */
     #atras {
-      position: absolute; left: 0; top: 0; bottom: 0; padding: 0 14px;
-      background: none; border: 0; color: #fff; font-size: 17px;
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      height: 34px; padding: 0 12px; border: 0; border-radius: 8px;
+      background: #fff; color: var(--azul); font-size: 15px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
     }
+
     /* Botón + : símbolo azul sobre fondo blanco */
     #mas {
       position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
