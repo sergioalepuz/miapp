@@ -3,21 +3,32 @@
 <head>  
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Mi lista</title>
-  <link rel="apple-touch-icon" href="mi_lista.png">
+  <title>Mi lista y Menú</title>
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <style>
-    :root { --azul: #1b9de2; --fondo: #f6f6f6; --rojo: #e53935; }
+    :root { 
+      --azul: #1b9de2; 
+      --fondo: #f6f6f6; 
+      --rojo: #e53935; 
+      --texto: #2c3e50;
+      --gris-hoy: #dcdcdc;
+      --verde-apple: #2e7d32;
+    }
     * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; }
+    html, body { margin: 0; min-height: 100%; height: 100%; }
     body {
       font-family: -apple-system, system-ui, "Segoe UI", sans-serif;
       background: var(--fondo);
       color: #111;
       padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+      display: flex;
+      flex-direction: column;
     }
-    .barra { position: relative; display: flex; align-items: center; gap: 16px; padding: 10px 12px; }
+
+    /* ESTILOS MI LISTA */
+    .barra { position: relative; display: flex; align-items: center; gap: 16px; padding: 10px 12px; background: var(--fondo); }
     #entrada {
       flex: 1; min-width: 0; font-size: 16px; padding: 10px 12px;
       border: 1px solid #ddd; border-radius: 8px; background: #fff;
@@ -28,7 +39,7 @@
     }
 
     #menuPanel {
-      display: none; position: absolute; right: 12px; top: calc(100% - 4px); z-index: 6;
+      display: none; position: absolute; right: 12px; top: calc(100% - 4px); z-index: 100;
       min-width: 190px; background: #fff; border: 1px solid #ddd; border-radius: 10px;
       box-shadow: 0 4px 14px rgba(0,0,0,.2); overflow: hidden;
     }
@@ -37,10 +48,15 @@
       border-top: 1px solid #eee; padding: 14px 16px; font-size: 18px; font-weight: 500; color: #111;
     }
     #menuPanel button:first-child { border-top: 0; }
+    #menuPanel button.item-destacado-menu {
+      background-color: #e0e0e0;
+      font-weight: 700;
+      color: #000;
+    }
 
     #sugerencias {
       display: none; position: absolute; left: 12px; right: 12px; top: calc(100% - 4px);
-      z-index: 5; background: #fff; border: 1px solid #ddd; border-radius: 8px;
+      z-index: 50; background: #fff; border: 1px solid #ddd; border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,.15); max-height: 40vh; overflow-y: auto;
     }
     .sugerencia {
@@ -50,6 +66,7 @@
     .sugerencia:first-child { border-top: 0; }
     .sugerencia small { color: #888; font-size: 14px; }
 
+    #lista { flex: 1; overflow-y: auto; }
     .grupo { position: relative; }
     .grupo.arrastrando {
       z-index: 10; background: var(--fondo);
@@ -81,8 +98,9 @@
     }
     .item.tachado span { text-decoration: line-through; color: #999; }
 
+    /* PANTALLAS MODALES DE MI LISTA */
     #pantalla {
-      display: none; position: fixed; inset: 0; z-index: 25; background: var(--fondo);
+      display: none; position: fixed; inset: 0; z-index: 150; background: var(--fondo);
       flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
     }
     #pantalla.abierta { display: flex; }
@@ -97,7 +115,6 @@
       background: #fff; color: var(--azul); font-size: 15px; font-weight: 600;
       display: flex; align-items: center; justify-content: center;
     }
-
     #mas {
       position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
       width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px;
@@ -114,11 +131,11 @@
     .vacio { padding: 24px 16px; color: #888; text-align: center; }
 
     .velo {
-      position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.4);
+      position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.4);
       display: none; align-items: center; justify-content: center;
     }
     .velo.abierto { display: flex; }
-    .velo-confirmar { z-index: 40; }
+    .velo-confirmar { z-index: 250; }
     .caja {
       background: #fff; border-radius: 14px; width: min(80%, 320px);
       max-height: 70%; overflow-y: auto; padding: 8px 0;
@@ -141,20 +158,173 @@
 
     #aviso {
       position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 70px);
-      transform: translateX(-50%); z-index: 50; width: max-content; max-width: 90vw; text-align: center;
+      transform: translateX(-50%); z-index: 300; width: max-content; max-width: 90vw; text-align: center;
       background: #333; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 16px;
       opacity: 0; pointer-events: none; transition: opacity 1s;
     }
     #aviso.visible { opacity: 1; transition: opacity .15s; }
+
+    /* ESTILOS VISTA MENÚ (COMIDAS) */
+    #pantallaMenu {
+      display: none; position: fixed; inset: 0; z-index: 120; background: #fff;
+      flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+    }
+    #pantallaMenu.abierta { display: flex; }
+
+    .barra-comidas {
+      position: relative; display: flex; align-items: center; justify-content: space-between;
+      background: var(--azul); padding: 10px 12px; color: #fff;
+    }
+    .titulo-fecha { font-size: 17px; font-weight: 700; text-align: center; flex: 1; }
+    .btn-hdr {
+      background: #fff; border: 0; color: var(--azul); font-size: 18px; font-weight: 700;
+      width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; cursor: pointer;
+    }
+    .btn-hdr:active { opacity: 0.8; }
+    .cont-derecha { display: flex; gap: 8px; }
+
+    #menuPanelComidas {
+      display: none; position: absolute; right: 12px; top: calc(100% + 4px); z-index: 100;
+      min-width: 190px; background: #fff; border: 1px solid #ddd; border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.2); overflow: hidden;
+    }
+    #menuPanelComidas button {
+      display: block; width: 100%; text-align: left; background: none; border: 0;
+      border-top: 1px solid #eee; padding: 14px 16px; font-size: 16px; font-weight: 500; color: #111;
+    }
+    #menuPanelComidas button:first-child { border-top: 0; }
+
+    .tabla-semana {
+      flex: 1; display: flex; flex-direction: column; padding: 10px 14px; overflow-y: auto;
+    }
+    .fila-iconos {
+      display: grid; grid-template-columns: 70px 1fr 1fr 1fr; align-items: center; padding-bottom: 8px;
+    }
+    .icono-toma {
+      text-align: center; color: #555; display: flex; justify-content: center; align-items: center;
+    }
+    .icono-toma svg { width: 22px; height: 22px; stroke: #444; }
+    
+    .fila-dia {
+      display: grid; grid-template-columns: 70px 1fr 1fr 1fr; align-items: center;
+      border-top: 1px solid #a8d5e5; padding: 8px 0; border-radius: 6px; min-height: 65px;
+    }
+    .fila-dia.hoy { background-color: var(--gris-hoy); }
+    .col-dia { text-align: center; line-height: 1.2; font-weight: 500; color: #455a64; }
+    .col-dia .nombre-dia { font-size: 15px; }
+    .col-dia .num-dia { font-size: 15px; }
+
+    .celda-contenido {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 2px 4px; gap: 4px; width: 100%;
+    }
+    .lista-platos-celda {
+      display: flex; flex-direction: column; gap: 4px; width: 100%; align-items: center;
+    }
+    .plato-item-badge {
+      background: #fff; border: 1px solid #b2dfdb; border-radius: 6px; padding: 4px 8px;
+      font-size: 14px; font-weight: 600; color: #2c3e50; text-align: center; width: 95%;
+      word-break: break-word; line-height: 1.2; cursor: pointer;
+    }
+    .plato-item-badge:active { background: #f0f0f0; }
+
+    .btn-mas {
+      background: none; border: 0; color: #1b9de2; font-size: 22px; font-weight: bold;
+      cursor: pointer; padding: 0 8px; line-height: 1;
+    }
+
+    /* MODAL DE PLATO/COMIDA EN MENÚ */
+    .modal {
+      display: none; position: fixed; inset: 0; background: #fff; z-index: 200;
+      flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+    }
+    .modal.abierto { display: flex; }
+
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #eee;
+    }
+    .btn-texto-verde {
+      background: none; border: 0; color: var(--verde-apple); font-size: 17px; font-weight: 600; cursor: pointer;
+    }
+    .buscador-box {
+      display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; gap: 10px;
+    }
+    .buscador-box svg { width: 20px; height: 20px; stroke: #666; }
+    .buscador-input { flex: 1; border: 0; font-size: 17px; outline: none; background: transparent; }
+    .lista-platos { flex: 1; overflow-y: auto; }
+    .item-plato { padding: 16px; font-size: 18px; border-bottom: 1px solid #eee; cursor: pointer; }
+    .item-plato:active { background: #f0f0f0; }
+
+    .deshabilitado-gris { opacity: 0.35; pointer-events: none; background-color: #f9f9f9; }
+
+    .panel-nuevo-plato {
+      display: none; background: #fff; border-bottom: 1px solid #ddd; padding: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08); z-index: 250;
+    }
+    .panel-nuevo-plato.abierto { display: block; }
+    
+    .campo-form { position: relative; margin-bottom: 16px; }
+    .campo-form label {
+      display: flex; align-items: center; gap: 8px; font-size: 14px;
+      color: var(--verde-apple); margin-bottom: 6px; font-weight: 600;
+    }
+    .campo-form input {
+      width: 100%; font-size: 17px; padding: 8px 0; border: 0; border-bottom: 1px solid var(--verde-apple); outline: none;
+    }
+
+    .contenedor-ingredientes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .chip-ingrediente {
+      background: #e8f5e9; color: var(--verde-apple); border: 1px solid #c8e6c9;
+      padding: 4px 10px; border-radius: 16px; font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .chip-ingrediente button {
+      background: none; border: 0; color: var(--verde-apple); font-weight: bold; font-size: 14px; cursor: pointer; padding: 0;
+    }
+
+    .sugerencias-ingredientes {
+      display: none; position: absolute; left: 0; right: 0; top: 100%; background: #fff;
+      border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-height: 150px; overflow-y: auto; z-index: 300;
+    }
+    .sugerencias-ingredientes div { padding: 10px 14px; font-size: 16px; border-bottom: 1px solid #eee; cursor: pointer; }
+    .sugerencias-ingredientes div:hover { background: #f5f5f5; }
+
+    .overlay-menu {
+      display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4);
+      z-index: 300; align-items: center; justify-content: center; padding: 20px;
+    }
+    .overlay-menu.abierto { display: flex; }
+    .menu-flotante-ios {
+      background: #fdfdfd; width: 100%; max-width: 340px; border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25); overflow: hidden; animation: escalaModal 0.2s ease;
+    }
+    @keyframes escalaModal {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .menu-flotante-titulo {
+      padding: 22px 20px; font-size: 22px; font-weight: 500; color: #111; text-align: left; border-bottom: 1px solid #e0e0e0;
+    }
+    .menu-flotante-opcion {
+      width: 100%; background: none; border: 0; padding: 18px 20px; text-align: left;
+      font-size: 18px; color: #007aff; cursor: pointer;
+    }
+    .menu-flotante-opcion:active { background: #f0f0f0; }
+    .menu-flotante-opcion.quitar { color: #ff3b30; border-top: 1px solid #f0f0f0; }
   </style>
 </head>
 <body>
+
+  <!-- PANTALLA PRINCIPAL: MI LISTA -->
   <div class="barra">
     <input id="entrada" type="text" placeholder="Añadir alimento" autocomplete="off">
     <button id="ok">Ok</button>
     <button id="menu">···</button>
     <div id="sugerencias"></div>
     <div id="menuPanel">
+      <button id="menuMenu" class="item-destacado-menu">Menú</button>
       <button id="menuEliminar">Eliminar</button>
       <button id="menuAlimentos">Alimentos</button>
       <button id="menuCategorias">Categorías</button>
@@ -163,6 +333,7 @@
 
   <div id="lista"></div>
 
+  <!-- PANTALLA SECUNDARIA: ALIMENTOS / CATEGORÍAS EN MI LISTA -->
   <div id="pantalla">
     <div class="cabecera">
       <button id="atras">‹ Atrás</button>
@@ -174,34 +345,109 @@
     <div id="contenidoPantalla"></div>
   </div>
 
+  <!-- PANTALLA INTEGRADA: MENÚ SEMANAL (COMIDAS) -->
+  <div id="pantallaMenu">
+    <div class="barra-comidas">
+      <button class="btn-hdr" id="atrasMenu">‹</button>
+      <button class="btn-hdr" id="ant">‹</button>
+      <div class="titulo-fecha" id="tituloFecha">--</div>
+      <div class="cont-derecha">
+        <button class="btn-hdr" id="sig">›</button>
+        <button class="btn-hdr" id="menuComidasBtn">···</button>
+      </div>
+      <div id="menuPanelComidas">
+        <button id="menuComidasOpcion">Comidas</button>
+      </div>
+    </div>
+
+    <div class="tabla-semana">
+      <div class="fila-iconos">
+        <div></div>
+        <div class="icono-toma">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 2v2M4.93 4.93l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M12 18a6 6 0 0 0 6-6H6a6 6 0 0 0 6 6z"/><line x1="2" y1="18" x2="22" y2="18"/></svg>
+        </div>
+        <div class="icono-toma">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </div>
+        <div class="icono-toma">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </div>
+      </div>
+      <div id="contenedorDias"></div>
+    </div>
+  </div>
+
+  <!-- MODAL DE SELECCIÓN Y MANTENIMIENTO DE COMIDAS -->
+  <div class="modal" id="modalSeleccion">
+    <div id="zonaSuperiorModal">
+      <div class="modal-header">
+        <button class="btn-texto-verde" id="btnCancelarSel">Cancelar</button>
+        <span style="font-weight: 600; font-size: 17px;" id="tituloModalSel">Seleccionar Plato</span>
+        <button class="btn-texto-verde" id="btnAceptarSel">Aceptar</button>
+      </div>
+      <div class="buscador-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="buscador-input" id="inputBuscar" placeholder="Buscar" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="panel-nuevo-plato" id="panelNuevoPlato">
+      <div class="modal-header" style="padding: 0 0 12px 0; border: none;">
+        <button class="btn-texto-verde" id="btnCancelarNuevo">Cancelar</button>
+        <span style="font-weight: 600; font-size: 16px;" id="tituloPanelNuevo">Nuevo plato</span>
+        <button class="btn-texto-verde" id="btnAceptarNuevo">Aceptar</button>
+      </div>
+      
+      <div class="campo-form">
+        <label>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16M6 16l6-12 6 12M8 12h8"/></svg>
+          Nombre
+        </label>
+        <input type="text" id="inputNuevoNombre" autocomplete="off">
+      </div>
+
+      <div class="campo-form" style="margin-bottom: 8px;">
+        <label>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg>
+          Ingredientes
+        </label>
+        
+        <div class="contenedor-ingredientes" id="contenedorChips"></div>
+        <input type="text" id="inputNuevoIngrediente" placeholder="añadir..." autocomplete="off">
+        <div class="sugerencias-ingredientes" id="sugerenciasIng"></div>
+      </div>
+    </div>
+
+    <div class="lista-platos" id="listaPlatos"></div>
+  </div>
+
+  <!-- OVERLAY DE EDICIÓN EN LA REJILLA SEMANAL -->
+  <div class="overlay-menu" id="overlayMenuPlato">
+    <div class="menu-flotante-ios">
+      <div class="menu-flotante-titulo" id="menuPlatoTitulo">Nombre plato</div>
+      <button class="menu-flotante-opcion" id="btnMenuEditar">Editar plato</button>
+      <button class="menu-flotante-opcion quitar" id="btnMenuQuitar">Quitar</button>
+    </div>
+  </div>
+
   <div class="velo" id="velo"><div class="caja" id="caja"></div></div>
   <div class="velo velo-confirmar" id="veloConfirmar"><div class="caja" id="cajaConfirmar"></div></div>
   <div id="aviso"></div>
 
   <script>
+    /* CONSTANTES GENERALES Y BASE DE DATOS UNIFICADA */
     const SECCIONES_INICIALES = ["Otros", "Fruta", "Verdura", "Carne", "Pescado", "Lácteos", "Panadería", "Limpieza"];
     const SECCION_POR_DEFECTO = "otros";
     const OPCION_NUEVA = "__nueva__";
+    const DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
+    const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
     const ICONO_ASA = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 8h16M4 12h16M4 16h16"/></svg>';
     const ICONO_LAPIZ = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
     const ICONO_PAPELERA = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
-
     const ANCHO_PAPELERA = 80;
 
-    const entrada = document.getElementById("entrada");
-    const sugerenciasEl = document.getElementById("sugerencias");
-    const menuPanel = document.getElementById("menuPanel");
-    const lista = document.getElementById("lista");
-    const pantalla = document.getElementById("pantalla");
-    const tituloPantalla = document.getElementById("tituloPantalla");
-    const contenidoPantalla = document.getElementById("contenidoPantalla");
-    const velo = document.getElementById("velo");
-    const caja = document.getElementById("caja");
-    const veloConfirmar = document.getElementById("veloConfirmar");
-    const cajaConfirmar = document.getElementById("cajaConfirmar");
-    const avisoEl = document.getElementById("aviso");
-
+    let db;
     const clave = texto => texto.trim().toLowerCase();
     const normalizar = texto => texto.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const formatear = texto => {
@@ -215,8 +461,6 @@
       req.onsuccess = () => ok(req.result);
       req.onerror = () => fallo(req.error);
     });
-
-    let db;
     const tabla = (nombre, modo = "readonly") => db.transaction(nombre, modo).objectStore(nombre);
 
     function abrirBD() {
@@ -256,25 +500,41 @@
       });
     }
 
-    async function asegurarOrden() {
-      const secciones = await pedir(tabla("secciones").getAll());
-      if (secciones.every(s => typeof s.orden === "number")) return;
-      const base = SECCIONES_INICIALES.map(clave);
-      const pos = s => { const i = base.indexOf(s.clave); return i === -1 ? 1000 : i; };
-      secciones.sort((a, b) => pos(a) - pos(b));
-      secciones.forEach((s, i) => { s.orden = i; });
-      await escribir("secciones", secciones);
+    /* ELEMENTOS MI LISTA */
+    const entrada = document.getElementById("entrada");
+    const sugerenciasEl = document.getElementById("sugerencias");
+    const menuPanel = document.getElementById("menuPanel");
+    const lista = document.getElementById("lista");
+    const pantalla = document.getElementById("pantalla");
+    const tituloPantalla = document.getElementById("tituloPantalla");
+    const contenidoPantalla = document.getElementById("contenidoPantalla");
+    const velo = document.getElementById("velo");
+    const caja = document.getElementById("caja");
+    const veloConfirmar = document.getElementById("veloConfirmar");
+    const cajaConfirmar = document.getElementById("cajaConfirmar");
+    const avisoEl = document.getElementById("aviso");
+
+    /* ELEMENTOS MENÚ COMIDAS */
+    const pantallaMenu = document.getElementById("pantallaMenu");
+    const menuPanelComidas = document.getElementById("menuPanelComidas");
+    let fechaLunesActual = getLunes(new Date());
+    let slotActivo = null;
+    let listaIngredientesNuevos = [];
+    let platoActivoCtx = null;
+    let modoMantenimiento = false;
+    let nombrePlatoOriginalEdicion = "";
+
+    function getLunes(d) {
+      const date = new Date(d);
+      const day = date.getDay();
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+      date.setDate(diff);
+      date.setHours(0,0,0,0);
+      return date;
     }
 
-    async function normalizarNombres() {
-      const alimentos = await pedir(tabla("alimentos").getAll());
-      for (const a of alimentos) {
-        const bueno = formatear(a.nombre);
-        if (a.nombre !== bueno) {
-          a.nombre = bueno;
-          await pedir(tabla("alimentos", "readwrite").put(a));
-        }
-      }
+    function formatearFechaStr(d) {
+      return d.toISOString().split('T')[0];
     }
 
     let temporizadorAviso;
@@ -312,6 +572,28 @@
         cajaConfirmar.append(texto, acciones);
         veloConfirmar.classList.add("abierto");
       });
+    }
+
+    /* LOGICA MI LISTA */
+    async function asegurarOrden() {
+      const secciones = await pedir(tabla("secciones").getAll());
+      if (secciones.every(s => typeof s.orden === "number")) return;
+      const base = SECCIONES_INICIALES.map(clave);
+      const pos = s => { const i = base.indexOf(s.clave); return i === -1 ? 1000 : i; };
+      secciones.sort((a, b) => pos(a) - pos(b));
+      secciones.forEach((s, i) => { s.orden = i; });
+      await escribir("secciones", secciones);
+    }
+
+    async function normalizarNombres() {
+      const alimentos = await pedir(tabla("alimentos").getAll());
+      for (const a of alimentos) {
+        const bueno = formatear(a.nombre);
+        if (a.nombre !== bueno) {
+          a.nombre = bueno;
+          await pedir(tabla("alimentos", "readwrite").put(a));
+        }
+      }
     }
 
     async function ponerEnLista(alimento) {
@@ -607,7 +889,6 @@
     }
 
     let pantallaActual = null;
-
     function abrirPantalla(tipo, titulo) {
       pantallaActual = tipo;
       tituloPantalla.textContent = titulo;
@@ -951,6 +1232,489 @@
       });
     }
 
+    /* LOGICA MENÚ COMIDAS INTEGRADA */
+    async function renderizarSemana() {
+      const hoy = new Date();
+      hoy.setHours(0,0,0,0);
+
+      const domingo = new Date(fechaLunesActual);
+      domingo.setDate(domingo.getDate() + 6);
+
+      document.getElementById("tituloFecha").textContent = `${fechaLunesActual.getDate()} ${MESES[fechaLunesActual.getMonth()]} - ${domingo.getDate()} ${MESES[domingo.getMonth()]}`;
+
+      const cont = document.getElementById("contenedorDias");
+      cont.innerHTML = "";
+
+      const tx = db.transaction("menu", "readonly");
+      const store = tx.objectStore("menu");
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(fechaLunesActual);
+        d.setDate(d.getDate() + i);
+        const fechaStr = formatearFechaStr(d);
+        const esHoy = d.getTime() === hoy.getTime();
+
+        const desayunoArr = (await pedir(store.get(`${fechaStr}_desayuno`)))?.platos || [];
+        const comidaArr = (await pedir(store.get(`${fechaStr}_comida`)))?.platos || [];
+        const cenaArr = (await pedir(store.get(`${fechaStr}_cena`)))?.platos || [];
+
+        const fila = document.createElement("div");
+        fila.className = "fila-dia" + (esHoy ? " hoy" : "");
+
+        fila.innerHTML = `
+          <div class="col-dia">
+            <div class="nombre-dia">${DIAS[i]}</div>
+            <div class="num-dia">${d.getDate()}</div>
+          </div>
+          <div class="celda-contenido">
+            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'desayuno', desayunoArr)}</div>
+            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'desayuno')">+</button>
+          </div>
+          <div class="celda-contenido">
+            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'comida', comidaArr)}</div>
+            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'comida')">+</button>
+          </div>
+          <div class="celda-contenido">
+            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'cena', cenaArr)}</div>
+            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'cena')">+</button>
+          </div>
+        `;
+        cont.appendChild(fila);
+      }
+    }
+
+    function generarHtmlPlatos(fechaStr, toma, arrayPlatos) {
+      if (!arrayPlatos || arrayPlatos.length === 0) return "";
+      return arrayPlatos.map(plato => `
+        <div class="plato-item-badge" onclick="abrirMenuPlato('${fechaStr}', '${toma}', '${escapeHtml(plato)}')">${plato}</div>
+      `).join("");
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    function abrirMenuPlato(fechaStr, toma, nombrePlato) {
+      platoActivoCtx = { fechaStr, toma, nombrePlato };
+      document.getElementById("menuPlatoTitulo").textContent = nombrePlato;
+      document.getElementById("overlayMenuPlato").classList.add("abierto");
+    }
+
+    document.getElementById("overlayMenuPlato").onclick = (e) => {
+      if (e.target === document.getElementById("overlayMenuPlato")) {
+        document.getElementById("overlayMenuPlato").classList.remove("abierto");
+      }
+    };
+
+    document.getElementById("btnMenuQuitar").onclick = async () => {
+      if (!platoActivoCtx) return;
+      const { fechaStr, toma, nombrePlato } = platoActivoCtx;
+      const keyId = `${fechaStr}_${toma}`;
+
+      const tx = db.transaction("menu", "readwrite");
+      const store = tx.objectStore("menu");
+      const actualObj = await pedir(store.get(keyId));
+
+      if (actualObj && actualObj.platos) {
+        const index = actualObj.platos.indexOf(nombrePlato);
+        if (index > -1) {
+          actualObj.platos.splice(index, 1);
+        }
+        store.put({ id: keyId, platos: actualObj.platos });
+      }
+
+      tx.oncomplete = () => {
+        document.getElementById("overlayMenuPlato").classList.remove("abierto");
+        renderizarSemana();
+      };
+    };
+
+    document.getElementById("btnMenuEditar").onclick = async () => {
+      if (!platoActivoCtx) return;
+      const nombrePlato = platoActivoCtx.nombrePlato;
+      document.getElementById("overlayMenuPlato").classList.remove("abierto");
+      abrirFormEditorExistente(nombrePlato);
+    };
+
+    async function abrirFormEditorExistente(nombrePlato) {
+      nombrePlatoOriginalEdicion = nombrePlato;
+      const tx = db.transaction("platos", "readonly");
+      const platoData = await pedir(tx.objectStore("platos").get(nombrePlato));
+      const ingredientesActuales = platoData?.ingredientes || [];
+
+      document.getElementById("tituloPanelNuevo").textContent = "Editar plato";
+      document.getElementById("inputNuevoNombre").value = nombrePlato;
+      document.getElementById("inputNuevoIngrediente").value = "";
+      listaIngredientesNuevos = [...ingredientesActuales];
+      renderizarChipsIngredientes();
+
+      document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
+      document.getElementById("panelNuevoPlato").classList.add("abierto");
+      document.getElementById("listaPlatos").style.display = "none";
+      document.getElementById("modalSeleccion").classList.add("abierto");
+    }
+
+    async function abrirSeleccion(fechaStr, toma) {
+      modoMantenimiento = false;
+      slotActivo = { fechaStr, toma };
+      document.getElementById("tituloModalSel").textContent = "Seleccionar Plato";
+      document.getElementById("btnAceptarSel").style.display = "block";
+      document.getElementById("inputBuscar").value = "";
+      
+      document.getElementById("panelNuevoPlato").classList.remove("abierto");
+      document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
+      document.getElementById("listaPlatos").style.display = "block";
+      
+      await cargarListaPlatos("");
+      document.getElementById("modalSeleccion").classList.add("abierto");
+      document.getElementById("inputBuscar").focus();
+    }
+
+    async function abrirMantenimientoComidas() {
+      modoMantenimiento = true;
+      slotActivo = null;
+      document.getElementById("tituloModalSel").textContent = "Comidas";
+      document.getElementById("btnAceptarSel").style.display = "none";
+      document.getElementById("inputBuscar").value = "";
+
+      document.getElementById("panelNuevoPlato").classList.remove("abierto");
+      document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
+      document.getElementById("listaPlatos").style.display = "block";
+
+      await cargarListaPlatos("");
+      document.getElementById("modalSeleccion").classList.add("abierto");
+      document.getElementById("inputBuscar").focus();
+    }
+
+    async function cargarListaPlatos(filtro) {
+      const tx = db.transaction("platos", "readonly");
+      const platos = await pedir(tx.objectStore("platos").getAll());
+      
+      platos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+
+      const listaEl = document.getElementById("listaPlatos");
+      listaEl.innerHTML = "";
+
+      const txt = filtro.trim().toLowerCase();
+      const filtrados = txt 
+        ? platos.filter(p => p.nombre.toLowerCase().startsWith(txt))
+        : platos;
+
+      for (const p of filtrados) {
+        const div = document.createElement("div");
+        div.className = "item-plato";
+        div.textContent = p.nombre;
+        div.onclick = () => {
+          if (modoMantenimiento) {
+            abrirFormEditorExistente(p.nombre);
+          } else {
+            seleccionarEIr(p.nombre);
+          }
+        };
+        listaEl.appendChild(div);
+      }
+    }
+
+    document.getElementById("inputBuscar").oninput = (e) => {
+      cargarListaPlatos(e.target.value);
+    };
+
+    document.getElementById("inputBuscar").onkeydown = async (e) => {
+      if (e.key === "Enter") {
+        const valor = e.target.value.trim();
+        if (!valor) return;
+        const tx = db.transaction("platos", "readonly");
+        const existente = await pedir(tx.objectStore("platos").get(valor));
+        if (existente) {
+          if (modoMantenimiento) {
+            abrirFormEditorExistente(existente.nombre);
+          } else {
+            seleccionarEIr(valor);
+          }
+        } else {
+          abrirFormNuevoPlato(valor);
+        }
+      }
+    };
+
+    async function seleccionarEIr(nombrePlato) {
+      if (!slotActivo) return;
+      const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
+      
+      const tx = db.transaction("menu", "readwrite");
+      const store = tx.objectStore("menu");
+      const actualObj = await pedir(store.get(keyId));
+      
+      let platosActuales = actualObj?.platos || [];
+      platosActuales.push(nombrePlato);
+
+      store.put({ id: keyId, platos: platosActuales });
+
+      tx.oncomplete = () => {
+        document.getElementById("modalSeleccion").classList.remove("abierto");
+        renderizarSemana();
+      };
+    }
+
+    function abrirFormNuevoPlato(nombreInicial) {
+      nombrePlatoOriginalEdicion = "";
+      document.getElementById("tituloPanelNuevo").textContent = "Nuevo plato";
+      document.getElementById("inputNuevoNombre").value = nombreInicial;
+      document.getElementById("inputNuevoIngrediente").value = "";
+      listaIngredientesNuevos = [];
+      renderizarChipsIngredientes();
+      
+      document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
+      document.getElementById("panelNuevoPlato").classList.add("abierto");
+      document.getElementById("listaPlatos").style.display = "none";
+      document.getElementById("inputNuevoIngrediente").focus();
+    }
+
+    function cerrarFormNuevoPlato() {
+      document.getElementById("panelNuevoPlato").classList.remove("abierto");
+      document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
+      document.getElementById("listaPlatos").style.display = "block";
+      document.getElementById("inputBuscar").focus();
+    }
+
+    const inputIng = document.getElementById("inputNuevoIngrediente");
+    const sugerenciasIngEl = document.getElementById("sugerenciasIng");
+
+    inputIng.oninput = async () => {
+      const txt = inputIng.value.trim().toLowerCase();
+      if (!txt) {
+        sugerenciasIngEl.style.display = "none";
+        return;
+      }
+      const tx = db.transaction(["ingredientes_base", "alimentos"], "readonly");
+      const ingBase = await pedir(tx.objectStore("ingredientes_base").getAll());
+      const alimentosLista = await pedir(tx.objectStore("alimentos").getAll());
+      
+      const mapaUnico = new Map();
+      ingBase.forEach(i => mapaUnico.set(i.nombre.toLowerCase(), i.nombre));
+      alimentosLista.forEach(a => mapaUnico.set(a.nombre.toLowerCase(), a.nombre));
+      
+      const todos = Array.from(mapaUnico.values()).map(nombre => ({ nombre }));
+      todos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+
+      const coincidencias = todos.filter(i => i.nombre.toLowerCase().startsWith(txt));
+
+      sugerenciasIngEl.innerHTML = "";
+      if (coincidencias.length) {
+        coincidencias.forEach(i => {
+          const item = document.createElement("div");
+          item.textContent = i.nombre;
+          item.onclick = () => {
+            anadirIngrediente(i.nombre);
+            inputIng.value = "";
+            sugerenciasIngEl.style.display = "none";
+            inputIng.focus();
+          };
+          sugerenciasIngEl.appendChild(item);
+        });
+        sugerenciasIngEl.style.display = "block";
+      } else {
+        sugerenciasIngEl.style.display = "none";
+      }
+    };
+
+    inputIng.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const valor = inputIng.value.trim();
+        if (valor) {
+          anadirIngrediente(valor);
+          inputIng.value = "";
+          sugerenciasIngEl.style.display = "none";
+        }
+      }
+    };
+
+    function anadirIngrediente(nombre) {
+      const fmt = nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase();
+      if (!listaIngredientesNuevos.includes(fmt)) {
+        listaIngredientesNuevos.push(fmt);
+        renderizarChipsIngredientes();
+      }
+    }
+
+    function renderizarChipsIngredientes() {
+      const cont = document.getElementById("contenedorChips");
+      cont.innerHTML = "";
+      listaIngredientesNuevos.forEach((ing, index) => {
+        const chip = document.createElement("div");
+        chip.className = "chip-ingrediente";
+        chip.innerHTML = `${ing} <button onclick="eliminarChip(${index})">✕</button>`;
+        cont.appendChild(chip);
+      });
+    }
+
+    function eliminarChip(index) {
+      listaIngredientesNuevos.splice(index, 1);
+      renderizarChipsIngredientes();
+    }
+
+    document.getElementById("btnAceptarSel").onclick = async () => {
+      const valor = document.getElementById("inputBuscar").value.trim();
+      if (!valor) return;
+
+      const tx = db.transaction("platos", "readonly");
+      const existente = await pedir(tx.objectStore("platos").get(valor));
+
+      if (existente) {
+        seleccionarEIr(valor);
+      } else {
+        const txWrite = db.transaction(["platos", "menu"], "readwrite");
+        txWrite.objectStore("platos").put({ nombre: valor, ingredientes: [] });
+
+        if (slotActivo) {
+          const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
+          const stMenu = txWrite.objectStore("menu");
+          const actualObj = await pedir(stMenu.get(keyId));
+          let platosActuales = actualObj?.platos || [];
+          platosActuales.push(valor);
+          stMenu.put({ id: keyId, platos: platosActuales });
+        }
+
+        txWrite.oncomplete = () => {
+          document.getElementById("modalSeleccion").classList.remove("abierto");
+          renderizarSemana();
+        };
+      }
+    };
+
+    document.getElementById("btnAceptarNuevo").onclick = async () => {
+      const nuevoNombre = document.getElementById("inputNuevoNombre").value.trim();
+      if (!nuevoNombre) return;
+
+      const pend = inputIng.value.trim();
+      if (pend) anadirIngrediente(pend);
+
+      const tx = db.transaction(["platos", "menu", "ingredientes_base", "alimentos"], "readwrite");
+      const stPlatos = tx.objectStore("platos");
+      const stMenu = tx.objectStore("menu");
+
+      if (nombrePlatoOriginalEdicion && nombrePlatoOriginalEdicion !== nuevoNombre) {
+        stPlatos.delete(nombrePlatoOriginalEdicion);
+        const todosMenus = await pedir(stMenu.getAll());
+        todosMenus.forEach(itemMenu => {
+          if (itemMenu.platos && itemMenu.platos.includes(nombrePlatoOriginalEdicion)) {
+            const actualizados = itemMenu.platos.map(p => p === nombrePlatoOriginalEdicion ? nuevoNombre : p);
+            stMenu.put({ id: itemMenu.id, platos: actualizados });
+          }
+        });
+      }
+
+      stPlatos.put({ nombre: nuevoNombre, ingredientes: listaIngredientesNuevos });
+
+      if (slotActivo && !nombrePlatoOriginalEdicion) {
+        const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
+        const actualObj = await pedir(stMenu.get(keyId));
+        let platosActuales = actualObj?.platos || [];
+        platosActuales.push(nuevoNombre);
+        stMenu.put({ id: keyId, platos: platosActuales });
+      }
+
+      listaIngredientesNuevos.forEach(ing => {
+        tx.objectStore("ingredientes_base").put({ nombre: ing });
+        tx.objectStore("alimentos").put({
+          clave: ing.trim().toLowerCase(),
+          nombre: ing,
+          seccion: "otros",
+          tachado: false,
+          enLista: false
+        });
+      });
+
+      tx.oncomplete = async () => {
+        if (modoMantenimiento) {
+          cerrarFormNuevoPlato();
+          await cargarListaPlatos("");
+        } else {
+          document.getElementById("modalSeleccion").classList.remove("abierto");
+        }
+        renderizarSemana();
+        pintar();
+      };
+    };
+
+    document.getElementById("btnCancelarSel").onclick = () => {
+      document.getElementById("modalSeleccion").classList.remove("abierto");
+    };
+
+    document.getElementById("btnCancelarNuevo").onclick = () => {
+      cerrarFormNuevoPlato();
+    };
+
+    document.getElementById("ant").onclick = () => {
+      fechaLunesActual.setDate(fechaLunesActual.getDate() - 7);
+      renderizarSemana();
+    };
+
+    document.getElementById("sig").onclick = () => {
+      fechaLunesActual.setDate(fechaLunesActual.getDate() + 7);
+      renderizarSemana();
+    };
+
+    /* EVENTOS DE MENÚ Y NAVEGACIÓN ENTRE PANTALLAS */
+    document.getElementById("ok").onclick = anadir;
+    entrada.onkeydown = e => { if (e.key === "Enter") anadir(); };
+    entrada.addEventListener("input", sugerir);
+    entrada.addEventListener("focus", sugerir);
+
+    document.getElementById("menu").onclick = () => {
+      const abierto = menuPanel.style.display === "block";
+      menuPanel.style.display = abierto ? "none" : "block";
+      sugerenciasEl.style.display = "none";
+    };
+
+    document.getElementById("menuMenu").onclick = () => {
+      menuPanel.style.display = "none";
+      pantallaMenu.classList.add("abierta");
+      renderizarSemana();
+    };
+
+    document.getElementById("atrasMenu").onclick = () => {
+      pantallaMenu.classList.remove("abierta");
+      pintar();
+    };
+
+    document.getElementById("menuEliminar").onclick = () => {
+      menuPanel.style.display = "none";
+      eliminarTachados();
+    };
+    document.getElementById("menuAlimentos").onclick = () => {
+      menuPanel.style.display = "none";
+      mostrarAlimentos();
+    };
+    document.getElementById("menuCategorias").onclick = () => {
+      menuPanel.style.display = "none";
+      mostrarCategorias();
+    };
+    document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
+
+    document.getElementById("mas").onclick = () => {
+      if (pantallaActual === "alimentos") abrirEditor(null, true);
+      else abrirEditorCategoria(null);
+    };
+
+    document.getElementById("menuComidasBtn").onclick = (e) => {
+      e.stopPropagation();
+      menuPanelComidas.style.display = menuPanelComidas.style.display === "block" ? "none" : "block";
+    };
+
+    document.getElementById("menuComidasOpcion").onclick = () => {
+      menuPanelComidas.style.display = "none";
+      abrirMantenimientoComidas();
+    };
+
+    document.addEventListener("pointerdown", e => {
+      if (!e.target.closest(".barra")) sugerenciasEl.style.display = "none";
+      if (!e.target.closest("#menuPanel, #menu")) menuPanel.style.display = "none";
+      if (!e.target.closest("#menuPanelComidas, #menuComidasBtn")) menuPanelComidas.style.display = "none";
+    });
+
+    /* WAKE LOCK PANTALLA */
     let bloqueoPantalla = null;
     let pidiendoBloqueo = false;
     async function mantenerPantallaEncendida() {
@@ -972,39 +1736,6 @@
     mantenerPantallaEncendida();
 
     velo.onclick = e => { if (e.target === velo) velo.classList.remove("abierto"); };
-    document.getElementById("ok").onclick = anadir;
-    entrada.onkeydown = e => { if (e.key === "Enter") anadir(); };
-    entrada.addEventListener("input", sugerir);
-    entrada.addEventListener("focus", sugerir);
-
-    document.getElementById("menu").onclick = () => {
-      const abierto = menuPanel.style.display === "block";
-      menuPanel.style.display = abierto ? "none" : "block";
-      sugerenciasEl.style.display = "none";
-    };
-    document.getElementById("menuEliminar").onclick = () => {
-      menuPanel.style.display = "none";
-      eliminarTachados();
-    };
-    document.getElementById("menuAlimentos").onclick = () => {
-      menuPanel.style.display = "none";
-      mostrarAlimentos();
-    };
-    document.getElementById("menuCategorias").onclick = () => {
-      menuPanel.style.display = "none";
-      mostrarCategorias();
-    };
-    document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
-
-    document.getElementById("mas").onclick = () => {
-      if (pantallaActual === "alimentos") abrirEditor(null, true);
-      else abrirEditorCategoria(null);
-    };
-
-    document.addEventListener("pointerdown", e => {
-      if (!e.target.closest(".barra")) sugerenciasEl.style.display = "none";
-      if (!e.target.closest("#menuPanel, #menu")) menuPanel.style.display = "none";
-    });
 
     (async () => {
       db = await abrirBD();
