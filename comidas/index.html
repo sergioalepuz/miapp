@@ -782,10 +782,36 @@
       renderizarChipsIngredientes();
     }
 
-    document.getElementById("btnAceptarSel").onclick = () => {
+    // Modificamos el botón Aceptar superior para que guarde o asigne directamente
+    document.getElementById("btnAceptarSel").onclick = async () => {
       const valor = document.getElementById("inputBuscar").value.trim();
-      if (valor) {
+      if (!valor) return;
+
+      // Comprobamos si el plato ya existe en la base de datos
+      const tx = db.transaction("platos", "readonly");
+      const existente = await pedir(tx.objectStore("platos").get(valor));
+
+      if (existente) {
+        // Si ya existe, lo seleccionamos e insertamos directamente en el menú
         seleccionarEIr(valor);
+      } else {
+        // Si no existe, lo creamos de forma automática sin ingredientes y lo asignamos
+        const txWrite = db.transaction(["platos", "menu"], "readwrite");
+        txWrite.objectStore("platos").put({ nombre: valor, ingredientes: [] });
+
+        if (slotActivo) {
+          const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
+          const stMenu = txWrite.objectStore("menu");
+          const actualObj = await pedir(stMenu.get(keyId));
+          let platosActuales = actualObj?.platos || [];
+          platosActuales.push(valor);
+          stMenu.put({ id: keyId, platos: platosActuales });
+        }
+
+        txWrite.oncomplete = () => {
+          document.getElementById("modalSeleccion").classList.remove("abierto");
+          renderizarSemana();
+        };
       }
     };
 
