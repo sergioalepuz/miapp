@@ -203,14 +203,14 @@
     .item-plato:active { background: #f0f0f0; }
     .item-plato.seleccionado { background: #e3f2fd; color: #1b9de2; font-weight: bold; }
 
-    /* Estado deshabilitado para la parte superior al crear nuevo plato */
+    /* Estado deshabilitado en gris para la cabecera */
     .deshabilitado-gris {
       opacity: 0.35;
       pointer-events: none;
       background-color: #f9f9f9;
     }
 
-    /* Panel desplegable debajo de la búsqueda para crear plato nuevo */
+    /* Panel de creación de nuevo plato */
     .panel-nuevo-plato {
       display: none;
       background: #fff;
@@ -243,7 +243,7 @@
       outline: none;
     }
 
-    /* Chips/Etiquetas de ingredientes seleccionados */
+    /* Chips de ingredientes */
     .contenedor-ingredientes {
       display: flex;
       flex-wrap: wrap;
@@ -272,7 +272,7 @@
       padding: 0;
     }
 
-    /* Lista desplegable de sugerencias de ingredientes */
+    /* Desplegable de sugerencias */
     .sugerencias-ingredientes {
       display: none;
       position: absolute;
@@ -331,7 +331,6 @@
   <!-- MODAL SELECCIONAR / BUSCAR PLATO -->
   <div class="modal" id="modalSeleccion">
     
-    <!-- Cabecera principal (se pone gris al crear plato nuevo) -->
     <div id="zonaSuperiorModal">
       <div class="modal-header">
         <button class="btn-texto-verde" id="btnCancelarSel">Cancelar</button>
@@ -344,7 +343,7 @@
       </div>
     </div>
 
-    <!-- Panel de creación de plato nuevo (aparece justo debajo de la búsqueda) -->
+    <!-- Panel para crear plato nuevo -->
     <div class="panel-nuevo-plato" id="panelNuevoPlato">
       <div class="modal-header" style="padding: 0 0 12px 0; border: none;">
         <button class="btn-texto-verde" id="btnCancelarNuevo">Cancelar</button>
@@ -464,28 +463,37 @@
       }
     }
 
-    // Modal Selección
+    // Modal Selección de plato
     async function abrirSeleccion(fechaStr, toma) {
       slotActivo = { fechaStr, toma };
       platoSeleccionado = null;
       document.getElementById("inputBuscar").value = "";
       
-      // Resetear estados visuales
       document.getElementById("panelNuevoPlato").classList.remove("abierto");
       document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
+      document.getElementById("listaPlatos").style.display = "block";
       
-      await cargarListaPlatos("");
+      await cargarListaPlatos(""); // Carga todos los platos ordenados alfabéticamente
       document.getElementById("modalSeleccion").classList.add("abierto");
       document.getElementById("inputBuscar").focus();
     }
 
+    // Cargar y filtrar platos ordenados alfabéticamente
     async function cargarListaPlatos(filtro) {
       const tx = db.transaction("platos", "readonly");
       const platos = await pedir(tx.objectStore("platos").getAll());
+      
+      // Ordenar alfabéticamente por nombre (A-Z)
+      platos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+
       const listaEl = document.getElementById("listaPlatos");
       listaEl.innerHTML = "";
 
-      const filtrados = platos.filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()));
+      const txt = filtro.trim().toLowerCase();
+      // Filtrar platos que EMPIECEN por las letras escritas (ej: A, Ar...)
+      const filtrados = txt 
+        ? platos.filter(p => p.nombre.toLowerCase().startsWith(txt))
+        : platos;
 
       for (const p of filtrados) {
         const div = document.createElement("div");
@@ -525,10 +533,9 @@
       listaIngredientesNuevos = [];
       renderizarChipsIngredientes();
       
-      // Deshabilitar visualmente la parte superior en gris y abrir el panel debajo
       document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
       document.getElementById("panelNuevoPlato").classList.add("abierto");
-      document.getElementById("listaPlatos").style.display = "none"; // Ocultar lista de platos de fondo
+      document.getElementById("listaPlatos").style.display = "none";
       document.getElementById("inputNuevoIngrediente").focus();
     }
 
@@ -551,6 +558,9 @@
       }
       const tx = db.transaction("ingredientes_base", "readonly");
       const todos = await pedir(tx.objectStore("ingredientes_base").getAll());
+      
+      // Ordenar sugerencias alfabéticamente y filtrar los que empiecen por el texto
+      todos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
       const coincidencias = todos.filter(i => i.nombre.toLowerCase().startsWith(txt));
 
       sugerenciasIngEl.innerHTML = "";
@@ -608,7 +618,7 @@
       renderizarChipsIngredientes();
     }
 
-    // Aceptar modal selección
+    // Aceptar selección
     document.getElementById("btnAceptarSel").onclick = () => {
       if (platoSeleccionado) {
         guardarAsignacion();
@@ -628,7 +638,7 @@
       };
     }
 
-    // Guardar plato nuevo con sus ingredientes
+    // Guardar nuevo plato y sus ingredientes
     document.getElementById("btnAceptarNuevo").onclick = async () => {
       const nombre = document.getElementById("inputNuevoNombre").value.trim();
       if (!nombre) return;
