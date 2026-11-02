@@ -2,11 +2,12 @@
 <html lang="es">
 <head>  
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Mi lista y Menú Semanal</title>
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1b9de2">
   <style>
     :root { 
       --azul: #1b9de2; 
@@ -17,39 +18,50 @@
       --verde-apple: #2e7d32;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; height: 100%; }
+    html {
+      background-color: var(--azul);
+      height: 100%;
+    }
     body {
+      margin: 0;
+      min-height: 100%;
+      height: 100%;
       font-family: -apple-system, system-ui, "Segoe UI", sans-serif;
       background: var(--fondo);
       color: #111;
-      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
       display: flex;
       flex-direction: column;
     }
 
-    /* BARRA SUPERIOR AZUL EN PANTALLA PRINCIPAL (MI LISTA) */
+    /* BARRA SUPERIOR AZUL EN PANTALLA PRINCIPAL (MI LISTA) CON SEAMLESS STATUS BAR */
     .barra { 
       position: relative; 
       display: flex; 
       align-items: center; 
       gap: 8px; 
-      padding: 10px 12px; 
+      padding-top: calc(env(safe-area-inset-top) + 8px);
+      padding-bottom: 12px;
+      padding-left: 12px;
+      padding-right: 12px;
       background: var(--azul); 
       color: #fff;
     }
     #entrada {
-      flex: 1; min-width: 0; font-size: 16px; padding: 8px 12px; height: 36px;
-      border: 0; border-radius: 8px; background: #fff; color: #111; outline: none;
+      flex: 1; min-width: 0; font-size: 16px; padding: 8px 14px; height: 38px;
+      border: 0; border-radius: 10px; background: #fff; color: #111; outline: none;
+    }
+    #entrada::placeholder {
+      color: #aaa;
     }
     .barra button {
       background: #fff; 
       border: 0; 
       color: var(--azul);
-      font-size: 18px; 
+      font-size: 17px; 
       font-weight: 700; 
-      height: 36px;
-      padding: 0 12px;
-      border-radius: 8px;
+      height: 38px;
+      padding: 0 14px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -58,35 +70,56 @@
     .barra button:active { opacity: 0.85; }
 
     #btnMenuTresPuntos {
-      width: 36px;
+      width: 38px;
       padding: 0;
       font-size: 18px;
       font-weight: 700;
     }
 
-    /* MENÚ DESPLEGABLE DE LOS TRES PUNTOS */
+    /* MENÚ DESPLEGABLE ESTILO TARJETA IOS */
     #menuPanel, #menuPanelComidas {
-      display: none; position: absolute; right: 12px; top: calc(100% + 4px); z-index: 100;
-      min-width: 190px; background: #fff; border: 1px solid #ddd; border-radius: 10px;
-      box-shadow: 0 4px 14px rgba(0,0,0,.2); overflow: hidden;
+      display: none; 
+      position: absolute; 
+      right: 12px; 
+      top: calc(100% + 6px); 
+      z-index: 100;
+      width: 190px; 
+      background: #ffffff; 
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18); 
+      overflow: hidden;
     }
     #menuPanel button, #menuPanelComidas button {
-      display: block; width: 100%; text-align: left; background: none; border: 0;
-      border-top: 1px solid #eee; padding: 14px 16px; font-size: 17px; font-weight: 500; color: #111;
+      display: block; 
+      width: 100%; 
+      text-align: left; 
+      background: #fff; 
+      border: 0;
+      border-top: 1px solid #eaeaea; 
+      padding: 14px 18px; 
+      font-size: 17px; 
+      font-weight: 400; 
+      color: #111;
       cursor: pointer;
+      border-radius: 0;
+      height: auto;
     }
-    #menuPanel button:first-child, #menuPanelComidas button:first-child { border-top: 0; }
+    #menuPanel button:first-child, #menuPanelComidas button:first-child { 
+      border-top: 0; 
+    }
     
     /* ÍTEM DESTACADO DE MENÚ / LISTA EN DESPLEGABLE */
     #menuPanel button.item-destacado-menu, #menuPanelComidas button.item-destacado-menu {
-      background-color: #f0f0f0;
+      background-color: #efefef;
       font-weight: 700;
-      color: #111;
+      color: #000;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
     }
 
     #sugerencias {
       display: none; position: absolute; left: 12px; right: 12px; top: calc(100% + 4px);
-      z-index: 50; background: #fff; border: 1px solid #ddd; border-radius: 8px;
+      z-index: 50; background: #fff; border: 1px solid #ddd; border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,.15); max-height: 40vh; overflow-y: auto;
     }
     .sugerencia {
@@ -131,22 +164,26 @@
     /* PANTALLAS MODALES DE MI LISTA (ALIMENTOS / CATEGORÍAS) */
     #pantalla {
       display: none; position: fixed; inset: 0; z-index: 150; background: var(--fondo);
-      flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+      flex-direction: column; padding-bottom: env(safe-area-inset-bottom);
     }
     #pantalla.abierta { display: flex; }
     .cabecera {
       position: relative; display: flex; align-items: center; justify-content: center;
-      padding: 14px 56px; background: var(--azul); color: #fff; font-size: 18px; font-weight: 600;
+      padding-top: calc(env(safe-area-inset-top) + 12px);
+      padding-bottom: 14px;
+      padding-left: 56px;
+      padding-right: 56px;
+      background: var(--azul); color: #fff; font-size: 18px; font-weight: 600;
     }
     
     #atras {
-      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      position: absolute; left: 10px; top: calc(env(safe-area-inset-top) + 8px);
       height: 34px; padding: 0 12px; border: 0; border-radius: 8px;
       background: #fff; color: var(--azul); font-size: 15px; font-weight: 600;
       display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
     #mas {
-      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      position: absolute; right: 10px; top: calc(env(safe-area-inset-top) + 8px);
       width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px;
       background: #fff; color: var(--azul);
       display: flex; align-items: center; justify-content: center; cursor: pointer;
@@ -197,18 +234,23 @@
     /* ESTILOS VISTA MENÚ SEMANAL (COMIDAS) */
     #pantallaMenu {
       display: none; position: fixed; inset: 0; z-index: 120; background: #fff;
-      flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+      flex-direction: column; padding-bottom: env(safe-area-inset-bottom);
     }
     #pantallaMenu.abierta { display: flex; }
 
     .barra-comidas {
       position: relative; display: flex; align-items: center; justify-content: space-between;
-      background: var(--azul); padding: 10px 12px; color: #fff;
+      background: var(--azul); 
+      padding-top: calc(env(safe-area-inset-top) + 8px);
+      padding-bottom: 12px;
+      padding-left: 12px;
+      padding-right: 12px;
+      color: #fff;
     }
     .titulo-fecha { font-size: 17px; font-weight: 700; text-align: center; flex: 1; }
     .btn-hdr {
       background: #fff; border: 0; color: var(--azul); font-size: 18px; font-weight: 700;
-      width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center;
+      width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center;
       justify-content: center; cursor: pointer;
     }
     .btn-hdr:active { opacity: 0.8; }
