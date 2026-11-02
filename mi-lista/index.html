@@ -285,8 +285,9 @@
     #contenidoPantalla { flex: 1; overflow-y: auto; }
     .registro {
       display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      background: #fff; border-bottom: 1px solid #eee; padding: 14px 16px;
-      font-size: 20px; font-weight: 600;
+      background: #fff; font-size: 20px; font-weight: 600;
+      padding: 8px 16px; min-height: 54px;
+      touch-action: pan-y; user-select: none; -webkit-user-select: none;
     }
     .registro small { color: #888; font-size: 14px; font-weight: 400; text-align: right; }
     .vacio { padding: 24px 16px; color: #888; text-align: center; }
@@ -874,7 +875,7 @@
       let x0 = 0, y0 = 0, dx = 0;
       let activo = false, arrastrando = false;
       let reposo = 0;
-      const anchoEditar = () => editar.offsetWidth;
+      const anchoEditar = () => editar ? editar.offsetWidth : 0;
       const mover = px => { item.style.transform = "translateX(" + px + "px)"; };
       item.cerrarFila = () => {
         item.style.transition = "transform .2s";
@@ -911,7 +912,7 @@
         } else if (e.type === "pointerup") {
           if (reposo !== 0) {
             reposo = 0; mover(0);
-          } else {
+          } else if (editar) {
             await alternarTachado(alimento);
           }
         }
@@ -931,6 +932,14 @@
       alimento.tachado = false;
       await pedir(tabla("alimentos", "readwrite").put(alimento));
       pintar();
+    }
+
+    async function eliminarAlimentoTotal(alimento) {
+      const pregunta = "¿Eliminar «" + alimento.nombre + "» de los alimentos?" + (enLista(alimento) ? " También se quitará de la lista." : "");
+      if (!(await confirmar(pregunta, "Eliminar"))) return;
+      await pedir(tabla("alimentos", "readwrite").delete(alimento.clave));
+      await pintar();
+      refrescarPantalla();
     }
 
     async function eliminarTachados() {
@@ -989,14 +998,34 @@
       }
       for (const a of alimentos) {
         const fila = document.createElement("div");
-        fila.className = "registro";
+        fila.className = "fila";
+
+        const papelera = document.createElement("button");
+        papelera.className = "borrar";
+        papelera.innerHTML = ICONO_PAPELERA;
+        papelera.setAttribute("aria-label", "Eliminar alimento");
+        papelera.onclick = () => eliminarAlimentoTotal(a);
+
+        const registro = document.createElement("div");
+        registro.className = "registro";
+
         const nombre = document.createElement("span");
         nombre.textContent = a.nombre;
         const categoria = document.createElement("small");
         categoria.textContent = (enLista(a) ? "✓ " : "") + (nombreSeccion[a.seccion] || "");
-        fila.append(nombre, categoria);
-        fila.onclick = () => abrirEditor(a, true);
+        registro.append(nombre, categoria);
+
+        fila.append(papelera, registro);
         contenidoPantalla.appendChild(fila);
+
+        activarGestos(registro, a, null);
+        registro.onclick = (e) => {
+          if (registro.style.transform && registro.style.transform !== "translateX(0px)") {
+            registro.cerrarFila();
+          } else {
+            abrirEditor(a, true);
+          }
+        };
       }
     }
 
@@ -1061,12 +1090,8 @@
         const eliminar = document.createElement("button");
         eliminar.className = "peligro"; eliminar.textContent = "Eliminar";
         eliminar.onclick = async () => {
-          const pregunta = "¿Eliminar «" + alimento.nombre + "» de los alimentos?" + (enLista(alimento) ? " También se quitará de la lista." : "");
-          if (!(await confirmar(pregunta, "Eliminar"))) return;
-          await pedir(tabla("alimentos", "readwrite").delete(alimento.clave));
+          await eliminarAlimentoTotal(alimento);
           velo.classList.remove("abierto");
-          await pintar();
-          refrescarPantalla();
         };
         acciones.appendChild(eliminar);
       }
