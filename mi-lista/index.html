@@ -2,9 +2,9 @@
 <html lang="es">
 <head>  
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Mi lista y Menú Semanal</title>
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mi Lista & Menú</title>
+  <link rel="apple-touch-icon" href="mi_lista.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1b9de2">
@@ -13,53 +13,56 @@
       --azul: #1b9de2; 
       --fondo: #f6f6f6; 
       --rojo: #e53935; 
-      --texto: #2c3e50;
       --gris-hoy: #dcdcdc;
       --verde-apple: #2e7d32;
     }
     * { box-sizing: border-box; }
+    
+    /* El HTML tiene fondo azul para cubrir la status bar de iOS desde arriba del todo */
     html {
       background-color: var(--azul);
+      margin: 0;
+      padding: 0;
       height: 100%;
     }
     body {
       margin: 0;
-      min-height: 100%;
-      height: 100%;
       font-family: -apple-system, system-ui, "Segoe UI", sans-serif;
-      background: var(--fondo);
+      background-color: var(--fondo);
       color: #111;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
 
-    /* BARRA SUPERIOR AZUL EN PANTALLA PRINCIPAL (MI LISTA) CON SEAMLESS STATUS BAR */
-    .barra { 
-      position: relative; 
-      display: flex; 
-      align-items: center; 
-      gap: 8px; 
+    /* Vistas SPA */
+    .vista { display: none; flex-direction: column; flex: 1; }
+    .vista.activa { display: flex; }
+
+    /* Barra superior azul Mi Lista (Cubre la status bar) */
+    .barra-lista {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background-color: var(--azul);
       padding-top: calc(env(safe-area-inset-top) + 8px);
-      padding-bottom: 12px;
+      padding-bottom: 10px;
       padding-left: 12px;
       padding-right: 12px;
-      background: var(--azul); 
       color: #fff;
     }
     #entrada {
-      flex: 1; min-width: 0; font-size: 16px; padding: 8px 14px; height: 38px;
-      border: 0; border-radius: 10px; background: #fff; color: #111; outline: none;
+      flex: 1; min-width: 0; font-size: 16px; padding: 10px 12px;
+      border: 1px solid #ddd; border-radius: 10px; background: #fff; outline: none;
     }
-    #entrada::placeholder {
-      color: #aaa;
-    }
-    .barra button {
-      background: #fff; 
-      border: 0; 
+    .btn-blanco {
+      background: #fff;
+      border: 0;
       color: var(--azul);
-      font-size: 17px; 
-      font-weight: 700; 
-      height: 38px;
+      font-size: 17px;
+      font-weight: 700;
+      height: 40px;
       padding: 0 14px;
       border-radius: 10px;
       display: flex;
@@ -67,69 +70,84 @@
       justify-content: center;
       cursor: pointer;
     }
-    .barra button:active { opacity: 0.85; }
-
-    #btnMenuTresPuntos {
-      width: 38px;
+    .btn-blanco:active { opacity: 0.85; }
+    .btn-puntos {
+      width: 44px;
       padding: 0;
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 22px;
+      line-height: 1;
     }
 
-    /* MENÚ DESPLEGABLE ESTILO TARJETA IOS */
-    #menuPanel, #menuPanelComidas {
-      display: none; 
-      position: absolute; 
-      right: 12px; 
-      top: calc(100% + 6px); 
-      z-index: 100;
-      width: 190px; 
-      background: #ffffff; 
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,.18); 
-      overflow: hidden;
+    /* Barra superior azul Menú Semanal */
+    .barra-comidas {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--azul);
+      padding-top: calc(env(safe-area-inset-top) + 8px);
+      padding-bottom: 10px;
+      padding-left: 12px;
+      padding-right: 12px;
+      color: #fff;
     }
-    #menuPanel button, #menuPanelComidas button {
-      display: block; 
-      width: 100%; 
-      text-align: left; 
-      background: #fff; 
+    .titulo-fecha {
+      font-size: 17px;
+      font-weight: 700;
+      text-align: center;
+      flex: 1;
+    }
+    .cont-derecha { display: flex; gap: 8px; }
+
+    /* Menú flotante estilo tarjeta iOS (amplio y limpio) */
+    .menu-panel-ios {
+      display: none;
+      position: absolute;
+      right: 12px;
+      top: calc(100% + 4px);
+      z-index: 100;
+      width: 190px;
+      background: #fdfdfd;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+      overflow: hidden;
+      border: 1px solid #e5e5e5;
+    }
+    .menu-panel-ios button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: none;
       border: 0;
-      border-top: 1px solid #eaeaea; 
-      padding: 14px 18px; 
-      font-size: 17px; 
-      font-weight: 400; 
+      border-top: 1px solid #f0f0f0;
+      padding: 14px 18px;
+      font-size: 17px;
+      font-weight: 500;
       color: #111;
       cursor: pointer;
-      border-radius: 0;
-      height: auto;
     }
-    #menuPanel button:first-child, #menuPanelComidas button:first-child { 
-      border-top: 0; 
-    }
-    
-    /* ÍTEM DESTACADO DE MENÚ / LISTA EN DESPLEGABLE */
-    #menuPanel button.item-destacado-menu, #menuPanelComidas button.item-destacado-menu {
+    .menu-panel-ios button:first-child { border-top: 0; }
+    .menu-panel-ios button.destacado {
       background-color: #efefef;
       font-weight: 700;
-      color: #000;
-      border-top-left-radius: 16px;
-      border-top-right-radius: 16px;
     }
+    .menu-panel-ios button:active { background-color: #e5e5e5; }
 
+    /* Sugerencias de búsqueda en la lista */
     #sugerencias {
-      display: none; position: absolute; left: 12px; right: 12px; top: calc(100% + 4px);
-      z-index: 50; background: #fff; border: 1px solid #ddd; border-radius: 10px;
+      display: none; position: absolute; left: 12px; right: 12px; top: calc(100% - 4px);
+      z-index: 5; background: #fff; border: 1px solid #ddd; border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,.15); max-height: 40vh; overflow-y: auto;
     }
     .sugerencia {
       display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      padding: 12px 14px; font-size: 18px; border-top: 1px solid #eee; cursor: pointer;
+      padding: 12px 14px; font-size: 18px; border-top: 1px solid #eee;
     }
     .sugerencia:first-child { border-top: 0; }
     .sugerencia small { color: #888; font-size: 14px; }
 
-    #lista { flex: 1; overflow-y: auto; }
+    /* Elementos de Mi Lista */
+    #lista { flex: 1; background: var(--fondo); }
     .grupo { position: relative; }
     .grupo.arrastrando {
       z-index: 10; background: var(--fondo);
@@ -145,7 +163,6 @@
       display: flex; align-items: center; justify-content: center;
       touch-action: none; cursor: grab;
     }
-
     .fila { position: relative; overflow: hidden; border-bottom: 1px solid #eee; }
     .borrar, .editar {
       position: absolute; top: 0; padding: 0; color: #fff; border: 0;
@@ -156,53 +173,191 @@
     .item {
       position: relative; display: flex; align-items: center; justify-content: space-between;
       background: #fff; font-weight: 600;
-      padding: 4px 16px; font-size: 30px;
+      padding: 8px 16px; font-size: 26px;
       touch-action: pan-y; user-select: none; -webkit-user-select: none;
     }
     .item.tachado span { text-decoration: line-through; color: #999; }
 
-    /* PANTALLAS MODALES DE MI LISTA (ALIMENTOS / CATEGORÍAS) */
+    /* Rejilla Semanal Comidas */
+    .tabla-semana {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 14px;
+      overflow-y: auto;
+      background: #fff;
+    }
+    .fila-iconos {
+      display: grid;
+      grid-template-columns: 70px 1fr 1fr 1fr;
+      align-items: center;
+      padding-bottom: 8px;
+    }
+    .icono-toma {
+      text-align: center;
+      color: #555;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .icono-toma svg { width: 22px; height: 22px; stroke: #444; }
+    
+    .fila-dia {
+      display: grid;
+      grid-template-columns: 70px 1fr 1fr 1fr;
+      align-items: center;
+      border-top: 1px solid #a8d5e5;
+      padding: 8px 0;
+      border-radius: 6px;
+      min-height: 65px;
+    }
+    .fila-dia.hoy { background-color: var(--gris-hoy); }
+    .col-dia {
+      text-align: center;
+      line-height: 1.2;
+      font-weight: 500;
+      color: #455a64;
+    }
+    .col-dia .nombre-dia { font-size: 15px; }
+    .col-dia .num-dia { font-size: 15px; }
+
+    .celda-contenido {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 4px;
+      gap: 4px;
+      width: 100%;
+    }
+    .lista-platos-celda {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+      align-items: center;
+    }
+    .plato-item-badge {
+      background: #fff;
+      border: 1px solid #b2dfdb;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #2c3e50;
+      text-align: center;
+      width: 95%;
+      word-break: break-word;
+      line-height: 1.2;
+      cursor: pointer;
+    }
+    .btn-mas {
+      background: none;
+      border: 0;
+      color: #1b9de2;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0 8px;
+      line-height: 1;
+    }
+
+    /* Modales y Paneles Secundarios */
     #pantalla {
-      display: none; position: fixed; inset: 0; z-index: 150; background: var(--fondo);
-      flex-direction: column; padding-bottom: env(safe-area-inset-bottom);
+      display: none; position: fixed; inset: 0; z-index: 25; background: var(--fondo);
+      flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
     }
     #pantalla.abierta { display: flex; }
     .cabecera {
       position: relative; display: flex; align-items: center; justify-content: center;
-      padding-top: calc(env(safe-area-inset-top) + 12px);
-      padding-bottom: 14px;
-      padding-left: 56px;
-      padding-right: 56px;
-      background: var(--azul); color: #fff; font-size: 18px; font-weight: 600;
+      padding: 14px 56px; background: var(--azul); color: #fff; font-size: 18px; font-weight: 600;
     }
-    
     #atras {
-      position: absolute; left: 10px; top: calc(env(safe-area-inset-top) + 8px);
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
       height: 34px; padding: 0 12px; border: 0; border-radius: 8px;
       background: #fff; color: var(--azul); font-size: 15px; font-weight: 600;
-      display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
     #mas {
-      position: absolute; right: 10px; top: calc(env(safe-area-inset-top) + 8px);
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
       width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px;
-      background: #fff; color: var(--azul);
-      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      background: #fff; color: var(--azul); display: flex; align-items: center; justify-content: center;
     }
     #contenidoPantalla { flex: 1; overflow-y: auto; }
     .registro {
       display: flex; justify-content: space-between; align-items: center; gap: 12px;
       background: #fff; border-bottom: 1px solid #eee; padding: 14px 16px;
-      font-size: 20px; font-weight: 600; cursor: pointer;
+      font-size: 20px; font-weight: 600;
     }
     .registro small { color: #888; font-size: 14px; font-weight: 400; text-align: right; }
     .vacio { padding: 24px 16px; color: #888; text-align: center; }
 
+    /* Modal Comidas */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      z-index: 200;
+      flex-direction: column;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .modal.abierto { display: flex; }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid #eee;
+    }
+    .btn-texto-verde {
+      background: none; border: 0; color: var(--verde-apple);
+      font-size: 17px; font-weight: 600; cursor: pointer;
+    }
+    .buscador-box {
+      display: flex; align-items: center; padding: 12px 16px;
+      border-bottom: 1px solid #eee; gap: 10px;
+    }
+    .buscador-box svg { width: 20px; height: 20px; stroke: #666; }
+    .buscador-input { flex: 1; border: 0; font-size: 17px; outline: none; background: transparent; }
+    .lista-platos { flex: 1; overflow-y: auto; }
+    .item-plato { padding: 16px; font-size: 18px; border-bottom: 1px solid #eee; cursor: pointer; }
+
+    .panel-nuevo-plato {
+      display: none; background: #fff; border-bottom: 1px solid #ddd;
+      padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); z-index: 250;
+    }
+    .panel-nuevo-plato.abierto { display: block; }
+    .campo-form { position: relative; margin-bottom: 16px; }
+    .campo-form label {
+      display: flex; align-items: center; gap: 8px; font-size: 14px;
+      color: var(--verde-apple); margin-bottom: 6px; font-weight: 600;
+    }
+    .campo-form input {
+      width: 100%; font-size: 17px; padding: 8px 0; border: 0;
+      border-bottom: 1px solid var(--verde-apple); outline: none;
+    }
+    .contenedor-ingredientes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .chip-ingrediente {
+      background: #e8f5e9; color: var(--verde-apple); border: 1px solid #c8e6c9;
+      padding: 4px 10px; border-radius: 16px; font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .chip-ingrediente button { background: none; border: 0; color: var(--verde-apple); font-weight: bold; font-size: 14px; }
+    .sugerencias-ingredientes {
+      display: none; position: absolute; left: 0; right: 0; top: 100%;
+      background: #fff; border: 1px solid #ddd; border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 150px; overflow-y: auto; z-index: 300;
+    }
+    .sugerencias-ingredientes div { padding: 10px 14px; font-size: 16px; border-bottom: 1px solid #eee; }
+
+    /* Velos emergentes */
     .velo {
-      position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.4);
+      position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.4);
       display: none; align-items: center; justify-content: center;
     }
     .velo.abierto { display: flex; }
-    .velo-confirmar { z-index: 250; }
+    .velo-confirmar { z-index: 40; }
     .caja {
       background: #fff; border-radius: 14px; width: min(80%, 320px);
       max-height: 70%; overflow-y: auto; padding: 8px 0;
@@ -216,141 +371,9 @@
       border: 1px solid #ddd; border-radius: 8px; background: #fff;
     }
     .acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 16px; padding: 0 8px 4px; }
-    .acciones button {
-      border: 0; background: none; padding: 8px 10px;
-      font-size: 18px; color: var(--azul); font-weight: 600; cursor: pointer;
-    }
+    .acciones button { border: 0; background: none; padding: 8px 10px; font-size: 18px; color: var(--azul); font-weight: 600; }
     .acciones .guardar { font-weight: 700; }
     .acciones .peligro { color: var(--rojo); font-weight: 700; }
-
-    #aviso {
-      position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 70px);
-      transform: translateX(-50%); z-index: 300; width: max-content; max-width: 90vw; text-align: center;
-      background: #333; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 16px;
-      opacity: 0; pointer-events: none; transition: opacity 1s;
-    }
-    #aviso.visible { opacity: 1; transition: opacity .15s; }
-
-    /* ESTILOS VISTA MENÚ SEMANAL (COMIDAS) */
-    #pantallaMenu {
-      display: none; position: fixed; inset: 0; z-index: 120; background: #fff;
-      flex-direction: column; padding-bottom: env(safe-area-inset-bottom);
-    }
-    #pantallaMenu.abierta { display: flex; }
-
-    .barra-comidas {
-      position: relative; display: flex; align-items: center; justify-content: space-between;
-      background: var(--azul); 
-      padding-top: calc(env(safe-area-inset-top) + 8px);
-      padding-bottom: 12px;
-      padding-left: 12px;
-      padding-right: 12px;
-      color: #fff;
-    }
-    .titulo-fecha { font-size: 17px; font-weight: 700; text-align: center; flex: 1; }
-    .btn-hdr {
-      background: #fff; border: 0; color: var(--azul); font-size: 18px; font-weight: 700;
-      width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center;
-      justify-content: center; cursor: pointer;
-    }
-    .btn-hdr:active { opacity: 0.8; }
-    .cont-derecha { display: flex; gap: 8px; }
-
-    .tabla-semana {
-      flex: 1; display: flex; flex-direction: column; padding: 10px 14px; overflow-y: auto;
-    }
-    .fila-iconos {
-      display: grid; grid-template-columns: 70px 1fr 1fr 1fr; align-items: center; padding-bottom: 8px;
-    }
-    .icono-toma {
-      text-align: center; color: #555; display: flex; justify-content: center; align-items: center;
-    }
-    .icono-toma svg { width: 22px; height: 22px; stroke: #444; }
-    
-    .fila-dia {
-      display: grid; grid-template-columns: 70px 1fr 1fr 1fr; align-items: center;
-      border-top: 1px solid #a8d5e5; padding: 8px 0; border-radius: 6px; min-height: 65px;
-    }
-    .fila-dia.hoy { background-color: var(--gris-hoy); }
-    .col-dia { text-align: center; line-height: 1.2; font-weight: 500; color: #455a64; }
-    .col-dia .nombre-dia { font-size: 15px; }
-    .col-dia .num-dia { font-size: 15px; }
-
-    .celda-contenido {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 2px 4px; gap: 4px; width: 100%;
-    }
-    .lista-platos-celda {
-      display: flex; flex-direction: column; gap: 4px; width: 100%; align-items: center;
-    }
-    .plato-item-badge {
-      background: #fff; border: 1px solid #b2dfdb; border-radius: 6px; padding: 4px 8px;
-      font-size: 14px; font-weight: 600; color: #2c3e50; text-align: center; width: 95%;
-      word-break: break-word; line-height: 1.2; cursor: pointer;
-    }
-    .plato-item-badge:active { background: #f0f0f0; }
-
-    .btn-mas {
-      background: none; border: 0; color: #1b9de2; font-size: 22px; font-weight: bold;
-      cursor: pointer; padding: 0 8px; line-height: 1;
-    }
-
-    /* MODAL DE PLATO/COMIDA EN MENÚ */
-    .modal {
-      display: none; position: fixed; inset: 0; background: #fff; z-index: 200;
-      flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
-    }
-    .modal.abierto { display: flex; }
-
-    .modal-header {
-      display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #eee;
-    }
-    .btn-texto-verde {
-      background: none; border: 0; color: var(--verde-apple); font-size: 17px; font-weight: 600; cursor: pointer;
-    }
-    .buscador-box {
-      display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; gap: 10px;
-    }
-    .buscador-box svg { width: 20px; height: 20px; stroke: #666; }
-    .buscador-input { flex: 1; border: 0; font-size: 17px; outline: none; background: transparent; }
-    .lista-platos { flex: 1; overflow-y: auto; }
-    .item-plato { padding: 16px; font-size: 18px; border-bottom: 1px solid #eee; cursor: pointer; }
-    .item-plato:active { background: #f0f0f0; }
-
-    .deshabilitado-gris { opacity: 0.35; pointer-events: none; background-color: #f9f9f9; }
-
-    .panel-nuevo-plato {
-      display: none; background: #fff; border-bottom: 1px solid #ddd; padding: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08); z-index: 250;
-    }
-    .panel-nuevo-plato.abierto { display: block; }
-    
-    .campo-form { position: relative; margin-bottom: 16px; }
-    .campo-form label {
-      display: flex; align-items: center; gap: 8px; font-size: 14px;
-      color: var(--verde-apple); margin-bottom: 6px; font-weight: 600;
-    }
-    .campo-form input {
-      width: 100%; font-size: 17px; padding: 8px 0; border: 0; border-bottom: 1px solid var(--verde-apple); outline: none;
-    }
-
-    .contenedor-ingredientes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-    .chip-ingrediente {
-      background: #e8f5e9; color: var(--verde-apple); border: 1px solid #c8e6c9;
-      padding: 4px 10px; border-radius: 16px; font-size: 14px; font-weight: 600;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .chip-ingrediente button {
-      background: none; border: 0; color: var(--verde-apple); font-weight: bold; font-size: 14px; cursor: pointer; padding: 0;
-    }
-
-    .sugerencias-ingredientes {
-      display: none; position: absolute; left: 0; right: 0; top: 100%; background: #fff;
-      border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      max-height: 150px; overflow-y: auto; z-index: 300;
-    }
-    .sugerencias-ingredientes div { padding: 10px 14px; font-size: 16px; border-bottom: 1px solid #eee; cursor: pointer; }
-    .sugerencias-ingredientes div:hover { background: #f5f5f5; }
 
     .overlay-menu {
       display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4);
@@ -359,65 +382,54 @@
     .overlay-menu.abierto { display: flex; }
     .menu-flotante-ios {
       background: #fdfdfd; width: 100%; max-width: 340px; border-radius: 24px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25); overflow: hidden; animation: escalaModal 0.2s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25); overflow: hidden;
     }
-    @keyframes escalaModal {
-      from { transform: scale(0.9); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-    .menu-flotante-titulo {
-      padding: 22px 20px; font-size: 22px; font-weight: 500; color: #111; text-align: left; border-bottom: 1px solid #e0e0e0;
-    }
-    .menu-flotante-opcion {
-      width: 100%; background: none; border: 0; padding: 18px 20px; text-align: left;
-      font-size: 18px; color: #007aff; cursor: pointer;
-    }
-    .menu-flotante-opcion:active { background: #f0f0f0; }
+    .menu-flotante-titulo { padding: 22px 20px; font-size: 22px; font-weight: 500; color: #111; border-bottom: 1px solid #e0e0e0; }
+    .menu-flotante-opcion { width: 100%; background: none; border: 0; padding: 18px 20px; text-align: left; font-size: 18px; color: #007aff; }
     .menu-flotante-opcion.quitar { color: #ff3b30; border-top: 1px solid #f0f0f0; }
+
+    #aviso {
+      position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 70px);
+      transform: translateX(-50%); z-index: 50; width: max-content; max-width: 90vw; text-align: center;
+      background: #333; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 16px;
+      opacity: 0; pointer-events: none; transition: opacity 1s;
+    }
+    #aviso.visible { opacity: 1; transition: opacity .15s; }
   </style>
 </head>
 <body>
 
-  <!-- PANTALLA PRINCIPAL: MI LISTA -->
-  <div class="barra">
-    <input id="entrada" type="text" placeholder="Añadir alimento" autocomplete="off">
-    <button id="ok">Ok</button>
-    <button id="btnMenuTresPuntos">···</button>
-    <div id="sugerencias"></div>
-    <div id="menuPanel">
-      <button id="menuMenu" class="item-destacado-menu">Menú</button>
-      <button id="menuEliminar">Eliminar</button>
-      <button id="menuAlimentos">Alimentos</button>
-      <button id="menuCategorias">Categorías</button>
+  <!-- VISTA 1: MI LISTA -->
+  <div id="vistaLista" class="vista activa">
+    <div class="barra-lista">
+      <input id="entrada" type="text" placeholder="Añadir alimento" autocomplete="off">
+      <button id="ok" class="btn-blanco">Ok</button>
+      <button id="menuLista" class="btn-blanco btn-puntos">···</button>
+      
+      <div id="sugerencias"></div>
+      
+      <div id="menuPanelLista" class="menu-panel-ios">
+        <button id="btnIrAMenu" class="destacado">Menú</button>
+        <button id="menuEliminar">Eliminar</button>
+        <button id="menuAlimentos">Alimentos</button>
+        <button id="menuCategorias">Categorías</button>
+      </div>
     </div>
+    <div id="lista"></div>
   </div>
 
-  <div id="lista"></div>
-
-  <!-- PANTALLA SECUNDARIA: ALIMENTOS / CATEGORÍAS EN MI LISTA -->
-  <div id="pantalla">
-    <div class="cabecera">
-      <button id="atras">‹ Atrás</button>
-      <span id="tituloPantalla"></span>
-      <button id="mas" aria-label="Añadir">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
-    </div>
-    <div id="contenidoPantalla"></div>
-  </div>
-
-  <!-- PANTALLA INTEGRADA: MENÚ SEMANAL (COMIDAS) -->
-  <div id="pantallaMenu">
+  <!-- VISTA 2: MENÚ SEMANAL DE COMIDAS -->
+  <div id="vistaComidas" class="vista">
     <div class="barra-comidas">
-      <button class="btn-hdr" id="ant">‹</button>
+      <button class="btn-blanco" id="ant" style="width: 36px; padding: 0; font-size: 20px;">‹</button>
       <div class="titulo-fecha" id="tituloFecha">--</div>
       <div class="cont-derecha">
-        <button class="btn-hdr" id="sig">›</button>
-        <button class="btn-hdr" id="menuComidasBtn">···</button>
+        <button class="btn-blanco" id="sig" style="width: 36px; padding: 0; font-size: 20px;">›</button>
+        <button class="btn-blanco btn-puntos" id="menuComidasBtn">···</button>
       </div>
-      <div id="menuPanelComidas">
-        <button id="menuListaOpcion" class="item-destacado-menu">Lista</button>
-        <button id="menuComidasOpcion">Comidas</button>
+      <div id="menuPanelComidas" class="menu-panel-ios">
+        <button id="btnIrALista" class="destacado">Lista</button>
+        <button id="menuComidasOption">Comidas</button>
       </div>
     </div>
 
@@ -438,7 +450,19 @@
     </div>
   </div>
 
-  <!-- MODAL DE SELECCIÓN Y MANTENIMIENTO DE COMIDAS -->
+  <!-- PANTALLA SECUNDARIA (ALIMENTOS / CATEGORÍAS) -->
+  <div id="pantalla">
+    <div class="cabecera">
+      <button id="atras">‹ Atrás</button>
+      <span id="tituloPantalla"></span>
+      <button id="mas" aria-label="Añadir">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+    <div id="contenidoPantalla"></div>
+  </div>
+
+  <!-- MODAL SELECCIONAR / GESTIONAR COMIDAS -->
   <div class="modal" id="modalSeleccion">
     <div id="zonaSuperiorModal">
       <div class="modal-header">
@@ -458,7 +482,6 @@
         <span style="font-weight: 600; font-size: 16px;" id="tituloPanelNuevo">Nuevo plato</span>
         <button class="btn-texto-verde" id="btnAceptarNuevo">Aceptar</button>
       </div>
-      
       <div class="campo-form">
         <label>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16M6 16l6-12 6 12M8 12h8"/></svg>
@@ -466,13 +489,11 @@
         </label>
         <input type="text" id="inputNuevoNombre" autocomplete="off">
       </div>
-
       <div class="campo-form" style="margin-bottom: 8px;">
         <label>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg>
           Ingredientes
         </label>
-        
         <div class="contenedor-ingredientes" id="contenedorChips"></div>
         <input type="text" id="inputNuevoIngrediente" placeholder="añadir..." autocomplete="off">
         <div class="sugerencias-ingredientes" id="sugerenciasIng"></div>
@@ -482,7 +503,7 @@
     <div class="lista-platos" id="listaPlatos"></div>
   </div>
 
-  <!-- OVERLAY DE EDICIÓN EN LA REJILLA SEMANAL -->
+  <!-- OVERLAY MENU EDICION EN REJILLA -->
   <div class="overlay-menu" id="overlayMenuPlato">
     <div class="menu-flotante-ios">
       <div class="menu-flotante-titulo" id="menuPlatoTitulo">Nombre plato</div>
@@ -496,7 +517,6 @@
   <div id="aviso"></div>
 
   <script>
-    /* CONSTANTES GENERALES Y BASE DE DATOS UNIFICADA */
     const SECCIONES_INICIALES = ["Otros", "Fruta", "Verdura", "Carne", "Pescado", "Lácteos", "Panadería", "Limpieza"];
     const SECCION_POR_DEFECTO = "otros";
     const OPCION_NUEVA = "__nueva__";
@@ -509,6 +529,27 @@
     const ANCHO_PAPELERA = 80;
 
     let db;
+    let fechaLunesActual = getLunes(new Date());
+    let slotActivo = null;
+    let listaIngredientesNuevos = [];
+    let platoActivoCtx = null;
+    let modoMantenimiento = false;
+    let nombrePlatoOriginalEdicion = "";
+
+    const entrada = document.getElementById("entrada");
+    const sugerenciasEl = document.getElementById("sugerencias");
+    const menuPanelLista = document.getElementById("menuPanelLista");
+    const menuPanelComidas = document.getElementById("menuPanelComidas");
+    const lista = document.getElementById("lista");
+    const pantalla = document.getElementById("pantalla");
+    const tituloPantalla = document.getElementById("tituloPantalla");
+    const contenidoPantalla = document.getElementById("contenidoPantalla");
+    const velo = document.getElementById("velo");
+    const caja = document.getElementById("caja");
+    const veloConfirmar = document.getElementById("veloConfirmar");
+    const cajaConfirmar = document.getElementById("cajaConfirmar");
+    const avisoEl = document.getElementById("aviso");
+
     const clave = texto => texto.trim().toLowerCase();
     const normalizar = texto => texto.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const formatear = texto => {
@@ -522,6 +563,7 @@
       req.onsuccess = () => ok(req.result);
       req.onerror = () => fallo(req.error);
     });
+
     const tabla = (nombre, modo = "readonly") => db.transaction(nombre, modo).objectStore(nombre);
 
     function abrirBD() {
@@ -561,41 +603,25 @@
       });
     }
 
-    /* ELEMENTOS MI LISTA */
-    const entrada = document.getElementById("entrada");
-    const sugerenciasEl = document.getElementById("sugerencias");
-    const menuPanel = document.getElementById("menuPanel");
-    const lista = document.getElementById("lista");
-    const pantalla = document.getElementById("pantalla");
-    const tituloPantalla = document.getElementById("tituloPantalla");
-    const contenidoPantalla = document.getElementById("contenidoPantalla");
-    const velo = document.getElementById("velo");
-    const caja = document.getElementById("caja");
-    const veloConfirmar = document.getElementById("veloConfirmar");
-    const cajaConfirmar = document.getElementById("cajaConfirmar");
-    const avisoEl = document.getElementById("aviso");
-
-    /* ELEMENTOS MENÚ COMIDAS */
-    const pantallaMenu = document.getElementById("pantallaMenu");
-    const menuPanelComidas = document.getElementById("menuPanelComidas");
-    let fechaLunesActual = getLunes(new Date());
-    let slotActivo = null;
-    let listaIngredientesNuevos = [];
-    let platoActivoCtx = null;
-    let modoMantenimiento = false;
-    let nombrePlatoOriginalEdicion = "";
-
-    function getLunes(d) {
-      const date = new Date(d);
-      const day = date.getDay();
-      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-      date.setDate(diff);
-      date.setHours(0,0,0,0);
-      return date;
+    async function asegurarOrden() {
+      const secciones = await pedir(tabla("secciones").getAll());
+      if (secciones.every(s => typeof s.orden === "number")) return;
+      const base = SECCIONES_INICIALES.map(clave);
+      const pos = s => { const i = base.indexOf(s.clave); return i === -1 ? 1000 : i; };
+      secciones.sort((a, b) => pos(a) - pos(b));
+      secciones.forEach((s, i) => { s.orden = i; });
+      await escribir("secciones", secciones);
     }
 
-    function formatearFechaStr(d) {
-      return d.toISOString().split('T')[0];
+    async function normalizarNombres() {
+      const alimentos = await pedir(tabla("alimentos").getAll());
+      for (const a of alimentos) {
+        const bueno = formatear(a.nombre);
+        if (a.nombre !== bueno) {
+          a.nombre = bueno;
+          await pedir(tabla("alimentos", "readwrite").put(a));
+        }
+      }
     }
 
     let temporizadorAviso;
@@ -612,7 +638,6 @@
         const texto = document.createElement("p");
         texto.className = "mensaje";
         texto.textContent = mensaje;
-
         const acciones = document.createElement("div");
         acciones.className = "acciones";
         const cancelar = document.createElement("button");
@@ -635,28 +660,28 @@
       });
     }
 
-    /* LOGICA MI LISTA */
-    async function asegurarOrden() {
-      const secciones = await pedir(tabla("secciones").getAll());
-      if (secciones.every(s => typeof s.orden === "number")) return;
-      const base = SECCIONES_INICIALES.map(clave);
-      const pos = s => { const i = base.indexOf(s.clave); return i === -1 ? 1000 : i; };
-      secciones.sort((a, b) => pos(a) - pos(b));
-      secciones.forEach((s, i) => { s.orden = i; });
-      await escribir("secciones", secciones);
-    }
-
-    async function normalizarNombres() {
-      const alimentos = await pedir(tabla("alimentos").getAll());
-      for (const a of alimentos) {
-        const bueno = formatear(a.nombre);
-        if (a.nombre !== bueno) {
-          a.nombre = bueno;
-          await pedir(tabla("alimentos", "readwrite").put(a));
-        }
+    /* Navegación SPA */
+    function cambiarVista(nombreVista) {
+      document.querySelectorAll(".vista").forEach(v => v.classList.remove("activa"));
+      if (nombreVista === "lista") {
+        document.getElementById("vistaLista").classList.add("activa");
+        pintar();
+      } else {
+        document.getElementById("vistaComidas").classList.add("activa");
+        renderizarSemana();
       }
     }
 
+    document.getElementById("btnIrAMenu").onclick = () => {
+      menuPanelLista.style.display = "none";
+      cambiarVista("comidas");
+    };
+    document.getElementById("btnIrALista").onclick = () => {
+      menuPanelComidas.style.display = "none";
+      cambiarVista("lista");
+    };
+
+    /* Lógica Mi Lista */
     async function ponerEnLista(alimento) {
       alimento.enLista = true;
       alimento.tachado = false;
@@ -786,7 +811,6 @@
             abrirEditor(a, false);
           };
         }
-
         lista.appendChild(grupo);
         activarArrastreSeccion(grupo, asa);
       }
@@ -794,7 +818,6 @@
 
     function activarArrastreSeccion(grupo, asa) {
       let inicioY = 0, topInicial = 0, activo = false;
-
       asa.addEventListener("pointerdown", e => {
         e.preventDefault();
         activo = true;
@@ -804,13 +827,11 @@
         grupo.style.transition = "none";
         grupo.classList.add("arrastrando");
       });
-
       asa.addEventListener("pointermove", e => {
         if (!activo) return;
         const deseado = topInicial + (e.clientY - inicioY);
         grupo.style.transform = "";
         const centro = deseado + grupo.offsetHeight / 2;
-
         let anterior = grupo.previousElementSibling;
         while (anterior && centro < anterior.getBoundingClientRect().top + anterior.offsetHeight / 2) {
           lista.insertBefore(grupo, anterior);
@@ -821,11 +842,9 @@
           lista.insertBefore(siguiente, grupo);
           siguiente = grupo.nextElementSibling;
         }
-
         const natural = grupo.getBoundingClientRect().top;
         grupo.style.transform = "translateY(" + (deseado - natural) + "px)";
       });
-
       const soltar = async () => {
         if (!activo) return;
         activo = false;
@@ -855,25 +874,18 @@
       let x0 = 0, y0 = 0, dx = 0;
       let activo = false, arrastrando = false;
       let reposo = 0;
-
       const anchoEditar = () => editar.offsetWidth;
       const mover = px => { item.style.transform = "translateX(" + px + "px)"; };
-
       item.cerrarFila = () => {
         item.style.transition = "transform .2s";
         reposo = 0;
         mover(0);
       };
-
       item.addEventListener("pointerdown", e => {
-        activo = true;
-        arrastrando = false;
-        x0 = e.clientX;
-        y0 = e.clientY;
-        dx = 0;
+        activo = true; arrastrando = false;
+        x0 = e.clientX; y0 = e.clientY; dx = 0;
         item.style.transition = "none";
       });
-
       item.addEventListener("pointermove", e => {
         if (!activo) return;
         dx = e.clientX - x0;
@@ -886,7 +898,6 @@
           mover(Math.max(-ANCHO_PAPELERA, Math.min(anchoEditar(), reposo + dx)));
         }
       });
-
       const terminar = async e => {
         if (!activo) return;
         activo = false;
@@ -899,8 +910,7 @@
           mover(reposo);
         } else if (e.type === "pointerup") {
           if (reposo !== 0) {
-            reposo = 0;
-            mover(0);
+            reposo = 0; mover(0);
           } else {
             await alternarTachado(alimento);
           }
@@ -969,7 +979,6 @@
       const alimentos = (await pedir(tabla("alimentos").getAll())).sort(porNombre);
       const secciones = await pedir(tabla("secciones").getAll());
       const nombreSeccion = Object.fromEntries(secciones.map(s => [s.clave, s.nombre]));
-
       contenidoPantalla.innerHTML = "";
       if (!alimentos.length) {
         const vacio = document.createElement("div");
@@ -995,7 +1004,6 @@
       abrirPantalla("categorias", "Categorías");
       const secciones = (await pedir(tabla("secciones").getAll())).sort(porNombre);
       const alimentos = await pedir(tabla("alimentos").getAll());
-
       contenidoPantalla.innerHTML = "";
       for (const s of secciones) {
         const total = alimentos.filter(a => a.seccion === s.clave).length;
@@ -1015,59 +1023,45 @@
       const nuevo = !alimento;
       const secciones = (await pedir(tabla("secciones").getAll())).sort(porOrden);
       caja.innerHTML = "";
-
       const titulo = document.createElement("h2");
       titulo.textContent = nuevo ? "Nuevo alimento" : "Editar alimento";
       caja.appendChild(titulo);
-
       const editor = document.createElement("div");
       editor.className = "editor";
-
       const etiquetaNombre = document.createElement("label");
       etiquetaNombre.textContent = "Nombre";
       const campo = document.createElement("input");
-      campo.type = "text";
-      campo.value = nuevo ? "" : alimento.nombre;
-      campo.autocomplete = "off";
-
+      campo.type = "text"; campo.value = nuevo ? "" : alimento.nombre; campo.autocomplete = "off";
       const etiquetaSeccion = document.createElement("label");
       etiquetaSeccion.textContent = "Categoría";
       const desplegable = document.createElement("select");
       const seccionInicial = nuevo ? SECCION_POR_DEFECTO : alimento.seccion;
       for (const s of secciones) {
         const o = document.createElement("option");
-        o.value = s.clave;
-        o.textContent = s.nombre;
+        o.value = s.clave; o.textContent = s.nombre;
         if (s.clave === seccionInicial) o.selected = true;
         desplegable.appendChild(o);
       }
       const opcionNueva = document.createElement("option");
-      opcionNueva.value = OPCION_NUEVA;
-      opcionNueva.textContent = "+ Nueva categoría…";
+      opcionNueva.value = OPCION_NUEVA; opcionNueva.textContent = "+ Nueva categoría…";
       desplegable.appendChild(opcionNueva);
 
       const campoNueva = document.createElement("input");
-      campoNueva.type = "text";
-      campoNueva.placeholder = "Nombre de la nueva categoría";
-      campoNueva.autocomplete = "off";
-      campoNueva.style.display = "none";
-      campoNueva.style.marginTop = "8px";
+      campoNueva.type = "text"; campoNueva.placeholder = "Nombre de la nueva categoría";
+      campoNueva.autocomplete = "off"; campoNueva.style.display = "none"; campoNueva.style.marginTop = "8px";
       desplegable.onchange = () => {
         const otra = desplegable.value === OPCION_NUEVA;
         campoNueva.style.display = otra ? "block" : "none";
         if (otra) campoNueva.focus();
       };
-
       const acciones = document.createElement("div");
       acciones.className = "acciones";
 
       if (mantenimiento && !nuevo) {
         const eliminar = document.createElement("button");
-        eliminar.className = "peligro";
-        eliminar.textContent = "Eliminar";
+        eliminar.className = "peligro"; eliminar.textContent = "Eliminar";
         eliminar.onclick = async () => {
-          const pregunta = "¿Eliminar «" + alimento.nombre + "» de los alimentos?" +
-            (enLista(alimento) ? " También se quitará de la lista." : "");
+          const pregunta = "¿Eliminar «" + alimento.nombre + "» de los alimentos?" + (enLista(alimento) ? " También se quitará de la lista." : "");
           if (!(await confirmar(pregunta, "Eliminar"))) return;
           await pedir(tabla("alimentos", "readwrite").delete(alimento.clave));
           velo.classList.remove("abierto");
@@ -1076,35 +1070,22 @@
         };
         acciones.appendChild(eliminar);
       }
-
       const cancelar = document.createElement("button");
       cancelar.textContent = "Cancelar";
       cancelar.onclick = () => velo.classList.remove("abierto");
       const guardar = document.createElement("button");
-      guardar.className = "guardar";
-      guardar.textContent = "Guardar";
+      guardar.className = "guardar"; guardar.textContent = "Guardar";
 
       const guardarCambios = async () => {
         const nombre = formatear(campo.value);
-        if (!nombre) {
-          aviso("Escribe un nombre");
-          return;
-        }
+        if (!nombre) { aviso("Escribe un nombre"); return; }
         let seccion = desplegable.value;
         if (seccion === OPCION_NUEVA) {
-          if (!campoNueva.value.trim()) {
-            aviso("Escribe el nombre de la categoría");
-            return;
-          }
+          if (!campoNueva.value.trim()) { aviso("Escribe el nombre de la categoría"); return; }
           seccion = await asegurarSeccion(campoNueva.value);
         }
-        const guardado = nuevo
-          ? await crearAlimento(nombre, seccion)
-          : await guardarEdicion(alimento, nombre, seccion);
-        if (!guardado) {
-          aviso("Ya existe ese alimento");
-          return;
-        }
+        const guardado = nuevo ? await crearAlimento(nombre, seccion) : await guardarEdicion(alimento, nombre, seccion);
+        if (!guardado) { aviso("Ya existe ese alimento"); return; }
         velo.classList.remove("abierto");
         await pintar();
         refrescarPantalla();
@@ -1124,9 +1105,7 @@
       const existente = await pedir(tabla("alimentos").get(clave(nombre)));
       if (existente) return false;
       const t = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
-      t.objectStore("alimentos").put({
-        clave: clave(nombre), nombre, seccion, tachado: false, enLista: false
-      });
+      t.objectStore("alimentos").put({ clave: clave(nombre), nombre, seccion, tachado: false, enLista: false });
       t.objectStore("ingredientes_base").put({ nombre });
       await new Promise((ok, fallo) => { t.oncomplete = ok; t.onerror = fallo; });
       return true;
@@ -1144,10 +1123,7 @@
         const existente = st.get(nuevaClave);
         existente.onsuccess = () => {
           const cambiaClave = nuevaClave !== alimento.clave;
-          if (cambiaClave && existente.result) {
-            ok(false);
-            return;
-          }
+          if (cambiaClave && existente.result) { ok(false); return; }
           if (cambiaClave) st.delete(alimento.clave);
           st.put({ ...alimento, clave: nuevaClave, nombre, seccion });
           stIng.put({ nombre });
@@ -1162,27 +1138,19 @@
         return;
       }
       caja.innerHTML = "";
-
       const titulo = document.createElement("h2");
       titulo.textContent = nueva ? "Nueva categoría" : "Editar categoría";
       caja.appendChild(titulo);
 
       const editor = document.createElement("div");
       editor.className = "editor";
-      const etiqueta = document.createElement("label");
-      etiqueta.textContent = "Nombre";
-      const campo = document.createElement("input");
-      campo.type = "text";
-      campo.value = nueva ? "" : categoria.nombre;
-      campo.autocomplete = "off";
-
-      const acciones = document.createElement("div");
-      acciones.className = "acciones";
+      const etiqueta = document.createElement("label"); etiqueta.textContent = "Nombre";
+      const campo = document.createElement("input"); campo.type = "text"; campo.value = nueva ? "" : categoria.nombre; campo.autocomplete = "off";
+      const acciones = document.createElement("div"); acciones.className = "acciones";
 
       if (!nueva) {
         const eliminar = document.createElement("button");
-        eliminar.className = "peligro";
-        eliminar.textContent = "Eliminar";
+        eliminar.className = "peligro"; eliminar.textContent = "Eliminar";
         eliminar.onclick = async () => {
           const alimentos = await pedir(tabla("alimentos").getAll());
           const total = alimentos.filter(a => a.seccion === categoria.clave).length;
@@ -1198,36 +1166,21 @@
         acciones.appendChild(eliminar);
       }
 
-      const cancelar = document.createElement("button");
-      cancelar.textContent = "Cancelar";
+      const cancelar = document.createElement("button"); cancelar.textContent = "Cancelar";
       cancelar.onclick = () => velo.classList.remove("abierto");
-      const guardar = document.createElement("button");
-      guardar.className = "guardar";
-      guardar.textContent = "Guardar";
+      const guardar = document.createElement("button"); guardar.className = "guardar"; guardar.textContent = "Guardar";
 
       const guardarCambios = async () => {
         const nombre = campo.value.trim().replace(/\s+/g, " ");
-        if (!nombre) {
-          aviso("Escribe un nombre");
-          return;
-        }
+        if (!nombre) { aviso("Escribe un nombre"); return; }
         if (nueva) {
           const todas = await pedir(tabla("secciones").getAll());
-          if (todas.some(s => s.clave === clave(nombre))) {
-            aviso("Ya existe esa categoría");
-            return;
-          }
+          if (todas.some(s => s.clave === clave(nombre))) { aviso("Ya existe esa categoría"); return; }
           await asegurarSeccion(nombre);
         } else {
-          if (clave(nombre) === SECCION_POR_DEFECTO) {
-            aviso("Ya existe esa categoría");
-            return;
-          }
+          if (clave(nombre) === SECCION_POR_DEFECTO) { aviso("Ya existe esa categoría"); return; }
           const guardado = await renombrarCategoria(categoria, nombre);
-          if (!guardado) {
-            aviso("Ya existe esa categoría");
-            return;
-          }
+          if (!guardado) { aviso("Ya existe esa categoría"); return; }
         }
         velo.classList.remove("abierto");
         await pintar();
@@ -1255,21 +1208,13 @@
         const existente = sec.get(nuevaClave);
         existente.onsuccess = () => {
           const cambiaClave = nuevaClave !== categoria.clave;
-          if (cambiaClave && existente.result) {
-            ok(false);
-            return;
-          }
-          if (!cambiaClave) {
-            sec.put({ ...categoria, nombre });
-            return;
-          }
+          if (cambiaClave && existente.result) { ok(false); return; }
+          if (!cambiaClave) { sec.put({ ...categoria, nombre }); return; }
           sec.delete(categoria.clave);
           sec.put({ ...categoria, clave: nuevaClave, nombre });
           const todos = alim.getAll();
           todos.onsuccess = () => {
-            todos.result
-              .filter(a => a.seccion === categoria.clave)
-              .forEach(a => alim.put({ ...a, seccion: nuevaClave }));
+            todos.result.filter(a => a.seccion === categoria.clave).forEach(a => alim.put({ ...a, seccion: nuevaClave }));
           };
         };
       });
@@ -1285,22 +1230,28 @@
 
         const todos = alim.getAll();
         todos.onsuccess = () => {
-          todos.result
-            .filter(a => a.seccion === claveCategoria)
-            .forEach(a => alim.put({ ...a, seccion: SECCION_POR_DEFECTO }));
+          todos.result.filter(a => a.seccion === claveCategoria).forEach(a => alim.put({ ...a, seccion: SECCION_POR_DEFECTO }));
           sec.delete(claveCategoria);
         };
       });
     }
 
-    /* LOGICA MENÚ COMIDAS INTEGRADA */
+    /* Lógica Menú Semanal de Comidas */
+    function getLunes(d) {
+      const date = new Date(d);
+      const day = date.getDay();
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+      date.setDate(diff); date.setHours(0,0,0,0);
+      return date;
+    }
+
+    function formatearFechaStr(d) {
+      return d.toISOString().split('T')[0];
+    }
+
     async function renderizarSemana() {
-      const hoy = new Date();
-      hoy.setHours(0,0,0,0);
-
-      const domingo = new Date(fechaLunesActual);
-      domingo.setDate(domingo.getDate() + 6);
-
+      const hoy = new Date(); hoy.setHours(0,0,0,0);
+      const domingo = new Date(fechaLunesActual); domingo.setDate(domingo.getDate() + 6);
       document.getElementById("tituloFecha").textContent = `${fechaLunesActual.getDate()} ${MESES[fechaLunesActual.getMonth()]} - ${domingo.getDate()} ${MESES[domingo.getMonth()]}`;
 
       const cont = document.getElementById("contenedorDias");
@@ -1321,7 +1272,6 @@
 
         const fila = document.createElement("div");
         fila.className = "fila-dia" + (esHoy ? " hoy" : "");
-
         fila.innerHTML = `
           <div class="col-dia">
             <div class="nombre-dia">${DIAS[i]}</div>
@@ -1371,16 +1321,13 @@
       if (!platoActivoCtx) return;
       const { fechaStr, toma, nombrePlato } = platoActivoCtx;
       const keyId = `${fechaStr}_${toma}`;
-
       const tx = db.transaction("menu", "readwrite");
       const store = tx.objectStore("menu");
       const actualObj = await pedir(store.get(keyId));
 
       if (actualObj && actualObj.platos) {
         const index = actualObj.platos.indexOf(nombrePlato);
-        if (index > -1) {
-          actualObj.platos.splice(index, 1);
-        }
+        if (index > -1) actualObj.platos.splice(index, 1);
         store.put({ id: keyId, platos: actualObj.platos });
       }
 
@@ -1450,35 +1397,27 @@
     async function cargarListaPlatos(filtro) {
       const tx = db.transaction("platos", "readonly");
       const platos = await pedir(tx.objectStore("platos").getAll());
-      
       platos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
 
       const listaEl = document.getElementById("listaPlatos");
       listaEl.innerHTML = "";
 
       const txt = filtro.trim().toLowerCase();
-      const filtrados = txt 
-        ? platos.filter(p => p.nombre.toLowerCase().startsWith(txt))
-        : platos;
+      const filtrados = txt ? platos.filter(p => p.nombre.toLowerCase().startsWith(txt)) : platos;
 
       for (const p of filtrados) {
         const div = document.createElement("div");
         div.className = "item-plato";
         div.textContent = p.nombre;
         div.onclick = () => {
-          if (modoMantenimiento) {
-            abrirFormEditorExistente(p.nombre);
-          } else {
-            seleccionarEIr(p.nombre);
-          }
+          if (modoMantenimiento) abrirFormEditorExistente(p.nombre);
+          else seleccionarEIr(p.nombre);
         };
         listaEl.appendChild(div);
       }
     }
 
-    document.getElementById("inputBuscar").oninput = (e) => {
-      cargarListaPlatos(e.target.value);
-    };
+    document.getElementById("inputBuscar").oninput = (e) => { cargarListaPlatos(e.target.value); };
 
     document.getElementById("inputBuscar").onkeydown = async (e) => {
       if (e.key === "Enter") {
@@ -1487,11 +1426,8 @@
         const tx = db.transaction("platos", "readonly");
         const existente = await pedir(tx.objectStore("platos").get(valor));
         if (existente) {
-          if (modoMantenimiento) {
-            abrirFormEditorExistente(existente.nombre);
-          } else {
-            seleccionarEIr(valor);
-          }
+          if (modoMantenimiento) abrirFormEditorExistente(existente.nombre);
+          else seleccionarEIr(valor);
         } else {
           abrirFormNuevoPlato(valor);
         }
@@ -1501,14 +1437,11 @@
     async function seleccionarEIr(nombrePlato) {
       if (!slotActivo) return;
       const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
-      
       const tx = db.transaction("menu", "readwrite");
       const store = tx.objectStore("menu");
       const actualObj = await pedir(store.get(keyId));
-      
       let platosActuales = actualObj?.platos || [];
       platosActuales.push(nombrePlato);
-
       store.put({ id: keyId, platos: platosActuales });
 
       tx.oncomplete = () => {
@@ -1543,10 +1476,7 @@
 
     inputIng.oninput = async () => {
       const txt = inputIng.value.trim().toLowerCase();
-      if (!txt) {
-        sugerenciasIngEl.style.display = "none";
-        return;
-      }
+      if (!txt) { sugerenciasIngEl.style.display = "none"; return; }
       const tx = db.transaction(["ingredientes_base", "alimentos"], "readonly");
       const ingBase = await pedir(tx.objectStore("ingredientes_base").getAll());
       const alimentosLista = await pedir(tx.objectStore("alimentos").getAll());
@@ -1559,7 +1489,6 @@
       todos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
 
       const coincidencias = todos.filter(i => i.nombre.toLowerCase().startsWith(txt));
-
       sugerenciasIngEl.innerHTML = "";
       if (coincidencias.length) {
         coincidencias.forEach(i => {
@@ -1618,7 +1547,6 @@
     document.getElementById("btnAceptarSel").onclick = async () => {
       const valor = document.getElementById("inputBuscar").value.trim();
       if (!valor) return;
-
       const tx = db.transaction("platos", "readonly");
       const existente = await pedir(tx.objectStore("platos").get(valor));
 
@@ -1627,7 +1555,6 @@
       } else {
         const txWrite = db.transaction(["platos", "menu"], "readwrite");
         txWrite.objectStore("platos").put({ nombre: valor, ingredientes: [] });
-
         if (slotActivo) {
           const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
           const stMenu = txWrite.objectStore("menu");
@@ -1636,7 +1563,6 @@
           platosActuales.push(valor);
           stMenu.put({ id: keyId, platos: platosActuales });
         }
-
         txWrite.oncomplete = () => {
           document.getElementById("modalSeleccion").classList.remove("abierto");
           renderizarSemana();
@@ -1695,110 +1621,49 @@
           document.getElementById("modalSeleccion").classList.remove("abierto");
         }
         renderizarSemana();
-        pintar();
       };
     };
 
-    document.getElementById("btnCancelarSel").onclick = () => {
-      document.getElementById("modalSeleccion").classList.remove("abierto");
-    };
+    document.getElementById("btnCancelarSel").onclick = () => document.getElementById("modalSeleccion").classList.remove("abierto");
+    document.getElementById("btnCancelarNuevo").onclick = () => cerrarFormNuevoPlato();
+    document.getElementById("ant").onclick = () => { fechaLunesActual.setDate(fechaLunesActual.getDate() - 7); renderizarSemana(); };
+    document.getElementById("sig").onclick = () => { fechaLunesActual.setDate(fechaLunesActual.getDate() + 7); renderizarSemana(); };
 
-    document.getElementById("btnCancelarNuevo").onclick = () => {
-      cerrarFormNuevoPlato();
-    };
-
-    document.getElementById("ant").onclick = () => {
-      fechaLunesActual.setDate(fechaLunesActual.getDate() - 7);
-      renderizarSemana();
-    };
-
-    document.getElementById("sig").onclick = () => {
-      fechaLunesActual.setDate(fechaLunesActual.getDate() + 7);
-      renderizarSemana();
-    };
-
-    /* EVENTOS DE MENÚ Y NAVEGACIÓN ENTRE PANTALLAS */
-    document.getElementById("ok").onclick = anadir;
-    entrada.onkeydown = e => { if (e.key === "Enter") anadir(); };
-    entrada.addEventListener("input", sugerir);
-    entrada.addEventListener("focus", sugerir);
-
-    document.getElementById("btnMenuTresPuntos").onclick = (e) => {
+    /* Menús Tres Puntos */
+    document.getElementById("menuLista").onclick = (e) => {
       e.stopPropagation();
-      const abierto = menuPanel.style.display === "block";
-      menuPanel.style.display = abierto ? "none" : "block";
+      const abierto = menuPanelLista.style.display === "block";
+      menuPanelLista.style.display = abierto ? "none" : "block";
       sugerenciasEl.style.display = "none";
     };
 
-    document.getElementById("menuMenu").onclick = () => {
-      menuPanel.style.display = "none";
-      pantallaMenu.classList.add("abierta");
-      renderizarSemana();
+    document.getElementById("menuComidasBtn").onclick = (e) => {
+      e.stopPropagation();
+      const abierto = menuPanelComidas.style.display === "block";
+      menuPanelComidas.style.display = abierto ? "none" : "block";
     };
 
-    document.getElementById("menuListaOpcion").onclick = () => {
-      menuPanelComidas.style.display = "none";
-      pantallaMenu.classList.remove("abierta");
-      pintar();
-    };
+    document.getElementById("menuEliminar").onclick = () => { menuPanelLista.style.display = "none"; eliminarTachados(); };
+    document.getElementById("menuAlimentos").onclick = () => { menuPanelLista.style.display = "none"; mostrarAlimentos(); };
+    document.getElementById("menuCategorias").onclick = () => { menuPanelLista.style.display = "none"; mostrarCategorias(); };
+    document.getElementById("menuComidasOption").onclick = () => { menuPanelComidas.style.display = "none"; abrirMantenimientoComidas(); };
 
-    document.getElementById("menuEliminar").onclick = () => {
-      menuPanel.style.display = "none";
-      eliminarTachados();
-    };
-    document.getElementById("menuAlimentos").onclick = () => {
-      menuPanel.style.display = "none";
-      mostrarAlimentos();
-    };
-    document.getElementById("menuCategorias").onclick = () => {
-      menuPanel.style.display = "none";
-      mostrarCategorias();
-    };
     document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
-
     document.getElementById("mas").onclick = () => {
       if (pantallaActual === "alimentos") abrirEditor(null, true);
       else abrirEditorCategoria(null);
     };
 
-    document.getElementById("menuComidasBtn").onclick = (e) => {
-      e.stopPropagation();
-      menuPanelComidas.style.display = menuPanelComidas.style.display === "block" ? "none" : "block";
-    };
-
-    document.getElementById("menuComidasOpcion").onclick = () => {
-      menuPanelComidas.style.display = "none";
-      abrirMantenimientoComidas();
-    };
-
     document.addEventListener("pointerdown", e => {
-      if (!e.target.closest(".barra")) sugerenciasEl.style.display = "none";
-      if (!e.target.closest("#menuPanel, #btnMenuTresPuntos")) menuPanel.style.display = "none";
+      if (!e.target.closest(".barra-lista")) sugerenciasEl.style.display = "none";
+      if (!e.target.closest("#menuPanelLista, #menuLista")) menuPanelLista.style.display = "none";
       if (!e.target.closest("#menuPanelComidas, #menuComidasBtn")) menuPanelComidas.style.display = "none";
     });
 
-    /* WAKE LOCK PANTALLA */
-    let bloqueoPantalla = null;
-    let pidiendoBloqueo = false;
-    async function mantenerPantallaEncendida() {
-      if (!("wakeLock" in navigator) || bloqueoPantalla || pidiendoBloqueo) return;
-      pidiendoBloqueo = true;
-      try {
-        bloqueoPantalla = await navigator.wakeLock.request("screen");
-        bloqueoPantalla.addEventListener("release", () => { bloqueoPantalla = null; });
-      } catch (e) {
-        bloqueoPantalla = null;
-      } finally {
-        pidiendoBloqueo = false;
-      }
-    }
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") mantenerPantallaEncendida();
-    });
-    document.addEventListener("pointerdown", mantenerPantallaEncendida);
-    mantenerPantallaEncendida();
-
-    velo.onclick = e => { if (e.target === velo) velo.classList.remove("abierto"); };
+    document.getElementById("ok").onclick = anadir;
+    entrada.onkeydown = e => { if (e.key === "Enter") anadir(); };
+    entrada.addEventListener("input", sugerir);
+    entrada.addEventListener("focus", sugerir);
 
     (async () => {
       db = await abrirBD();
