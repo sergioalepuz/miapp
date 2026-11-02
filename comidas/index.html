@@ -484,33 +484,44 @@
     }
 
     // Importación automática de alimentos de "Mi Lista"
+    // Importación automática robusta de alimentos de "Mi Lista"
     async function importarAlimentosMiLista() {
-      try {
-        const reqLista = indexedDB.open("mi_lista_db");
-        reqLista.onsuccess = () => {
-          const dbLista = reqLista.result;
-          if (dbLista.objectStoreNames.contains("alimentos")) {
-            const txL = dbLista.transaction("alimentos", "readonly");
-            const storeL = txL.objectStore("alimentos");
-            const reqAll = storeL.getAll();
+      const nombresBD posibles = ["mi_lista_db", "milista", "lista_db"];
+      
+      for (let nombreBD of posibles) {
+        try {
+          const reqLista = indexedDB.open(nombreBD);
+          reqLista.onsuccess = () => {
+            const dbLista = reqLista.result;
+            // Buscar cualquier almacén disponible que pueda contener los alimentos
+            const stores = Array.from(dbLista.objectStoreNames);
+            const storeName = stores.find(s => s.includes("alimento") || s.includes("producto") || s.includes("item"));
+            
+            if (storeName) {
+              const txL = dbLista.transaction(storeName, "readonly");
+              const storeL = txL.objectStore(storeName);
+              const reqAll = storeL.getAll();
 
-            reqAll.onsuccess = () => {
-              const alimentos = reqAll.result || [];
-              if (alimentos.length > 0) {
-                const txC = db.transaction("ingredientes_base", "readwrite");
-                const storeC = txC.objectStore("ingredientes_base");
-                alimentos.forEach(a => {
-                  if (a.nombre) {
-                    const fmt = a.nombre.charAt(0).toUpperCase() + a.nombre.slice(1).toLowerCase();
-                    storeC.put({ nombre: fmt });
-                  }
-                });
-              }
-            };
-          }
-        };
-      } catch (e) {
-        console.log("No se pudo acceder a la BD de Mi Lista todavía:", e);
+              reqAll.onsuccess = () => {
+                const alimentos = reqAll.result || [];
+                if (alimentos.length > 0) {
+                  const txC = db.transaction("ingredientes_base", "readwrite");
+                  const storeC = txC.objectStore("ingredientes_base");
+                  alimentos.forEach(a => {
+                    // Extraer el nombre independientemente de la estructura del objeto
+                    const nombreStr = typeof a === 'string' ? a : (a.nombre || a.key || a.titulo);
+                    if (nombreStr) {
+                      const fmt = nombreStr.charAt(0).toUpperCase() + nombreStr.slice(1).toLowerCase();
+                      storeC.put({ nombre: fmt });
+                    }
+                  });
+                }
+              };
+            }
+          };
+        } catch (e) {
+          console.log("Intentando conectar con BD:", nombreBD);
+        }
       }
     }
 
