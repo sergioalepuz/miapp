@@ -155,6 +155,7 @@
       <button id="menuEliminar">Eliminar</button>
       <button id="menuAlimentos">Alimentos</button>
       <button id="menuCategorias">Categorías</button>
+      <button id="menuSalir">Salir</button>
     </div>
   </div>
 
@@ -932,7 +933,63 @@
         };
       });
     }
+        // ---------- Pantalla siempre encendida ----------
+    let bloqueoPantalla = null;
+    let pidiendoBloqueo = false;
+    async function mantenerPantallaEncendida() {
+      if (!("wakeLock" in navigator) || bloqueoPantalla || pidiendoBloqueo) return;
+      pidiendoBloqueo = true;
+      try {
+        bloqueoPantalla = await navigator.wakeLock.request("screen");
+        bloqueoPantalla.addEventListener("release", () => { bloqueoPantalla = null; });
+      } catch (e) {
+        bloqueoPantalla = null; // el móvil puede rechazarlo (por ejemplo, con poca batería)
+      } finally {
+        pidiendoBloqueo = false;
+      }
+    }
+    // El bloqueo se pierde al salir de la app: se pide de nuevo al volver
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") mantenerPantallaEncendida();
+    });
+    // Por si el móvil exige un toque para concederlo
+    document.addEventListener("pointerdown", mantenerPantallaEncendida);
+    mantenerPantallaEncendida();
 
+    // ---------- Salir ----------
+    // Ventana con un solo botón para dar información
+    function informar(mensaje) {
+      return new Promise(resolver => {
+        cajaConfirmar.innerHTML = "";
+        const texto = document.createElement("p");
+        texto.className = "mensaje";
+        texto.textContent = mensaje;
+
+        const acciones = document.createElement("div");
+        acciones.className = "acciones";
+        const entendido = document.createElement("button");
+        entendido.className = "guardar";
+        entendido.textContent = "Entendido";
+
+        const cerrar = () => {
+          veloConfirmar.classList.remove("abierto");
+          resolver();
+        };
+        entendido.onclick = cerrar;
+        veloConfirmar.onclick = e => { if (e.target === veloConfirmar) cerrar(); };
+
+        acciones.appendChild(entendido);
+        cajaConfirmar.append(texto, acciones);
+        veloConfirmar.classList.add("abierto");
+      });
+    }
+
+    function salir() {
+      window.close(); // solo funciona en algunos navegadores de ordenador
+      setTimeout(() => {
+        informar("El iPhone no permite que una app se cierre sola. Para cerrarla, desliza hacia arriba desde el borde inferior de la pantalla, haz una pausa en el centro y desliza la app hacia arriba (si tu iPhone tiene botón de inicio, púlsalo dos veces).");
+      }, 300);
+    }
     // ---------- Eventos ----------
     velo.onclick = e => { if (e.target === velo) velo.classList.remove("abierto"); };
     document.getElementById("ok").onclick = anadir;
@@ -957,6 +1014,10 @@
     document.getElementById("menuCategorias").onclick = () => {
       menuPanel.style.display = "none";
       mostrarCategorias();
+    };
+    document.getElementById("menuSalir").onclick = () => {
+      menuPanel.style.display = "none";
+      salir();
     };
     document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
 
