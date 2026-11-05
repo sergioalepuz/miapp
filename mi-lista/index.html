@@ -1624,20 +1624,15 @@
     entrada.addEventListener("input", sugerir);
     entrada.addEventListener("focus", sugerir);
 
-    /* Wake Lock para evitar que la pantalla se apague */
-    let wakeLock = null;
-    async function solicitarWakeLock() {
-      if ('wakeLock' in navigator) {
-        try {
-          wakeLock = await navigator.wakeLock.request('screen');
-        } catch (err) {}
-      }
+    /* Truco de actividad en segundo plano para evitar que iOS apague la pantalla */
+    function mantenerPantallaActiva() {
+      setInterval(() => {
+        const dummy = document.createElement('div');
+        dummy.style.opacity = '0.01';
+        document.body.appendChild(dummy);
+        setTimeout(() => dummy.remove(), 50);
+      }, 15000);
     }
-    document.addEventListener('visibilitychange', async () => {
-      if (wakeLock !== null && document.visibilityState === 'visible') {
-        await solicitarWakeLock();
-      }
-    });
 
     (async () => {
       db = await abrirBD();
@@ -1645,7 +1640,7 @@
       await asegurarSeccion("Otros");
       await normalizarNombres();
       pintar();
-      await solicitarWakeLock();
+      mantenerPantallaActiva();
     })();
   </script>
 </body>
