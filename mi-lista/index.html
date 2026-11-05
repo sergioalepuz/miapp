@@ -1624,14 +1624,33 @@
     entrada.addEventListener("input", sugerir);
     entrada.addEventListener("focus", sugerir);
 
-    /* Truco de actividad en segundo plano para evitar que iOS apague la pantalla */
+        /* Pantalla siempre encendida (Screen Wake Lock) */
+    let bloqueoPantalla = null;
+    let pidiendoBloqueo = false;
+
+    async function pedirBloqueoPantalla() {
+      if (!("wakeLock" in navigator) || bloqueoPantalla || pidiendoBloqueo) return;
+      pidiendoBloqueo = true;
+      try {
+        bloqueoPantalla = await navigator.wakeLock.request("screen");
+        bloqueoPantalla.addEventListener("release", () => { bloqueoPantalla = null; });
+      } catch (e) {
+        bloqueoPantalla = null; // el móvil puede rechazarlo (bajo consumo, poca batería, sin toque previo...)
+      } finally {
+        pidiendoBloqueo = false;
+      }
+    }
+
     function mantenerPantallaActiva() {
-      setInterval(() => {
-        const dummy = document.createElement('div');
-        dummy.style.opacity = '0.01';
-        document.body.appendChild(dummy);
-        setTimeout(() => dummy.remove(), 50);
-      }, 15000);
+      pedirBloqueoPantalla();
+      // Al volver a la app desde otra, el bloqueo se pierde: se pide de nuevo
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") pedirBloqueoPantalla();
+      });
+      // Safari exige un toque del usuario: se reintenta en cada toque hasta que se concede
+      ["pointerdown", "pointerup", "touchend"].forEach(evento =>
+        document.addEventListener(evento, pedirBloqueoPantalla, { passive: true })
+      );
     }
 
     (async () => {
