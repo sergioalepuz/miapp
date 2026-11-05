@@ -190,7 +190,10 @@
     .buscador-box svg { width: 20px; height: 20px; stroke: #666; }
     .buscador-input { flex: 1; border: 0; font-size: 17px; outline: none; background: transparent; }
     .lista-platos { flex: 1; overflow-y: auto; }
-    .item-plato { padding: 16px; font-size: 18px; border-bottom: 1px solid #eee; cursor: pointer; }
+    .item-plato {
+      position: relative; padding: 16px; font-size: 18px; border-bottom: 1px solid #eee; background: #fff;
+      touch-action: pan-y; user-select: none; -webkit-user-select: none;
+    }
 
     .panel-nuevo-plato {
       display: none; background: #fff; border-bottom: 1px solid #ddd;
@@ -809,6 +812,25 @@
       refrescarPantalla();
     }
 
+    async function eliminarPlatoTotal(nombrePlato) {
+      const pregunta = "¿Eliminar el plato «" + nombrePlato + "»?";
+      if (!(await confirmar(pregunta, "Eliminar"))) return;
+      const tx = db.transaction(["platos", "menu"], "readwrite");
+      tx.objectStore("platos").delete(nombrePlato);
+      
+      const todosMenus = await pedir(tx.objectStore("menu").getAll());
+      todosMenus.forEach(itemMenu => {
+        if (itemMenu.platos && itemMenu.platos.includes(nombrePlato)) {
+          const actualizados = itemMenu.platos.filter(p => p !== nombrePlato);
+          tx.objectStore("menu").put({ id: itemMenu.id, platos: actualizados });
+        }
+      });
+      tx.oncomplete = async () => {
+        await cargarListaPlatos("");
+        renderizarSemana();
+      };
+    }
+
     async function eliminarCategoriaTotal(categoria) {
       if (categoria.clave === SECCION_POR_DEFECTO) {
         aviso("La categoría Otros no se puede eliminar");
@@ -1326,14 +1348,31 @@
       const filtrados = txt ? platos.filter(p => p.nombre.toLowerCase().startsWith(txt)) : platos;
 
       for (const p of filtrados) {
-        const div = document.createElement("div");
-        div.className = "item-plato";
-        div.textContent = p.nombre;
-        div.onclick = () => {
-          if (modoMantenimiento) abrirFormEditorExistente(p.nombre);
-          else seleccionarEIr(p.nombre);
+        const fila = document.createElement("div");
+        fila.className = "fila";
+
+        const papelera = document.createElement("button");
+        papelera.className = "borrar";
+        papelera.innerHTML = ICONO_PAPELERA;
+        papelera.setAttribute("aria-label", "Eliminar plato");
+        papelera.onclick = () => eliminarPlatoTotal(p.nombre);
+
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "item-plato";
+        itemDiv.textContent = p.nombre;
+
+        fila.append(papelera, itemDiv);
+        listaEl.appendChild(fila);
+
+        activarGestos(itemDiv, p, null);
+        itemDiv.onclick = () => {
+          if (itemDiv.style.transform && itemDiv.style.transform !== "translateX(0px)") {
+            itemDiv.cerrarFila();
+          } else {
+            if (modoMantenimiento) abrirFormEditorExistente(p.nombre);
+            else seleccionarEIr(p.nombre);
+          }
         };
-        listaEl.appendChild(div);
       }
     }
 
@@ -1585,12 +1624,28 @@
     entrada.addEventListener("input", sugerir);
     entrada.addEventListener("focus", sugerir);
 
+    /* Wake Lock para evitar que la pantalla se apague */
+    let wakeLock = null;
+    async function solicitarWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {}
+      }
+    }
+    document.addEventListener('visibilitychange', async () => {
+      if (wakeLock !== null && document.visibilityState === 'visible') {
+        await solicitarWakeLock();
+      }
+    });
+
     (async () => {
       db = await abrirBD();
       await asegurarOrden();
       await asegurarSeccion("Otros");
       await normalizarNombres();
       pintar();
+      await solicitarWakeLock();
     })();
   </script>
 </body>
