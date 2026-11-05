@@ -73,6 +73,7 @@
       padding-right: 12px;
       color: #fff;
     }
+    .cont-izquierda { display: flex; gap: 8px; }
     .titulo-fecha { font-size: 17px; font-weight: 700; text-align: center; flex: 1; }
     .cont-derecha { display: flex; gap: 8px; }
 
@@ -299,7 +300,12 @@
   <!-- VISTA 2: MENÚ SEMANAL DE COMIDAS -->
   <div id="vistaComidas" class="vista">
     <div class="barra-comidas">
-      <button class="btn-blanco" id="ant" style="width: 36px; padding: 0; font-size: 20px;">‹</button>
+      <div class="cont-izquierda">
+        <button class="btn-blanco" id="btnIrAListaDirecto" style="width: 44px; padding: 0; display: flex; align-items: center; justify-content: center;" aria-label="Ir a Lista">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <button class="btn-blanco" id="ant" style="width: 36px; padding: 0; font-size: 20px;">‹</button>
+      </div>
       <div class="titulo-fecha" id="tituloFecha">--</div>
       <div class="cont-derecha">
         <button class="btn-blanco" id="sig" style="width: 36px; padding: 0; font-size: 20px;">›</button>
@@ -556,6 +562,9 @@
     };
     document.getElementById("btnIrALista").onclick = () => {
       menuPanelComidas.style.display = "none";
+      cambiarVista("lista");
+    };
+    document.getElementById("btnIrAListaDirecto").onclick = () => {
       cambiarVista("lista");
     };
 
