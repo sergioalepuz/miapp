@@ -266,9 +266,16 @@
       opacity: 0; pointer-events: none; transition: opacity 1s;
     }
     #aviso.visible { opacity: 1; transition: opacity .15s; }
+
+    video#wakeLockVideo {
+      position: absolute; width: 1px; height: 1px; top: -10px; left: -10px; opacity: 0.01; pointer-events: none;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Elemento de vídeo invisible para bloquear la suspensión en iOS -->
+  <video id="wakeLockVideo" playsinline loop muted></video>
 
   <!-- VISTA 1: MI LISTA -->
   <div id="vistaLista" class="vista activa">
@@ -1624,14 +1631,49 @@
     entrada.addEventListener("input", sugerir);
     entrada.addEventListener("focus", sugerir);
 
-    /* Truco de actividad en segundo plano para evitar que iOS apague la pantalla */
-    function mantenerPantallaActiva() {
-      setInterval(() => {
-        const dummy = document.createElement('div');
-        dummy.style.opacity = '0.01';
-        document.body.appendChild(dummy);
-        setTimeout(() => dummy.remove(), 50);
-      }, 15000);
+    /* --- SISTEMA ROBUSTO DE BLOQUEO DE SUSPENSIÓN (WAKE LOCK Y CANVAS VIDEO STREAM) --- */
+    let wakeLockSentinel = null;
+
+    async function activarWakeLockAPI() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLockSentinel = await navigator.wakeLock.request('screen');
+        } catch (e) {}
+      }
+    }
+
+    function activarStreamVideoMuted() {
+      try {
+        const videoEl = document.getElementById("wakeLockVideo");
+        const canvas = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext("2d");
+        ctx.fillRect(0, 0, 1, 1);
+        
+        const stream = canvas.captureStream(1);
+        videoEl.srcObject = stream;
+        videoEl.play().catch(() => {});
+      } catch (e) {}
+    }
+
+    function inicializarBloqueoPantalla() {
+      activarWakeLockAPI();
+      activarStreamVideoMuted();
+
+      const reactivar = () => {
+        if (document.visibilityState === 'visible') {
+          activarWakeLockAPI();
+          const videoEl = document.getElementById("wakeLockVideo");
+          if (videoEl && videoEl.paused) {
+            videoEl.play().catch(() => {});
+          }
+        }
+      };
+
+      document.addEventListener('visibilitychange', reactivar);
+      document.addEventListener('touchstart', reactivar, { once: false, passive: true });
+      document.addEventListener('click', reactivar, { once: false, passive: true });
     }
 
     (async () => {
@@ -1640,7 +1682,7 @@
       await asegurarSeccion("Otros");
       await normalizarNombres();
       pintar();
-      mantenerPantallaActiva();
+      inicializarBloqueoPantalla();
     })();
   </script>
 </body>
