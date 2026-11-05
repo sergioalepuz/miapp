@@ -314,6 +314,7 @@
       <div id="menuPanelComidas" class="menu-panel-ios">
         <button id="btnIrALista" class="destacado">Lista</button>
         <button id="menuComidasOption">Comidas</button>
+        <button id="menuExportarOption">Exportar</button>
       </div>
     </div>
 
@@ -1622,6 +1623,96 @@
     document.getElementById("menuAlimentos").onclick = () => { menuPanelLista.style.display = "none"; mostrarAlimentos(); };
     document.getElementById("menuCategorias").onclick = () => { menuPanelLista.style.display = "none"; mostrarCategorias(); };
     document.getElementById("menuComidasOption").onclick = () => { menuPanelComidas.style.display = "none"; abrirMantenimientoComidas(); };
+    document.getElementById("menuExportarOption").onclick = () => { menuPanelComidas.style.display = "none"; exportarIngredientesALista(); };
+
+    async function exportarIngredientesALista() {
+      const hoyStr = formatearFechaStr(new Date());
+      const tx = db.transaction(["menu", "platos", "alimentos", "ingredientes_base"], "readwrite");
+      const stMenu = tx.objectStore("menu");
+      const stPlatos = tx.objectStore("platos");
+      const stAlimentos = tx.objectStore("alimentos");
+      const stIngBase = tx.objectStore("ingredientes_base");
+
+      const todosMenus = await pedir(stMenu.getAll());
+      const menusFuturos = todosMenus.filter(m => {
+        const fechaPart = m.id.split("_")[0];
+        return fechaPart >= hoyStr;
+      });
+
+      if (!menusFuturos.length) {
+        aviso("No hay comidas programadas a partir de hoy");
+        return;
+      }
+
+      const platosNombres = new Set();
+      menusFuturos.forEach(m => {
+        if (Array.isArray(m.platos)) {
+          m.platos.forEach(p => platosNombres.add(p));
+        }
+      });
+
+      if (!platosNombres.size) {
+        aviso("No hay platos asignados a partir de hoy");
+        return;
+      }
+
+      const todosPlatos = await pedir(stPlatos.getAll());
+      const mapaPlatos = new Map(todosPlatos.map(p => [p.nombre, p]));
+
+      const ingredientesAExportar = new Set();
+      platosNombres.forEach(nombrePlato => {
+        const platoObj = mapaPlatos.get(nombrePlato);
+        if (platoObj && Array.isArray(platoObj.ingredientes)) {
+          platoObj.ingredientes.forEach(ing => {
+            if (ing && ing.trim()) ingredientesAExportar.add(ing.trim());
+          });
+        }
+      });
+
+      if (!ingredientesAExportar.size) {
+        aviso("Los platos programados no contienen ingredientes");
+        return;
+      }
+
+      const todosAlimentos = await pedir(stAlimentos.getAll());
+      const mapaAlimentos = new Map(todosAlimentos.map(a => [a.clave, a]));
+
+      let countNuevosEnLista = 0;
+
+      ingredientesAExportar.forEach(ingNombre => {
+        const c = clave(ingNombre);
+        const fmtNombre = formatear(ingNombre);
+        const existente = mapaAlimentos.get(c);
+
+        if (existente) {
+          if (!existente.enLista) {
+            existente.enLista = true;
+            existente.tachado = false;
+            stAlimentos.put(existente);
+            countNuevosEnLista++;
+          }
+        } else {
+          const nuevoAlimento = {
+            clave: c,
+            nombre: fmtNombre,
+            seccion: SECCION_POR_DEFECTO,
+            tachado: false,
+            enLista: true
+          };
+          stAlimentos.put(nuevoAlimento);
+          stIngBase.put({ nombre: fmtNombre });
+          countNuevosEnLista++;
+        }
+      });
+
+      tx.oncomplete = () => {
+        if (countNuevosEnLista > 0) {
+          aviso(`Se añadieron ${countNuevosEnLista} ingrediente(s) a la lista`);
+        } else {
+          aviso("Los ingredientes ya estaban en la lista");
+        }
+      };
+    }
 
     document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
     document.getElementById("mas").onclick = () => {
