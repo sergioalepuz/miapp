@@ -1,97 +1,45 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>  
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Mi Lista & Menú</title>
-  <link rel="apple-touch-icon" href="mi_lista.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#1b9de2">
+  <title>Mi lista</title>
   <style>
-    :root { 
-      --azul: #1b9de2; 
-      --fondo: #f6f6f6; 
-      --rojo: #e53935; 
-      --gris-hoy: #dcdcdc;
-      --verde-apple: #2e7d32;
-    }
+    :root { --azul: #1b9de2; --fondo: #f6f6f6; --rojo: #e53935; }
     * { box-sizing: border-box; }
-    
-    html {
-      background-color: var(--azul);
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    }
+    html, body { margin: 0; min-height: 100%; }
     body {
-      margin: 0;
       font-family: -apple-system, system-ui, "Segoe UI", sans-serif;
-      background-color: var(--fondo);
+      background: var(--fondo);
       color: #111;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
     }
-
-    .vista { display: none; flex-direction: column; flex: 1; }
-    .vista.activa { display: flex; }
-
-    .barra-lista {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background-color: var(--azul);
-      padding-top: calc(env(safe-area-inset-top) + 8px);
-      padding-bottom: 10px;
-      padding-left: 12px;
-      padding-right: 12px;
-      color: #fff;
-    }
+    .barra { position: relative; display: flex; align-items: center; gap: 16px; padding: 10px 12px; }
     #entrada {
       flex: 1; min-width: 0; font-size: 16px; padding: 10px 12px;
-      border: 1px solid #ddd; border-radius: 10px; background: #fff; outline: none;
+      border: 1px solid #ddd; border-radius: 8px; background: #fff;
     }
-    .btn-blanco {
-      background: #fff; border: 0; color: var(--azul);
-      font-size: 17px; font-weight: 700; height: 40px; padding: 0 14px;
-      border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    .barra button {
+      background: none; border: 0; color: var(--azul);
+      font-size: 20px; font-weight: 700; padding: 4px;
     }
-    .btn-blanco:active { opacity: 0.85; }
-    .btn-puntos { width: 44px; padding: 0; font-size: 22px; line-height: 1; }
 
-    .barra-comidas {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background-color: var(--azul);
-      padding-top: calc(env(safe-area-inset-top) + 8px);
-      padding-bottom: 10px;
-      padding-left: 12px;
-      padding-right: 12px;
-      color: #fff;
+    /* Menú de los tres puntos */
+    #menuPanel {
+      display: none; position: absolute; right: 12px; top: calc(100% - 4px); z-index: 6;
+      min-width: 190px; background: #fff; border: 1px solid #ddd; border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.2); overflow: hidden;
     }
-    .titulo-fecha { font-size: 17px; font-weight: 700; text-align: center; flex: 1; }
-    .cont-derecha { display: flex; gap: 8px; }
-
-    .menu-panel-ios {
-      display: none; position: absolute; right: 12px; top: calc(100% + 4px);
-      z-index: 100; width: 190px; background: #fdfdfd; border-radius: 16px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.18); overflow: hidden; border: 1px solid #e5e5e5;
-    }
-    .menu-panel-ios button {
+    #menuPanel button {
       display: block; width: 100%; text-align: left; background: none; border: 0;
-      border-top: 1px solid #f0f0f0; padding: 14px 18px; font-size: 17px; font-weight: 500; color: #111; cursor: pointer;
+      border-top: 1px solid #eee; padding: 14px 16px; font-size: 18px; font-weight: 500; color: #111;
     }
-    .menu-panel-ios button:first-child { border-top: 0; }
-    .menu-panel-ios button.destacado { background-color: #efefef; font-weight: 700; }
-    .menu-panel-ios button:active { background-color: #e5e5e5; }
+    #menuPanel button:first-child { border-top: 0; }
 
+    /* Sugerencias al escribir */
     #sugerencias {
       display: none; position: absolute; left: 12px; right: 12px; top: calc(100% - 4px);
-      z-index: 5; background: #fff; border: 1px solid #ddd; border-radius: 10px;
+      z-index: 5; background: #fff; border: 1px solid #ddd; border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,.15); max-height: 40vh; overflow-y: auto;
     }
     .sugerencia {
@@ -101,9 +49,12 @@
     .sugerencia:first-child { border-top: 0; }
     .sugerencia small { color: #888; font-size: 14px; }
 
-    #lista { flex: 1; background: var(--fondo); }
+    /* Sección: cabecera azul + sus alimentos, todo en un grupo que se puede arrastrar */
     .grupo { position: relative; }
-    .grupo.arrastrando { z-index: 10; background: var(--fondo); box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+    .grupo.arrastrando {
+      z-index: 10; background: var(--fondo);
+      box-shadow: 0 6px 18px rgba(0,0,0,.3);
+    }
     .seccion {
       position: relative; display: flex; align-items: center; justify-content: center;
       background: var(--azul); color: #fff; font-size: 17px; padding: 6px 56px;
@@ -111,54 +62,29 @@
     }
     .asa {
       position: absolute; right: 0; top: 0; bottom: 0; width: 56px;
-      display: flex; align-items: center; justify-content: center; touch-action: none; cursor: grab;
+      display: flex; align-items: center; justify-content: center;
+      touch-action: none; cursor: grab;
     }
-    .fila { position: relative; overflow: hidden; border-bottom: 1px solid #eee; background: #fff; }
-    .borrar {
-      position: absolute; right: 0; top: 0; bottom: 0; width: 80px; background: var(--rojo);
-      color: #fff; border: 0; display: flex; align-items: center; justify-content: center;
+
+    /* Cada fila: detrás hay dos botones (azul a la izquierda, rojo a la derecha) y el item se desliza por encima */
+    .fila { position: relative; overflow: hidden; border-bottom: 1px solid #eee; }
+    .borrar, .editar {
+      position: absolute; top: 0; padding: 0; color: #fff; border: 0;
+      display: flex; align-items: center; justify-content: center;
     }
-    .editar {
-      position: absolute; left: 0; top: 0; bottom: 0; width: auto; aspect-ratio: 1 / 1;
-      background: var(--azul); color: #fff; border: 0; display: flex; align-items: center; justify-content: center;
-    }
+    .borrar { right: 0; bottom: 0; width: 80px; background: var(--rojo); }
+    /* Cuadrado: el ancho es igual al alto de la fila */
+    .editar { left: 0; height: 100%; width: auto; aspect-ratio: 1 / 1; background: var(--azul); }
     .item {
       position: relative; display: flex; align-items: center; justify-content: space-between;
-      background: #fff; font-weight: 600; padding: 8px 16px; font-size: 26px;
+      background: #fff; font-weight: 600;
+      padding: 4px 16px;   /* margen: arriba y abajo / a los lados */
+      font-size: 30px;     /* tamaño de la letra */
       touch-action: pan-y; user-select: none; -webkit-user-select: none;
     }
     .item.tachado span { text-decoration: line-through; color: #999; }
 
-    .registro {
-      position: relative; display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      background: #fff; font-size: 20px; font-weight: 600; padding: 14px 16px;
-      touch-action: pan-y; user-select: none; -webkit-user-select: none;
-    }
-    .registro small { color: #888; font-size: 14px; font-weight: 400; text-align: right; }
-    .vacio { padding: 24px 16px; color: #888; text-align: center; }
-
-    .tabla-semana { flex: 1; display: flex; flex-direction: column; padding: 10px 14px; overflow-y: auto; background: #fff; }
-    .fila-iconos { display: grid; grid-template-columns: 70px 1fr 1fr 1fr; align-items: center; padding-bottom: 8px; }
-    .icono-toma { text-align: center; color: #555; display: flex; justify-content: center; align-items: center; }
-    .icono-toma svg { width: 22px; height: 22px; stroke: #444; }
-    
-    .fila-dia {
-      display: grid; grid-template-columns: 70px 1fr 1fr 1fr; align-items: center;
-      border-top: 1px solid #a8d5e5; padding: 8px 0; border-radius: 6px; min-height: 65px;
-    }
-    .fila-dia.hoy { background-color: var(--gris-hoy); }
-    .col-dia { text-align: center; line-height: 1.2; font-weight: 500; color: #455a64; }
-    .col-dia .nombre-dia { font-size: 15px; }
-    .col-dia .num-dia { font-size: 15px; }
-
-    .celda-contenido { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px 4px; gap: 4px; width: 100%; }
-    .lista-platos-celda { display: flex; flex-direction: column; gap: 4px; width: 100%; align-items: center; }
-    .plato-item-badge {
-      background: #fff; border: 1px solid #b2dfdb; border-radius: 6px; padding: 4px 8px;
-      font-size: 14px; font-weight: 600; color: #2c3e50; text-align: center; width: 95%; word-break: break-word; line-height: 1.2; cursor: pointer;
-    }
-    .btn-mas { background: none; border: 0; color: #1b9de2; font-size: 22px; font-weight: bold; cursor: pointer; padding: 0 8px; line-height: 1; }
-
+    /* Pantallas de mantenimiento (Alimentos y Categorías) */
     #pantalla {
       display: none; position: fixed; inset: 0; z-index: 25; background: var(--fondo);
       flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
@@ -166,63 +92,29 @@
     #pantalla.abierta { display: flex; }
     .cabecera {
       position: relative; display: flex; align-items: center; justify-content: center;
-      padding: 14px 56px; background: var(--azul); color: #fff; font-size: 18px; font-weight: 600;
+      padding: 14px; background: var(--azul); color: #fff; font-size: 18px; font-weight: 600;
     }
     #atras {
-      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-      height: 34px; padding: 0 12px; border: 0; border-radius: 8px; background: #fff; color: var(--azul); font-size: 15px; font-weight: 600;
+      position: absolute; left: 0; top: 0; bottom: 0; padding: 0 14px;
+      background: none; border: 0; color: #fff; font-size: 17px;
     }
+    /* Botón + : símbolo azul sobre fondo blanco */
     #mas {
       position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
       width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px;
-      background: #fff; color: var(--azul); display: flex; align-items: center; justify-content: center;
+      background: #fff; color: var(--azul);
+      display: flex; align-items: center; justify-content: center;
     }
     #contenidoPantalla { flex: 1; overflow-y: auto; }
+    .registro {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      background: #fff; border-bottom: 1px solid #eee; padding: 14px 16px;
+      font-size: 20px; font-weight: 600;
+    }
+    .registro small { color: #888; font-size: 14px; font-weight: 400; text-align: right; }
+    .vacio { padding: 24px 16px; color: #888; text-align: center; }
 
-    .modal {
-      display: none; position: fixed; inset: 0; background: #fff; z-index: 200;
-      flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
-    }
-    .modal.abierto { display: flex; }
-    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #eee; }
-    .btn-texto-verde { background: none; border: 0; color: var(--verde-apple); font-size: 17px; font-weight: 600; cursor: pointer; }
-    .buscador-box { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; gap: 10px; }
-    .buscador-box svg { width: 20px; height: 20px; stroke: #666; }
-    .buscador-input { flex: 1; border: 0; font-size: 17px; outline: none; background: transparent; }
-    .lista-platos { flex: 1; overflow-y: auto; }
-    .item-plato {
-      position: relative; padding: 16px; font-size: 18px; border-bottom: 1px solid #eee; background: #fff;
-      touch-action: pan-y; user-select: none; -webkit-user-select: none;
-    }
-
-    .panel-nuevo-plato {
-      display: none; background: #fff; border-bottom: 1px solid #ddd;
-      padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); z-index: 250;
-    }
-    .panel-nuevo-plato.abierto { display: block; }
-    .campo-form { position: relative; margin-bottom: 16px; }
-    .campo-form label {
-      display: flex; align-items: center; gap: 8px; font-size: 14px;
-      color: var(--verde-apple); margin-bottom: 6px; font-weight: 600;
-    }
-    .campo-form input {
-      width: 100%; font-size: 17px; padding: 8px 0; border: 0;
-      border-bottom: 1px solid var(--verde-apple); outline: none;
-    }
-    .contenedor-ingredientes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-    .chip-ingrediente {
-      background: #e8f5e9; color: var(--verde-apple); border: 1px solid #c8e6c9;
-      padding: 4px 10px; border-radius: 16px; font-size: 14px; font-weight: 600;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .chip-ingrediente button { background: none; border: 0; color: var(--verde-apple); font-weight: bold; font-size: 14px; }
-    .sugerencias-ingredientes {
-      display: none; position: absolute; left: 0; right: 0; top: 100%;
-      background: #fff; border: 1px solid #ddd; border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 150px; overflow-y: auto; z-index: 300;
-    }
-    .sugerencias-ingredientes div { padding: 10px 14px; font-size: 16px; border-bottom: 1px solid #eee; }
-
+    /* Ventanas pequeñas (editar y confirmar) */
     .velo {
       position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.4);
       display: none; align-items: center; justify-content: center;
@@ -241,24 +133,16 @@
       width: 100%; font-size: 16px; padding: 10px;
       border: 1px solid #ddd; border-radius: 8px; background: #fff;
     }
+    /* Botones de las ventanas: centrados */
     .acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 16px; padding: 0 8px 4px; }
-    .acciones button { border: 0; background: none; padding: 8px 10px; font-size: 18px; color: var(--azul); font-weight: 600; }
+    .acciones button {
+      border: 0; background: none; padding: 8px 10px;
+      font-size: 18px; color: var(--azul); font-weight: 600;
+    }
     .acciones .guardar { font-weight: 700; }
     .acciones .peligro { color: var(--rojo); font-weight: 700; }
 
-    .overlay-menu {
-      display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4);
-      z-index: 300; align-items: center; justify-content: center; padding: 20px;
-    }
-    .overlay-menu.abierto { display: flex; }
-    .menu-flotante-ios {
-      background: #fdfdfd; width: 100%; max-width: 340px; border-radius: 24px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25); overflow: hidden;
-    }
-    .menu-flotante-titulo { padding: 22px 20px; font-size: 22px; font-weight: 500; color: #111; border-bottom: 1px solid #e0e0e0; }
-    .menu-flotante-opcion { width: 100%; background: none; border: 0; padding: 18px 20px; text-align: left; font-size: 18px; color: #007aff; }
-    .menu-flotante-opcion.quitar { color: #ff3b30; border-top: 1px solid #f0f0f0; }
-
+    /* Mensaje: aparece al instante y se desvanece despacio al quitar .visible */
     #aviso {
       position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 70px);
       transform: translateX(-50%); z-index: 50; width: max-content; max-width: 90vw; text-align: center;
@@ -269,59 +153,20 @@
   </style>
 </head>
 <body>
-
-  <!-- VISTA 1: MI LISTA -->
-  <div id="vistaLista" class="vista activa">
-    <div class="barra-lista">
-      <input id="entrada" type="text" placeholder="Añadir alimento" autocomplete="off">
-      <button id="ok" class="btn-blanco">Ok</button>
-      <button id="menuLista" class="btn-blanco btn-puntos">···</button>
-      
-      <div id="sugerencias"></div>
-      
-      <div id="menuPanelLista" class="menu-panel-ios">
-        <button id="btnIrAMenu" class="destacado">Menú</button>
-        <button id="menuEliminar">Eliminar</button>
-        <button id="menuAlimentos">Alimentos</button>
-        <button id="menuCategorias">Categorías</button>
-      </div>
-    </div>
-    <div id="lista"></div>
-  </div>
-
-  <!-- VISTA 2: MENÚ SEMANAL DE COMIDAS -->
-  <div id="vistaComidas" class="vista">
-    <div class="barra-comidas">
-      <button class="btn-blanco" id="ant" style="width: 36px; padding: 0; font-size: 20px;">‹</button>
-      <div class="titulo-fecha" id="tituloFecha">--</div>
-      <div class="cont-derecha">
-        <button class="btn-blanco" id="sig" style="width: 36px; padding: 0; font-size: 20px;">›</button>
-        <button class="btn-blanco btn-puntos" id="menuComidasBtn">···</button>
-      </div>
-      <div id="menuPanelComidas" class="menu-panel-ios">
-        <button id="btnIrALista" class="destacado">Lista</button>
-        <button id="menuComidasOption">Comidas</button>
-      </div>
-    </div>
-
-    <div class="tabla-semana">
-      <div class="fila-iconos">
-        <div></div>
-        <div class="icono-toma">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 2v2M4.93 4.93l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M12 18a6 6 0 0 0 6-6H6a6 6 0 0 0 6 6z"/><line x1="2" y1="18" x2="22" y2="18"/></svg>
-        </div>
-        <div class="icono-toma">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        </div>
-        <div class="icono-toma">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </div>
-      </div>
-      <div id="contenedorDias"></div>
+  <div class="barra">
+    <input id="entrada" type="text" placeholder="Añadir alimento" autocomplete="off">
+    <button id="ok">Ok</button>
+    <button id="menu">···</button>
+    <div id="sugerencias"></div>
+    <div id="menuPanel">
+      <button id="menuEliminar">Eliminar</button>
+      <button id="menuAlimentos">Alimentos</button>
+      <button id="menuCategorias">Categorías</button>
     </div>
   </div>
 
-  <!-- PANTALLA SECUNDARIA (ALIMENTOS / CATEGORÍAS) -->
+  <div id="lista"></div>
+
   <div id="pantalla">
     <div class="cabecera">
       <button id="atras">‹ Atrás</button>
@@ -333,56 +178,6 @@
     <div id="contenidoPantalla"></div>
   </div>
 
-  <!-- MODAL SELECCIONAR / GESTIONAR COMIDAS -->
-  <div class="modal" id="modalSeleccion">
-    <div id="zonaSuperiorModal">
-      <div class="modal-header">
-        <button class="btn-texto-verde" id="btnCancelarSel">Cancelar</button>
-        <span style="font-weight: 600; font-size: 17px;" id="tituloModalSel">Seleccionar Plato</span>
-        <button class="btn-texto-verde" id="btnAceptarSel">Aceptar</button>
-      </div>
-      <div class="buscador-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" class="buscador-input" id="inputBuscar" placeholder="Buscar" autocomplete="off">
-      </div>
-    </div>
-
-    <div class="panel-nuevo-plato" id="panelNuevoPlato">
-      <div class="modal-header" style="padding: 0 0 12px 0; border: none;">
-        <button class="btn-texto-verde" id="btnCancelarNuevo">Cancelar</button>
-        <span style="font-weight: 600; font-size: 16px;" id="tituloPanelNuevo">Nuevo plato</span>
-        <button class="btn-texto-verde" id="btnAceptarNuevo">Aceptar</button>
-      </div>
-      <div class="campo-form">
-        <label>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16M6 16l6-12 6 12M8 12h8"/></svg>
-          Nombre
-        </label>
-        <input type="text" id="inputNuevoNombre" autocomplete="off">
-      </div>
-      <div class="campo-form" style="margin-bottom: 8px;">
-        <label>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg>
-          Ingredientes
-        </label>
-        <div class="contenedor-ingredientes" id="contenedorChips"></div>
-        <input type="text" id="inputNuevoIngrediente" placeholder="añadir..." autocomplete="off">
-        <div class="sugerencias-ingredientes" id="sugerenciasIng"></div>
-      </div>
-    </div>
-
-    <div class="lista-platos" id="listaPlatos"></div>
-  </div>
-
-  <!-- OVERLAY MENU EDICION EN REJILLA -->
-  <div class="overlay-menu" id="overlayMenuPlato">
-    <div class="menu-flotante-ios">
-      <div class="menu-flotante-titulo" id="menuPlatoTitulo">Nombre plato</div>
-      <button class="menu-flotante-opcion" id="btnMenuEditar">Editar plato</button>
-      <button class="menu-flotante-opcion quitar" id="btnMenuQuitar">Quitar</button>
-    </div>
-  </div>
-
   <div class="velo" id="velo"><div class="caja" id="caja"></div></div>
   <div class="velo velo-confirmar" id="veloConfirmar"><div class="caja" id="cajaConfirmar"></div></div>
   <div id="aviso"></div>
@@ -390,27 +185,17 @@
   <script>
     const SECCIONES_INICIALES = ["Otros", "Fruta", "Verdura", "Carne", "Pescado", "Lácteos", "Panadería", "Limpieza"];
     const SECCION_POR_DEFECTO = "otros";
-    const OPCION_NUEVA = "__nueva__";
-    const DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
-    const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+    const OPCION_NUEVA = "__nueva__"; // opción "Nueva categoría…" del desplegable
 
     const ICONO_ASA = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 8h16M4 12h16M4 16h16"/></svg>';
     const ICONO_LAPIZ = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
     const ICONO_PAPELERA = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
-    const ANCHO_PAPELERA = 80;
 
-    let db;
-    let fechaLunesActual = getLunes(new Date());
-    let slotActivo = null;
-    let listaIngredientesNuevos = [];
-    let platoActivoCtx = null;
-    let modoMantenimiento = false;
-    let nombrePlatoOriginalEdicion = "";
+    const ANCHO_PAPELERA = 80; // debe coincidir con el width de .borrar
 
     const entrada = document.getElementById("entrada");
     const sugerenciasEl = document.getElementById("sugerencias");
-    const menuPanelLista = document.getElementById("menuPanelLista");
-    const menuPanelComidas = document.getElementById("menuPanelComidas");
+    const menuPanel = document.getElementById("menuPanel");
     const lista = document.getElementById("lista");
     const pantalla = document.getElementById("pantalla");
     const tituloPantalla = document.getElementById("tituloPantalla");
@@ -422,48 +207,42 @@
     const avisoEl = document.getElementById("aviso");
 
     const clave = texto => texto.trim().toLowerCase();
+    // Para comparar sin distinguir mayúsculas ni tildes (Limón = limon)
     const normalizar = texto => texto.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    // Formato de los alimentos: primera letra en mayúscula y el resto en minúscula
     const formatear = texto => {
       const t = texto.trim().replace(/\s+/g, " ").toLocaleLowerCase("es");
       return t.charAt(0).toLocaleUpperCase("es") + t.slice(1);
     };
     const porOrden = (a, b) => (a.orden ?? 9999) - (b.orden ?? 9999);
     const porNombre = (a, b) => a.nombre.localeCompare(b.nombre, "es");
+    // Un alimento está en la lista salvo que se haya quitado (los antiguos sin marca cuentan como "en la lista")
     const enLista = a => a.enLista !== false;
     const pedir = req => new Promise((ok, fallo) => {
       req.onsuccess = () => ok(req.result);
       req.onerror = () => fallo(req.error);
     });
 
+    let db;
     const tabla = (nombre, modo = "readonly") => db.transaction(nombre, modo).objectStore(nombre);
 
+    // Base de datos: tablas "secciones" (las categorías, con su orden) y "alimentos" (el catálogo de alimentos).
+    // La clave (nombre en minúsculas) hace que no se puedan repetir.
     function abrirBD() {
       return new Promise((ok, fallo) => {
-        const req = indexedDB.open("miapp", 2);
+        const req = indexedDB.open("miapp", 1);
         req.onupgradeneeded = () => {
           const d = req.result;
-          if (!d.objectStoreNames.contains("secciones")) {
-            const secciones = d.createObjectStore("secciones", { keyPath: "clave" });
-            SECCIONES_INICIALES.forEach((n, i) => secciones.add({ clave: clave(n), nombre: n, orden: i }));
-          }
-          if (!d.objectStoreNames.contains("alimentos")) {
-            d.createObjectStore("alimentos", { keyPath: "clave" });
-          }
-          if (!d.objectStoreNames.contains("platos")) {
-            d.createObjectStore("platos", { keyPath: "nombre" });
-          }
-          if (!d.objectStoreNames.contains("menu")) {
-            d.createObjectStore("menu", { keyPath: "id" });
-          }
-          if (!d.objectStoreNames.contains("ingredientes_base")) {
-            d.createObjectStore("ingredientes_base", { keyPath: "nombre" });
-          }
+          const secciones = d.createObjectStore("secciones", { keyPath: "clave" });
+          d.createObjectStore("alimentos", { keyPath: "clave" });
+          SECCIONES_INICIALES.forEach((n, i) => secciones.add({ clave: clave(n), nombre: n, orden: i }));
         };
         req.onsuccess = () => ok(req.result);
         req.onerror = () => fallo(req.error);
       });
     }
 
+    // Guarda varios registros de una tabla de una vez
     function escribir(nombreTabla, registros) {
       return new Promise((ok, fallo) => {
         const t = db.transaction(nombreTabla, "readwrite");
@@ -474,6 +253,7 @@
       });
     }
 
+    // Las secciones guardadas antes de existir el orden reciben uno
     async function asegurarOrden() {
       const secciones = await pedir(tabla("secciones").getAll());
       if (secciones.every(s => typeof s.orden === "number")) return;
@@ -484,6 +264,7 @@
       await escribir("secciones", secciones);
     }
 
+    // Pone en el formato correcto los alimentos que ya estaban guardados
     async function normalizarNombres() {
       const alimentos = await pedir(tabla("alimentos").getAll());
       for (const a of alimentos) {
@@ -503,12 +284,14 @@
       temporizadorAviso = setTimeout(() => avisoEl.classList.remove("visible"), 2000);
     }
 
+    // Ventana de confirmación: devuelve true si se acepta y false si se cancela
     function confirmar(mensaje, textoAceptar) {
       return new Promise(resolver => {
         cajaConfirmar.innerHTML = "";
         const texto = document.createElement("p");
         texto.className = "mensaje";
         texto.textContent = mensaje;
+
         const acciones = document.createElement("div");
         acciones.className = "acciones";
         const cancelar = document.createElement("button");
@@ -531,34 +314,14 @@
       });
     }
 
-    /* Navegación SPA */
-    function cambiarVista(nombreVista) {
-      document.querySelectorAll(".vista").forEach(v => v.classList.remove("activa"));
-      if (nombreVista === "lista") {
-        document.getElementById("vistaLista").classList.add("activa");
-        pintar();
-      } else {
-        document.getElementById("vistaComidas").classList.add("activa");
-        renderizarSemana();
-      }
-    }
-
-    document.getElementById("btnIrAMenu").onclick = () => {
-      menuPanelLista.style.display = "none";
-      cambiarVista("comidas");
-    };
-    document.getElementById("btnIrALista").onclick = () => {
-      menuPanelComidas.style.display = "none";
-      cambiarVista("lista");
-    };
-
-    /* Lógica Mi Lista */
+    // Vuelve a poner en la lista un alimento que ya estaba guardado en el catálogo
     async function ponerEnLista(alimento) {
       alimento.enLista = true;
       alimento.tachado = false;
       await pedir(tabla("alimentos", "readwrite").put(alimento));
     }
 
+    // Sugerencias: todos los alimentos guardados que empiezan por lo que escribes
     let ultimaBusqueda = 0;
     async function sugerir() {
       const id = ++ultimaBusqueda;
@@ -569,7 +332,7 @@
       }
       const alimentos = await pedir(tabla("alimentos").getAll());
       const secciones = await pedir(tabla("secciones").getAll());
-      if (id !== ultimaBusqueda) return;
+      if (id !== ultimaBusqueda) return; // llegó una búsqueda más reciente
 
       const nombreSeccion = Object.fromEntries(secciones.map(s => [s.clave, s.nombre]));
       const coincidencias = alimentos
@@ -587,6 +350,7 @@
         const nombre = document.createElement("span");
         nombre.textContent = a.nombre;
         const seccion = document.createElement("small");
+        // La marca ✓ indica que ya está en la lista
         seccion.textContent = (enLista(a) ? "✓ " : "") + (nombreSeccion[a.seccion] || "");
         fila.append(nombre, seccion);
         fila.onclick = async () => {
@@ -613,14 +377,11 @@
           aviso("Ya está en la lista");
           return;
         }
-        await ponerEnLista(existente);
+        await ponerEnLista(existente); // estaba guardado: vuelve a su categoría
       } else {
-        const t = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
-        t.objectStore("alimentos").put({
+        await pedir(tabla("alimentos", "readwrite").add({
           clave: clave(nombre), nombre, seccion: SECCION_POR_DEFECTO, tachado: false, enLista: true
-        });
-        t.objectStore("ingredientes_base").put({ nombre });
-        await new Promise((ok, fallo) => { t.oncomplete = ok; t.onerror = fallo; });
+        }));
       }
       entrada.value = "";
       sugerir();
@@ -635,7 +396,7 @@
         const items = alimentos
           .filter(a => a.seccion === s.clave && enLista(a))
           .sort(porNombre);
-        if (!items.length) continue;
+        if (!items.length) continue; // una sección sin alimentos en la lista no se muestra
 
         const grupo = document.createElement("div");
         grupo.className = "grupo";
@@ -657,11 +418,13 @@
           const fila = document.createElement("div");
           fila.className = "fila";
 
+          // Botón azul cuadrado (aparece al deslizar a la derecha)
           const editar = document.createElement("button");
           editar.className = "editar";
           editar.innerHTML = ICONO_LAPIZ;
           editar.setAttribute("aria-label", "Editar");
 
+          // Botón rojo (aparece al deslizar a la izquierda)
           const papelera = document.createElement("button");
           papelera.className = "borrar";
           papelera.innerHTML = ICONO_PAPELERA;
@@ -682,13 +445,16 @@
             abrirEditor(a, false);
           };
         }
+
         lista.appendChild(grupo);
         activarArrastreSeccion(grupo, asa);
       }
     }
 
+    // Arrastrar una sección (desde el icono de las tres rayas) para cambiar su orden
     function activarArrastreSeccion(grupo, asa) {
       let inicioY = 0, topInicial = 0, activo = false;
+
       asa.addEventListener("pointerdown", e => {
         e.preventDefault();
         activo = true;
@@ -698,11 +464,13 @@
         grupo.style.transition = "none";
         grupo.classList.add("arrastrando");
       });
+
       asa.addEventListener("pointermove", e => {
         if (!activo) return;
         const deseado = topInicial + (e.clientY - inicioY);
         grupo.style.transform = "";
         const centro = deseado + grupo.offsetHeight / 2;
+
         let anterior = grupo.previousElementSibling;
         while (anterior && centro < anterior.getBoundingClientRect().top + anterior.offsetHeight / 2) {
           lista.insertBefore(grupo, anterior);
@@ -713,9 +481,11 @@
           lista.insertBefore(siguiente, grupo);
           siguiente = grupo.nextElementSibling;
         }
+
         const natural = grupo.getBoundingClientRect().top;
         grupo.style.transform = "translateY(" + (deseado - natural) + "px)";
       });
+
       const soltar = async () => {
         if (!activo) return;
         activo = false;
@@ -728,6 +498,8 @@
       asa.addEventListener("pointercancel", soltar);
     }
 
+    // Guarda el orden que ha quedado en pantalla.
+    // Las secciones que ahora no se ven (sin alimentos en la lista) conservan su sitio.
     async function guardarOrden() {
       const visibles = [...lista.children].map(g => g.dataset.clave);
       const todas = (await pedir(tabla("secciones").getAll())).sort(porOrden);
@@ -741,22 +513,32 @@
       await escribir("secciones", nuevas);
     }
 
-    function activarGestos(item, objetoDatos, editar) {
+    // Pulsar = tachar/destachar.
+    // Deslizar a la izquierda = papelera (roja). Deslizar a la derecha = editar (azul, cuadrado).
+    function activarGestos(item, alimento, editar) {
       let x0 = 0, y0 = 0, dx = 0;
       let activo = false, arrastrando = false;
-      let reposo = 0;
-      const anchoEditar = () => editar ? editar.offsetWidth : 0;
+      let reposo = 0; // 0 = cerrado; negativo = papelera visible; positivo = cuadro azul visible
+
+      const anchoEditar = () => editar.offsetWidth; // el cuadrado mide lo mismo que el alto de la fila
       const mover = px => { item.style.transform = "translateX(" + px + "px)"; };
+
+      // Permite cerrar la fila desde fuera (al abrir la ventana de edición)
       item.cerrarFila = () => {
         item.style.transition = "transform .2s";
         reposo = 0;
         mover(0);
       };
+
       item.addEventListener("pointerdown", e => {
-        activo = true; arrastrando = false;
-        x0 = e.clientX; y0 = e.clientY; dx = 0;
+        activo = true;
+        arrastrando = false;
+        x0 = e.clientX;
+        y0 = e.clientY;
+        dx = 0;
         item.style.transition = "none";
       });
+
       item.addEventListener("pointermove", e => {
         if (!activo) return;
         dx = e.clientX - x0;
@@ -769,6 +551,7 @@
           mover(Math.max(-ANCHO_PAPELERA, Math.min(anchoEditar(), reposo + dx)));
         }
       });
+
       const terminar = async e => {
         if (!activo) return;
         activo = false;
@@ -781,9 +564,10 @@
           mover(reposo);
         } else if (e.type === "pointerup") {
           if (reposo !== 0) {
-            reposo = 0; mover(0);
-          } else if (editar) {
-            await alternarTachado(objetoDatos);
+            reposo = 0;
+            mover(0);
+          } else {
+            await alternarTachado(alimento);
           }
         }
       };
@@ -797,6 +581,7 @@
       pintar();
     }
 
+    // La papelera quita el alimento de la lista, pero sigue guardado en la tabla alimentos
     async function quitarDeLista(alimento) {
       alimento.enLista = false;
       alimento.tachado = false;
@@ -804,49 +589,7 @@
       pintar();
     }
 
-    async function eliminarAlimentoTotal(alimento) {
-      const pregunta = "¿Eliminar «" + alimento.nombre + "» de los alimentos?" + (enLista(alimento) ? " También se quitará de la lista." : "");
-      if (!(await confirmar(pregunta, "Eliminar"))) return;
-      await pedir(tabla("alimentos", "readwrite").delete(alimento.clave));
-      await pintar();
-      refrescarPantalla();
-    }
-
-    async function eliminarPlatoTotal(nombrePlato) {
-      const pregunta = "¿Eliminar el plato «" + nombrePlato + "»?";
-      if (!(await confirmar(pregunta, "Eliminar"))) return;
-      const tx = db.transaction(["platos", "menu"], "readwrite");
-      tx.objectStore("platos").delete(nombrePlato);
-      
-      const todosMenus = await pedir(tx.objectStore("menu").getAll());
-      todosMenus.forEach(itemMenu => {
-        if (itemMenu.platos && itemMenu.platos.includes(nombrePlato)) {
-          const actualizados = itemMenu.platos.filter(p => p !== nombrePlato);
-          tx.objectStore("menu").put({ id: itemMenu.id, platos: actualizados });
-        }
-      });
-      tx.oncomplete = async () => {
-        await cargarListaPlatos("");
-        renderizarSemana();
-      };
-    }
-
-    async function eliminarCategoriaTotal(categoria) {
-      if (categoria.clave === SECCION_POR_DEFECTO) {
-        aviso("La categoría Otros no se puede eliminar");
-        return;
-      }
-      const alimentos = await pedir(tabla("alimentos").getAll());
-      const total = alimentos.filter(a => a.seccion === categoria.clave).length;
-      let pregunta = "¿Eliminar la categoría «" + categoria.nombre + "»?";
-      if (total === 1) pregunta += " Su alimento pasará a «Otros».";
-      else if (total > 1) pregunta += " Sus " + total + " alimentos pasarán a «Otros».";
-      if (!(await confirmar(pregunta, "Eliminar"))) return;
-      await eliminarCategoria(categoria.clave);
-      await pintar();
-      refrescarPantalla();
-    }
-
+    // Menú ··· > Eliminar: quita de la lista todos los alimentos tachados (con confirmación)
     async function eliminarTachados() {
       const alimentos = await pedir(tabla("alimentos").getAll());
       const tachados = alimentos.filter(a => enLista(a) && a.tachado);
@@ -863,6 +606,7 @@
       pintar();
     }
 
+    // Devuelve la clave de una categoría; si no existe, la crea al final de las demás
     async function asegurarSeccion(texto) {
       const nombre = texto.trim().replace(/\s+/g, " ");
       const todas = await pedir(tabla("secciones").getAll());
@@ -873,13 +617,16 @@
       return clave(nombre);
     }
 
-    let pantallaActual = null;
+    // ---------- Pantallas de mantenimiento ----------
+    let pantallaActual = null; // "alimentos" o "categorias"
+
     function abrirPantalla(tipo, titulo) {
       pantallaActual = tipo;
       tituloPantalla.textContent = titulo;
       pantalla.classList.add("abierta");
     }
 
+    // Vuelve a dibujar la pantalla de mantenimiento si está abierta (conserva el desplazamiento)
     async function refrescarPantalla() {
       if (!pantalla.classList.contains("abierta")) return;
       const y = contenidoPantalla.scrollTop;
@@ -888,11 +635,13 @@
       contenidoPantalla.scrollTop = y;
     }
 
+    // Menú ··· > Alimentos: todos los alimentos de la base de datos, por orden alfabético
     async function mostrarAlimentos() {
       abrirPantalla("alimentos", "Alimentos");
       const alimentos = (await pedir(tabla("alimentos").getAll())).sort(porNombre);
       const secciones = await pedir(tabla("secciones").getAll());
       const nombreSeccion = Object.fromEntries(secciones.map(s => [s.clave, s.nombre]));
+
       contenidoPantalla.innerHTML = "";
       if (!alimentos.length) {
         const vacio = document.createElement("div");
@@ -903,141 +652,138 @@
       }
       for (const a of alimentos) {
         const fila = document.createElement("div");
-        fila.className = "fila";
-
-        const papelera = document.createElement("button");
-        papelera.className = "borrar";
-        papelera.innerHTML = ICONO_PAPELERA;
-        papelera.setAttribute("aria-label", "Eliminar alimento");
-        papelera.onclick = () => eliminarAlimentoTotal(a);
-
-        const registro = document.createElement("div");
-        registro.className = "registro";
-
+        fila.className = "registro";
         const nombre = document.createElement("span");
         nombre.textContent = a.nombre;
         const categoria = document.createElement("small");
+        // La marca ✓ indica que está en la lista
         categoria.textContent = (enLista(a) ? "✓ " : "") + (nombreSeccion[a.seccion] || "");
-        registro.append(nombre, categoria);
-
-        fila.append(papelera, registro);
+        fila.append(nombre, categoria);
+        fila.onclick = () => abrirEditor(a, true);
         contenidoPantalla.appendChild(fila);
-
-        activarGestos(registro, a, null);
-        registro.onclick = () => {
-          if (registro.style.transform && registro.style.transform !== "translateX(0px)") {
-            registro.cerrarFila();
-          } else {
-            abrirEditor(a, true);
-          }
-        };
       }
     }
 
+    // Menú ··· > Categorías: todas las categorías por orden alfabético, con su número de alimentos
     async function mostrarCategorias() {
       abrirPantalla("categorias", "Categorías");
       const secciones = (await pedir(tabla("secciones").getAll())).sort(porNombre);
       const alimentos = await pedir(tabla("alimentos").getAll());
+
       contenidoPantalla.innerHTML = "";
       for (const s of secciones) {
-        const fila = document.createElement("div");
-        fila.className = "fila";
-
-        const papelera = document.createElement("button");
-        papelera.className = "borrar";
-        papelera.innerHTML = ICONO_PAPELERA;
-        papelera.setAttribute("aria-label", "Eliminar categoría");
-        papelera.onclick = () => eliminarCategoriaTotal(s);
-
-        const registro = document.createElement("div");
-        registro.className = "registro";
-
         const total = alimentos.filter(a => a.seccion === s.clave).length;
+        const fila = document.createElement("div");
+        fila.className = "registro";
         const nombre = document.createElement("span");
         nombre.textContent = s.nombre;
         const cuantos = document.createElement("small");
         cuantos.textContent = total === 1 ? "1 alimento" : total + " alimentos";
-        registro.append(nombre, cuantos);
-
-        fila.append(papelera, registro);
+        fila.append(nombre, cuantos);
+        fila.onclick = () => abrirEditorCategoria(s);
         contenidoPantalla.appendChild(fila);
-
-        activarGestos(registro, s, null);
-        registro.onclick = () => {
-          if (registro.style.transform && registro.style.transform !== "translateX(0px)") {
-            registro.cerrarFila();
-          } else {
-            abrirEditorCategoria(s);
-          }
-        };
       }
     }
 
+    // Ventana para cambiar el nombre y la categoría de un alimento, o para crear uno nuevo (alimento = null).
+    // Si viene de Alimentos (mantenimiento) también permite eliminarlo de la base de datos.
     async function abrirEditor(alimento, mantenimiento) {
       const nuevo = !alimento;
       const secciones = (await pedir(tabla("secciones").getAll())).sort(porOrden);
       caja.innerHTML = "";
+
       const titulo = document.createElement("h2");
       titulo.textContent = nuevo ? "Nuevo alimento" : "Editar alimento";
       caja.appendChild(titulo);
+
       const editor = document.createElement("div");
       editor.className = "editor";
+
       const etiquetaNombre = document.createElement("label");
       etiquetaNombre.textContent = "Nombre";
       const campo = document.createElement("input");
-      campo.type = "text"; campo.value = nuevo ? "" : alimento.nombre; campo.autocomplete = "off";
+      campo.type = "text";
+      campo.value = nuevo ? "" : alimento.nombre;
+      campo.autocomplete = "off";
+
       const etiquetaSeccion = document.createElement("label");
       etiquetaSeccion.textContent = "Categoría";
       const desplegable = document.createElement("select");
       const seccionInicial = nuevo ? SECCION_POR_DEFECTO : alimento.seccion;
       for (const s of secciones) {
         const o = document.createElement("option");
-        o.value = s.clave; o.textContent = s.nombre;
+        o.value = s.clave;
+        o.textContent = s.nombre;
         if (s.clave === seccionInicial) o.selected = true;
         desplegable.appendChild(o);
       }
       const opcionNueva = document.createElement("option");
-      opcionNueva.value = OPCION_NUEVA; opcionNueva.textContent = "+ Nueva categoría…";
+      opcionNueva.value = OPCION_NUEVA;
+      opcionNueva.textContent = "+ Nueva categoría…";
       desplegable.appendChild(opcionNueva);
 
+      // Casilla para escribir el nombre de una categoría nueva (solo se ve si eliges "Nueva categoría…")
       const campoNueva = document.createElement("input");
-      campoNueva.type = "text"; campoNueva.placeholder = "Nombre de la nueva categoría";
-      campoNueva.autocomplete = "off"; campoNueva.style.display = "none"; campoNueva.style.marginTop = "8px";
+      campoNueva.type = "text";
+      campoNueva.placeholder = "Nombre de la nueva categoría";
+      campoNueva.autocomplete = "off";
+      campoNueva.style.display = "none";
+      campoNueva.style.marginTop = "8px";
       desplegable.onchange = () => {
         const otra = desplegable.value === OPCION_NUEVA;
         campoNueva.style.display = otra ? "block" : "none";
         if (otra) campoNueva.focus();
       };
+
       const acciones = document.createElement("div");
       acciones.className = "acciones";
 
       if (mantenimiento && !nuevo) {
         const eliminar = document.createElement("button");
-        eliminar.className = "peligro"; eliminar.textContent = "Eliminar";
+        eliminar.className = "peligro";
+        eliminar.textContent = "Eliminar";
         eliminar.onclick = async () => {
-          await eliminarAlimentoTotal(alimento);
+          const pregunta = "¿Eliminar «" + alimento.nombre + "» de los alimentos?" +
+            (enLista(alimento) ? " También se quitará de la lista." : "");
+          if (!(await confirmar(pregunta, "Eliminar"))) return;
+          await pedir(tabla("alimentos", "readwrite").delete(alimento.clave));
           velo.classList.remove("abierto");
+          await pintar();
+          refrescarPantalla();
         };
         acciones.appendChild(eliminar);
       }
+
       const cancelar = document.createElement("button");
       cancelar.textContent = "Cancelar";
       cancelar.onclick = () => velo.classList.remove("abierto");
       const guardar = document.createElement("button");
-      guardar.className = "guardar"; guardar.textContent = "Guardar";
+      guardar.className = "guardar";
+      guardar.textContent = "Guardar";
 
       const guardarCambios = async () => {
         const nombre = formatear(campo.value);
-        if (!nombre) { aviso("Escribe un nombre"); return; }
+        if (!nombre) {
+          aviso("Escribe un nombre");
+          return;
+        }
         let seccion = desplegable.value;
         if (seccion === OPCION_NUEVA) {
-          if (!campoNueva.value.trim()) { aviso("Escribe el nombre de la categoría"); return; }
+          if (!campoNueva.value.trim()) {
+            aviso("Escribe el nombre de la categoría");
+            return;
+          }
           seccion = await asegurarSeccion(campoNueva.value);
         }
-        const guardado = nuevo ? await crearAlimento(nombre, seccion) : await guardarEdicion(alimento, nombre, seccion);
-        if (!guardado) { aviso("Ya existe ese alimento"); return; }
+        const guardado = nuevo
+          ? await crearAlimento(nombre, seccion)
+          : await guardarEdicion(alimento, nombre, seccion);
+        if (!guardado) {
+          aviso("Ya existe ese alimento");
+          return;
+        }
         velo.classList.remove("abierto");
-        await pintar();
+        await pintar();          // si está en la lista, se actualiza su nombre y su categoría
         refrescarPantalla();
       };
       guardar.onclick = guardarCambios;
@@ -1051,36 +797,40 @@
       if (nuevo) campo.focus();
     }
 
+    // Añade un alimento nuevo a la base de datos (sin ponerlo en la lista). Devuelve false si ya existe.
     async function crearAlimento(nombre, seccion) {
       const existente = await pedir(tabla("alimentos").get(clave(nombre)));
       if (existente) return false;
-      const t = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
-      t.objectStore("alimentos").put({ clave: clave(nombre), nombre, seccion, tachado: false, enLista: false });
-      t.objectStore("ingredientes_base").put({ nombre });
-      await new Promise((ok, fallo) => { t.oncomplete = ok; t.onerror = fallo; });
+      await pedir(tabla("alimentos", "readwrite").add({
+        clave: clave(nombre), nombre, seccion, tachado: false, enLista: false
+      }));
       return true;
     }
 
+    // Guarda el nombre y la categoría nuevos. Como el nombre es la clave del registro,
+    // si cambia hay que crear el nuevo y borrar el antiguo (devuelve false si ya existe otro igual).
     function guardarEdicion(alimento, nombre, seccion) {
       return new Promise((ok, fallo) => {
         const nuevaClave = clave(nombre);
-        const t = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
+        const t = db.transaction("alimentos", "readwrite");
         const st = t.objectStore("alimentos");
-        const stIng = t.objectStore("ingredientes_base");
         t.oncomplete = () => ok(true);
         t.onerror = () => fallo(t.error);
 
         const existente = st.get(nuevaClave);
         existente.onsuccess = () => {
           const cambiaClave = nuevaClave !== alimento.clave;
-          if (cambiaClave && existente.result) { ok(false); return; }
+          if (cambiaClave && existente.result) {
+            ok(false); // ya hay otro alimento con ese nombre: no se guarda nada
+            return;
+          }
           if (cambiaClave) st.delete(alimento.clave);
           st.put({ ...alimento, clave: nuevaClave, nombre, seccion });
-          stIng.put({ nombre });
         };
       });
     }
 
+    // Ventana para cambiar el nombre de una categoría o eliminarla, o para crear una nueva (categoria = null)
     async function abrirEditorCategoria(categoria) {
       const nueva = !categoria;
       if (!nueva && categoria.clave === SECCION_POR_DEFECTO) {
@@ -1088,41 +838,72 @@
         return;
       }
       caja.innerHTML = "";
+
       const titulo = document.createElement("h2");
       titulo.textContent = nueva ? "Nueva categoría" : "Editar categoría";
       caja.appendChild(titulo);
 
       const editor = document.createElement("div");
       editor.className = "editor";
-      const etiqueta = document.createElement("label"); etiqueta.textContent = "Nombre";
-      const campo = document.createElement("input"); campo.type = "text"; campo.value = nueva ? "" : categoria.nombre; campo.autocomplete = "off";
-      const acciones = document.createElement("div"); acciones.className = "acciones";
+      const etiqueta = document.createElement("label");
+      etiqueta.textContent = "Nombre";
+      const campo = document.createElement("input");
+      campo.type = "text";
+      campo.value = nueva ? "" : categoria.nombre;
+      campo.autocomplete = "off";
+
+      const acciones = document.createElement("div");
+      acciones.className = "acciones";
 
       if (!nueva) {
         const eliminar = document.createElement("button");
-        eliminar.className = "peligro"; eliminar.textContent = "Eliminar";
+        eliminar.className = "peligro";
+        eliminar.textContent = "Eliminar";
         eliminar.onclick = async () => {
-          await eliminarCategoriaTotal(categoria);
+          const alimentos = await pedir(tabla("alimentos").getAll());
+          const total = alimentos.filter(a => a.seccion === categoria.clave).length;
+          let pregunta = "¿Eliminar la categoría «" + categoria.nombre + "»?";
+          if (total === 1) pregunta += " Su alimento pasará a «Otros».";
+          else if (total > 1) pregunta += " Sus " + total + " alimentos pasarán a «Otros».";
+          if (!(await confirmar(pregunta, "Eliminar"))) return;
+          await eliminarCategoria(categoria.clave);
           velo.classList.remove("abierto");
+          await pintar();
+          refrescarPantalla();
         };
         acciones.appendChild(eliminar);
       }
 
-      const cancelar = document.createElement("button"); cancelar.textContent = "Cancelar";
+      const cancelar = document.createElement("button");
+      cancelar.textContent = "Cancelar";
       cancelar.onclick = () => velo.classList.remove("abierto");
-      const guardar = document.createElement("button"); guardar.className = "guardar"; guardar.textContent = "Guardar";
+      const guardar = document.createElement("button");
+      guardar.className = "guardar";
+      guardar.textContent = "Guardar";
 
       const guardarCambios = async () => {
         const nombre = campo.value.trim().replace(/\s+/g, " ");
-        if (!nombre) { aviso("Escribe un nombre"); return; }
+        if (!nombre) {
+          aviso("Escribe un nombre");
+          return;
+        }
         if (nueva) {
           const todas = await pedir(tabla("secciones").getAll());
-          if (todas.some(s => s.clave === clave(nombre))) { aviso("Ya existe esa categoría"); return; }
-          await asegurarSeccion(nombre);
+          if (todas.some(s => s.clave === clave(nombre))) {
+            aviso("Ya existe esa categoría");
+            return;
+          }
+          await asegurarSeccion(nombre); // se añade al final de las demás
         } else {
-          if (clave(nombre) === SECCION_POR_DEFECTO) { aviso("Ya existe esa categoría"); return; }
+          if (clave(nombre) === SECCION_POR_DEFECTO) {
+            aviso("Ya existe esa categoría");
+            return;
+          }
           const guardado = await renombrarCategoria(categoria, nombre);
-          if (!guardado) { aviso("Ya existe esa categoría"); return; }
+          if (!guardado) {
+            aviso("Ya existe esa categoría");
+            return;
+          }
         }
         velo.classList.remove("abierto");
         await pintar();
@@ -1138,6 +919,8 @@
       if (nueva) campo.focus();
     }
 
+    // Cambia el nombre de una categoría y actualiza todos los alimentos que pertenecían a ella
+    // (devuelve false si ya existe otra categoría con ese nombre)
     function renombrarCategoria(categoria, nombre) {
       return new Promise((ok, fallo) => {
         const nuevaClave = clave(nombre);
@@ -1150,18 +933,27 @@
         const existente = sec.get(nuevaClave);
         existente.onsuccess = () => {
           const cambiaClave = nuevaClave !== categoria.clave;
-          if (cambiaClave && existente.result) { ok(false); return; }
-          if (!cambiaClave) { sec.put({ ...categoria, nombre }); return; }
+          if (cambiaClave && existente.result) {
+            ok(false); // ya hay otra categoría con ese nombre: no se guarda nada
+            return;
+          }
+          if (!cambiaClave) {
+            sec.put({ ...categoria, nombre }); // solo cambian mayúsculas o espacios
+            return;
+          }
           sec.delete(categoria.clave);
           sec.put({ ...categoria, clave: nuevaClave, nombre });
           const todos = alim.getAll();
           todos.onsuccess = () => {
-            todos.result.filter(a => a.seccion === categoria.clave).forEach(a => alim.put({ ...a, seccion: nuevaClave }));
+            todos.result
+              .filter(a => a.seccion === categoria.clave)
+              .forEach(a => alim.put({ ...a, seccion: nuevaClave }));
           };
         };
       });
     }
 
+    // Elimina una categoría: todos sus alimentos pasan a "Otros"
     function eliminarCategoria(claveCategoria) {
       return new Promise((ok, fallo) => {
         const t = db.transaction(["secciones", "alimentos"], "readwrite");
@@ -1172,535 +964,83 @@
 
         const todos = alim.getAll();
         todos.onsuccess = () => {
-          todos.result.filter(a => a.seccion === claveCategoria).forEach(a => alim.put({ ...a, seccion: SECCION_POR_DEFECTO }));
+          todos.result
+            .filter(a => a.seccion === claveCategoria)
+            .forEach(a => alim.put({ ...a, seccion: SECCION_POR_DEFECTO }));
           sec.delete(claveCategoria);
         };
       });
     }
 
-    /* Lógica Menú Semanal de Comidas */
-    function getLunes(d) {
-      const date = new Date(d);
-      const day = date.getDay();
-      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-      date.setDate(diff); date.setHours(0,0,0,0);
-      return date;
-    }
-
-    function formatearFechaStr(d) {
-      return d.toISOString().split('T')[0];
-    }
-
-    async function renderizarSemana() {
-      const hoy = new Date(); hoy.setHours(0,0,0,0);
-      const domingo = new Date(fechaLunesActual); domingo.setDate(domingo.getDate() + 6);
-      document.getElementById("tituloFecha").textContent = `${fechaLunesActual.getDate()} ${MESES[fechaLunesActual.getMonth()]} - ${domingo.getDate()} ${MESES[domingo.getMonth()]}`;
-
-      const cont = document.getElementById("contenedorDias");
-      cont.innerHTML = "";
-
-      const tx = db.transaction("menu", "readonly");
-      const store = tx.objectStore("menu");
-
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(fechaLunesActual);
-        d.setDate(d.getDate() + i);
-        const fechaStr = formatearFechaStr(d);
-        const esHoy = d.getTime() === hoy.getTime();
-
-        const desayunoArr = (await pedir(store.get(`${fechaStr}_desayuno`)))?.platos || [];
-        const comidaArr = (await pedir(store.get(`${fechaStr}_comida`)))?.platos || [];
-        const cenaArr = (await pedir(store.get(`${fechaStr}_cena`)))?.platos || [];
-
-        const fila = document.createElement("div");
-        fila.className = "fila-dia" + (esHoy ? " hoy" : "");
-        fila.innerHTML = `
-          <div class="col-dia">
-            <div class="nombre-dia">${DIAS[i]}</div>
-            <div class="num-dia">${d.getDate()}</div>
-          </div>
-          <div class="celda-contenido">
-            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'desayuno', desayunoArr)}</div>
-            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'desayuno')">+</button>
-          </div>
-          <div class="celda-contenido">
-            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'comida', comidaArr)}</div>
-            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'comida')">+</button>
-          </div>
-          <div class="celda-contenido">
-            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'cena', cenaArr)}</div>
-            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'cena')">+</button>
-          </div>
-        `;
-        cont.appendChild(fila);
+    // ---------- Pantalla siempre encendida ----------
+    let bloqueoPantalla = null;
+    let pidiendoBloqueo = false;
+    async function mantenerPantallaEncendida() {
+      if (!("wakeLock" in navigator) || bloqueoPantalla || pidiendoBloqueo) return;
+      pidiendoBloqueo = true;
+      try {
+        bloqueoPantalla = await navigator.wakeLock.request("screen");
+        bloqueoPantalla.addEventListener("release", () => { bloqueoPantalla = null; });
+      } catch (e) {
+        bloqueoPantalla = null; // el móvil puede rechazarlo (por ejemplo, con poca batería)
+      } finally {
+        pidiendoBloqueo = false;
       }
     }
-
-    function generarHtmlPlatos(fechaStr, toma, arrayPlatos) {
-      if (!arrayPlatos || arrayPlatos.length === 0) return "";
-      return arrayPlatos.map(plato => `
-        <div class="plato-item-badge" onclick="abrirMenuPlato('${fechaStr}', '${toma}', '${escapeHtml(plato)}')">${plato}</div>
-      `).join("");
-    }
-
-    function escapeHtml(text) {
-      return text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    }
-
-    function abrirMenuPlato(fechaStr, toma, nombrePlato) {
-      platoActivoCtx = { fechaStr, toma, nombrePlato };
-      document.getElementById("menuPlatoTitulo").textContent = nombrePlato;
-      document.getElementById("overlayMenuPlato").classList.add("abierto");
-    }
-
-    document.getElementById("overlayMenuPlato").onclick = (e) => {
-      if (e.target === document.getElementById("overlayMenuPlato")) {
-        document.getElementById("overlayMenuPlato").classList.remove("abierto");
-      }
-    };
-
-    document.getElementById("btnMenuQuitar").onclick = async () => {
-      if (!platoActivoCtx) return;
-      const { fechaStr, toma, nombrePlato } = platoActivoCtx;
-      const keyId = `${fechaStr}_${toma}`;
-      const tx = db.transaction("menu", "readwrite");
-      const store = tx.objectStore("menu");
-      const actualObj = await pedir(store.get(keyId));
-
-      if (actualObj && actualObj.platos) {
-        const index = actualObj.platos.indexOf(nombrePlato);
-        if (index > -1) actualObj.platos.splice(index, 1);
-        store.put({ id: keyId, platos: actualObj.platos });
-      }
-
-      tx.oncomplete = () => {
-        document.getElementById("overlayMenuPlato").classList.remove("abierto");
-        renderizarSemana();
-      };
-    };
-
-    document.getElementById("btnMenuEditar").onclick = async () => {
-      if (!platoActivoCtx) return;
-      const nombrePlato = platoActivoCtx.nombrePlato;
-      document.getElementById("overlayMenuPlato").classList.remove("abierto");
-      abrirFormEditorExistente(nombrePlato);
-    };
-
-    async function abrirFormEditorExistente(nombrePlato) {
-      nombrePlatoOriginalEdicion = nombrePlato;
-      const tx = db.transaction("platos", "readonly");
-      const platoData = await pedir(tx.objectStore("platos").get(nombrePlato));
-      const ingredientesActuales = platoData?.ingredientes || [];
-
-      document.getElementById("tituloPanelNuevo").textContent = "Editar plato";
-      document.getElementById("inputNuevoNombre").value = nombrePlato;
-      document.getElementById("inputNuevoIngrediente").value = "";
-      listaIngredientesNuevos = [...ingredientesActuales];
-      renderizarChipsIngredientes();
-
-      document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
-      document.getElementById("panelNuevoPlato").classList.add("abierto");
-      document.getElementById("listaPlatos").style.display = "none";
-      document.getElementById("modalSeleccion").classList.add("abierto");
-    }
-
-    async function abrirSeleccion(fechaStr, toma) {
-      modoMantenimiento = false;
-      slotActivo = { fechaStr, toma };
-      document.getElementById("tituloModalSel").textContent = "Seleccionar Plato";
-      document.getElementById("btnAceptarSel").style.display = "block";
-      document.getElementById("inputBuscar").value = "";
-      
-      document.getElementById("panelNuevoPlato").classList.remove("abierto");
-      document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
-      document.getElementById("listaPlatos").style.display = "block";
-      
-      await cargarListaPlatos("");
-      document.getElementById("modalSeleccion").classList.add("abierto");
-      document.getElementById("inputBuscar").focus();
-    }
-
-    async function abrirMantenimientoComidas() {
-      modoMantenimiento = true;
-      slotActivo = null;
-      document.getElementById("tituloModalSel").textContent = "Comidas";
-      document.getElementById("btnAceptarSel").style.display = "none";
-      document.getElementById("inputBuscar").value = "";
-
-      document.getElementById("panelNuevoPlato").classList.remove("abierto");
-      document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
-      document.getElementById("listaPlatos").style.display = "block";
-
-      await cargarListaPlatos("");
-      document.getElementById("modalSeleccion").classList.add("abierto");
-      document.getElementById("inputBuscar").focus();
-    }
-
-    async function cargarListaPlatos(filtro) {
-      const tx = db.transaction("platos", "readonly");
-      const platos = await pedir(tx.objectStore("platos").getAll());
-      platos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
-
-      const listaEl = document.getElementById("listaPlatos");
-      listaEl.innerHTML = "";
-
-      const txt = filtro.trim().toLowerCase();
-      const filtrados = txt ? platos.filter(p => p.nombre.toLowerCase().startsWith(txt)) : platos;
-
-      for (const p of filtrados) {
-        const fila = document.createElement("div");
-        fila.className = "fila";
-
-        const papelera = document.createElement("button");
-        papelera.className = "borrar";
-        papelera.innerHTML = ICONO_PAPELERA;
-        papelera.setAttribute("aria-label", "Eliminar plato");
-        papelera.onclick = () => eliminarPlatoTotal(p.nombre);
-
-        const itemDiv = document.createElement("div");
-        itemDiv.className = "item-plato";
-        itemDiv.textContent = p.nombre;
-
-        fila.append(papelera, itemDiv);
-        listaEl.appendChild(fila);
-
-        activarGestos(itemDiv, p, null);
-        itemDiv.onclick = () => {
-          if (itemDiv.style.transform && itemDiv.style.transform !== "translateX(0px)") {
-            itemDiv.cerrarFila();
-          } else {
-            if (modoMantenimiento) abrirFormEditorExistente(p.nombre);
-            else seleccionarEIr(p.nombre);
-          }
-        };
-      }
-    }
-
-    document.getElementById("inputBuscar").oninput = (e) => { cargarListaPlatos(e.target.value); };
-
-    document.getElementById("inputBuscar").onkeydown = async (e) => {
-      if (e.key === "Enter") {
-        const valor = e.target.value.trim();
-        if (!valor) return;
-        const tx = db.transaction("platos", "readonly");
-        const existente = await pedir(tx.objectStore("platos").get(valor));
-        if (existente) {
-          if (modoMantenimiento) abrirFormEditorExistente(existente.nombre);
-          else seleccionarEIr(valor);
-        } else {
-          abrirFormNuevoPlato(valor);
-        }
-      }
-    };
-
-    async function seleccionarEIr(nombrePlato) {
-      if (!slotActivo) return;
-      const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
-      const tx = db.transaction("menu", "readwrite");
-      const store = tx.objectStore("menu");
-      const actualObj = await pedir(store.get(keyId));
-      let platosActuales = actualObj?.platos || [];
-      platosActuales.push(nombrePlato);
-      store.put({ id: keyId, platos: platosActuales });
-
-      tx.oncomplete = () => {
-        document.getElementById("modalSeleccion").classList.remove("abierto");
-        renderizarSemana();
-      };
-    }
-
-    function abrirFormNuevoPlato(nombreInicial) {
-      nombrePlatoOriginalEdicion = "";
-      document.getElementById("tituloPanelNuevo").textContent = "Nuevo plato";
-      document.getElementById("inputNuevoNombre").value = nombreInicial;
-      document.getElementById("inputNuevoIngrediente").value = "";
-      listaIngredientesNuevos = [];
-      renderizarChipsIngredientes();
-      
-      document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
-      document.getElementById("panelNuevoPlato").classList.add("abierto");
-      document.getElementById("listaPlatos").style.display = "none";
-      document.getElementById("inputNuevoIngrediente").focus();
-    }
-
-    function cerrarFormNuevoPlato() {
-      document.getElementById("panelNuevoPlato").classList.remove("abierto");
-      document.getElementById("zonaSuperiorModal").classList.remove("deshabilitado-gris");
-      document.getElementById("listaPlatos").style.display = "block";
-      document.getElementById("inputBuscar").focus();
-    }
-
-    const inputIng = document.getElementById("inputNuevoIngrediente");
-    const sugerenciasIngEl = document.getElementById("sugerenciasIng");
-
-    inputIng.oninput = async () => {
-      const txt = inputIng.value.trim().toLowerCase();
-      if (!txt) { sugerenciasIngEl.style.display = "none"; return; }
-      const tx = db.transaction(["ingredientes_base", "alimentos"], "readonly");
-      const ingBase = await pedir(tx.objectStore("ingredientes_base").getAll());
-      const alimentosLista = await pedir(tx.objectStore("alimentos").getAll());
-      
-      const mapaUnico = new Map();
-      ingBase.forEach(i => mapaUnico.set(i.nombre.toLowerCase(), i.nombre));
-      alimentosLista.forEach(a => mapaUnico.set(a.nombre.toLowerCase(), a.nombre));
-      
-      const todos = Array.from(mapaUnico.values()).map(nombre => ({ nombre }));
-      todos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
-
-      const coincidencias = todos.filter(i => i.nombre.toLowerCase().startsWith(txt));
-      sugerenciasIngEl.innerHTML = "";
-      if (coincidencias.length) {
-        coincidencias.forEach(i => {
-          const item = document.createElement("div");
-          item.textContent = i.nombre;
-          item.onclick = () => {
-            anadirIngrediente(i.nombre);
-            inputIng.value = "";
-            sugerenciasIngEl.style.display = "none";
-            inputIng.focus();
-          };
-          sugerenciasIngEl.appendChild(item);
-        });
-        sugerenciasIngEl.style.display = "block";
-      } else {
-        sugerenciasIngEl.style.display = "none";
-      }
-    };
-
-    inputIng.onkeydown = (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        const valor = inputIng.value.trim();
-        if (valor) {
-          anadirIngrediente(valor);
-          inputIng.value = "";
-          sugerenciasIngEl.style.display = "none";
-        }
-      }
-    };
-
-    function anadirIngrediente(nombre) {
-      const fmt = nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase();
-      if (!listaIngredientesNuevos.includes(fmt)) {
-        listaIngredientesNuevos.push(fmt);
-        renderizarChipsIngredientes();
-      }
-    }
-
-    function renderizarChipsIngredientes() {
-      const cont = document.getElementById("contenedorChips");
-      cont.innerHTML = "";
-      listaIngredientesNuevos.forEach((ing, index) => {
-        const chip = document.createElement("div");
-        chip.className = "chip-ingrediente";
-        chip.innerHTML = `${ing} <button onclick="eliminarChip(${index})">✕</button>`;
-        cont.appendChild(chip);
-      });
-    }
-
-    function eliminarChip(index) {
-      listaIngredientesNuevos.splice(index, 1);
-      renderizarChipsIngredientes();
-    }
-
-    document.getElementById("btnAceptarSel").onclick = async () => {
-      const valor = document.getElementById("inputBuscar").value.trim();
-      if (!valor) return;
-      const tx = db.transaction("platos", "readonly");
-      const existente = await pedir(tx.objectStore("platos").get(valor));
-
-      if (existente) {
-        seleccionarEIr(valor);
-      } else {
-        const txWrite = db.transaction(["platos", "menu"], "readwrite");
-        txWrite.objectStore("platos").put({ nombre: valor, ingredientes: [] });
-        if (slotActivo) {
-          const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
-          const stMenu = txWrite.objectStore("menu");
-          const actualObj = await pedir(stMenu.get(keyId));
-          let platosActuales = actualObj?.platos || [];
-          platosActuales.push(valor);
-          stMenu.put({ id: keyId, platos: platosActuales });
-        }
-        txWrite.oncomplete = () => {
-          document.getElementById("modalSeleccion").classList.remove("abierto");
-          renderizarSemana();
-        };
-      }
-    };
-
-    document.getElementById("btnAceptarNuevo").onclick = async () => {
-      const nuevoNombre = document.getElementById("inputNuevoNombre").value.trim();
-      if (!nuevoNombre) return;
-
-      const pend = inputIng.value.trim();
-      if (pend) anadirIngrediente(pend);
-
-      const tx = db.transaction(["platos", "menu", "ingredientes_base", "alimentos"], "readwrite");
-      const stPlatos = tx.objectStore("platos");
-      const stMenu = tx.objectStore("menu");
-
-      if (nombrePlatoOriginalEdicion && nombrePlatoOriginalEdicion !== nuevoNombre) {
-        stPlatos.delete(nombrePlatoOriginalEdicion);
-        const todosMenus = await pedir(stMenu.getAll());
-        todosMenus.forEach(itemMenu => {
-          if (itemMenu.platos && itemMenu.platos.includes(nombrePlatoOriginalEdicion)) {
-            const actualizados = itemMenu.platos.map(p => p === nombrePlatoOriginalEdicion ? nuevoNombre : p);
-            stMenu.put({ id: itemMenu.id, platos: actualizados });
-          }
-        });
-      }
-
-      stPlatos.put({ nombre: nuevoNombre, ingredientes: listaIngredientesNuevos });
-
-      if (slotActivo && !nombrePlatoOriginalEdicion) {
-        const keyId = `${slotActivo.fechaStr}_${slotActivo.toma}`;
-        const actualObj = await pedir(stMenu.get(keyId));
-        let platosActuales = actualObj?.platos || [];
-        platosActuales.push(nuevoNombre);
-        stMenu.put({ id: keyId, platos: platosActuales });
-      }
-
-      listaIngredientesNuevos.forEach(ing => {
-        tx.objectStore("ingredientes_base").put({ nombre: ing });
-        tx.objectStore("alimentos").put({
-          clave: ing.trim().toLowerCase(),
-          nombre: ing,
-          seccion: "otros",
-          tachado: false,
-          enLista: false
-        });
-      });
-
-      tx.oncomplete = async () => {
-        if (modoMantenimiento) {
-          cerrarFormNuevoPlato();
-          await cargarListaPlatos("");
-        } else {
-          document.getElementById("modalSeleccion").classList.remove("abierto");
-        }
-        renderizarSemana();
-      };
-    };
-
-    document.getElementById("btnCancelarSel").onclick = () => document.getElementById("modalSeleccion").classList.remove("abierto");
-    document.getElementById("btnCancelarNuevo").onclick = () => cerrarFormNuevoPlato();
-    document.getElementById("ant").onclick = () => { fechaLunesActual.setDate(fechaLunesActual.getDate() - 7); renderizarSemana(); };
-    document.getElementById("sig").onclick = () => { fechaLunesActual.setDate(fechaLunesActual.getDate() + 7); renderizarSemana(); };
-
-    /* Menús Tres Puntos */
-    document.getElementById("menuLista").onclick = (e) => {
-      e.stopPropagation();
-      const abierto = menuPanelLista.style.display === "block";
-      menuPanelLista.style.display = abierto ? "none" : "block";
-      sugerenciasEl.style.display = "none";
-    };
-
-    document.getElementById("menuComidasBtn").onclick = (e) => {
-      e.stopPropagation();
-      const abierto = menuPanelComidas.style.display === "block";
-      menuPanelComidas.style.display = abierto ? "none" : "block";
-    };
-
-    document.getElementById("menuEliminar").onclick = () => { menuPanelLista.style.display = "none"; eliminarTachados(); };
-    document.getElementById("menuAlimentos").onclick = () => { menuPanelLista.style.display = "none"; mostrarAlimentos(); };
-    document.getElementById("menuCategorias").onclick = () => { menuPanelLista.style.display = "none"; mostrarCategorias(); };
-    document.getElementById("menuComidasOption").onclick = () => { menuPanelComidas.style.display = "none"; abrirMantenimientoComidas(); };
-
-    document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
-    document.getElementById("mas").onclick = () => {
-      if (pantallaActual === "alimentos") abrirEditor(null, true);
-      else abrirEditorCategoria(null);
-    };
-
-    document.addEventListener("pointerdown", e => {
-      if (!e.target.closest(".barra-lista")) sugerenciasEl.style.display = "none";
-      if (!e.target.closest("#menuPanelLista, #menuLista")) menuPanelLista.style.display = "none";
-      if (!e.target.closest("#menuPanelComidas, #menuComidasBtn")) menuPanelComidas.style.display = "none";
+    // El bloqueo se pierde al salir de la app: se pide de nuevo al volver
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") mantenerPantallaEncendida();
     });
+    // Por si el móvil exige un toque para concederlo
+    document.addEventListener("pointerdown", mantenerPantallaEncendida);
+    mantenerPantallaEncendida();
 
+    // ---------- Eventos ----------
+    velo.onclick = e => { if (e.target === velo) velo.classList.remove("abierto"); };
     document.getElementById("ok").onclick = anadir;
     entrada.onkeydown = e => { if (e.key === "Enter") anadir(); };
     entrada.addEventListener("input", sugerir);
     entrada.addEventListener("focus", sugerir);
 
-    /* ---------- Pantalla siempre encendida ---------- */
-    // 1) Función oficial del navegador (Screen Wake Lock)
-    // 2) Si el móvil no la concede, un vídeo diminuto en bucle (truco "NoSleep") que arranca con un toque
-    const MOSTRAR_ESTADO_PANTALLA = true; // pon false cuando todo funcione, para que no salgan los avisos
-    const VIDEO_REPOSO = "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAANzbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAB9AAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAp10cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAB9AAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAfQAAAAAAABAAAAAAIVbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAAAoAAAAUABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABwG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAYBzdGJsAAAAuHN0c2QAAAAAAAAAAQAAAKhhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2MC4zMS4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAALmF2Y0MBQsAe/+EAFmdCwB7ZHsBEAAADAAQAAAMAUDxYuSABAAVoy4PLIAAAABBwYXNwAAAAAQAAAAEAAAAUYnRydAAAAAAAAAy8AAAMvAAAABhzdHRzAAAAAAAAAAEAAAAUAAAEAAAAABRzdHNzAAAAAAAAAAEAAAABAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAAUAAAAAQAAAGRzdHN6AAAAAAAAAAAAAAAUAAACgwAAAAkAAAAKAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAUc3RjbwAAAAAAAAABAAADowAAAGJ1ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNjAuMTYuMTAwAAAACGZyZWUAAAM3bWRhdAAAAnEGBf//bdxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNjQgcjMxMDggMzFlMTlmOSAtIEguMjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMjMgLSBodHRwOi8vd3d3LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0wIHJlZj0zIGRlYmxvY2s9MTowOjAgYW5hbHlzZT0weDE6MHgxMTEgbWU9aGV4IHN1Ym1lPTcgcHN5PTEgcHN5X3JkPTEuMDA6MC4wMCBtaXhlZF9yZWY9MSBtZV9yYW5nZT0xNiBjaHJvbWFfbWU9MSB0cmVsbGlzPTEgOHg4ZGN0PTAgY3FtPTAgZGVhZHpvbmU9MjEsMTEgZmFzdF9wc2tpcD0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz0xIGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MCB3ZWlnaHRwPTAga2V5aW50PTI1MCBrZXlpbnRfbWluPTEwIHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAACmWIhA/yYoAAw+4AAAAFQZo4H+oAAAAGQZpUB/qAAAAABUGaYD/UAAAABUGagD/UAAAABUGaoD/UAAAABUGawD/UAAAABUGa4D/UAAAABUGbAD/UAAAABUGbID/UAAAABUGbQD/UAAAABUGbYD/UAAAABUGbgD/UAAAABUGboD/UAAAABUGbwD/UAAAABUGb4D/UAAAABUGaAD/UAAAABUGaID/UAAAABUGaQDvUAAAABUGaYDfU";
+    // Botón ··· : abre y cierra el menú
+    document.getElementById("menu").onclick = () => {
+      const abierto = menuPanel.style.display === "block";
+      menuPanel.style.display = abierto ? "none" : "block";
+      sugerenciasEl.style.display = "none";
+    };
+    document.getElementById("menuEliminar").onclick = () => {
+      menuPanel.style.display = "none";
+      eliminarTachados();
+    };
+    document.getElementById("menuAlimentos").onclick = () => {
+      menuPanel.style.display = "none";
+      mostrarAlimentos();
+    };
+    document.getElementById("menuCategorias").onclick = () => {
+      menuPanel.style.display = "none";
+      mostrarCategorias();
+    };
+    document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
 
-    let bloqueoPantalla = null;
-    let promesaBloqueo = null;
-    let videoReposo = null;
-    let ultimoEstadoPantalla = "";
-    let errorBloqueo = "";
+    // Botón + de las pantallas de mantenimiento: añade un alimento o una categoría nueva
+    document.getElementById("mas").onclick = () => {
+      if (pantallaActual === "alimentos") abrirEditor(null, true);
+      else abrirEditorCategoria(null);
+    };
 
-    function estadoPantalla(texto) {
-      if (!MOSTRAR_ESTADO_PANTALLA || texto === ultimoEstadoPantalla) return;
-      ultimoEstadoPantalla = texto;
-      aviso(texto);
-    }
+    // Al tocar fuera se cierran las sugerencias y el menú
+    document.addEventListener("pointerdown", e => {
+      if (!e.target.closest(".barra")) sugerenciasEl.style.display = "none";
+      if (!e.target.closest("#menuPanel, #menu")) menuPanel.style.display = "none";
+    });
 
-    // Método 1: bloqueo oficial
-    function pedirBloqueoPantalla() {
-      if (!("wakeLock" in navigator)) {
-        errorBloqueo = "sin soporte";
-        return Promise.resolve();
-      }
-      if (bloqueoPantalla) return Promise.resolve();
-      if (!promesaBloqueo) {
-        promesaBloqueo = (async () => {
-          try {
-            bloqueoPantalla = await navigator.wakeLock.request("screen");
-            bloqueoPantalla.addEventListener("release", () => { bloqueoPantalla = null; });
-            estadoPantalla("Pantalla encendida (bloqueo)");
-          } catch (e) {
-            bloqueoPantalla = null;
-            errorBloqueo = e.name || "error";
-          } finally {
-            promesaBloqueo = null;
-          }
-        })();
-      }
-      return promesaBloqueo;
-    }
-
-    // Método 2 (de reserva): vídeo en bucle. Solo puede arrancar con un toque del usuario.
-    async function iniciarVideoReposo() {
-      try {
-        if (!videoReposo) {
-          videoReposo = document.createElement("video");
-          videoReposo.setAttribute("playsinline", "");
-          videoReposo.setAttribute("muted", "");
-          videoReposo.muted = true;
-          videoReposo.loop = true;
-          videoReposo.src = VIDEO_REPOSO;
-        }
-        if (videoReposo.paused) await videoReposo.play();
-        estadoPantalla("Pantalla encendida (vídeo)");
-      } catch (e) {
-        estadoPantalla("No se pudo (" + (errorBloqueo || "sin bloqueo") + " / " + (e.name || "vídeo") + ")");
-      }
-    }
-
-    async function mantenerPantalla(porToque) {
-      await pedirBloqueoPantalla();
-      if (!bloqueoPantalla && porToque) await iniciarVideoReposo();
-    }
-
-    function mantenerPantallaActiva() {
-      mantenerPantalla(false);
-      // Al volver a la app desde otra, el bloqueo se pierde y el vídeo se pausa: se recupera
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") mantenerPantalla(false);
-      });
-      // Los toques cuentan como permiso del usuario para el bloqueo y para arrancar el vídeo
-      ["pointerup", "touchend"].forEach(evento =>
-        document.addEventListener(evento, () => mantenerPantalla(true), { passive: true })
-      );
-    }
-
+    (async () => {
+      db = await abrirBD();
+      await asegurarOrden();
+      await asegurarSeccion("Otros"); // la categoría por defecto siempre debe existir
+      await normalizarNombres();
+      pintar();
+    })();
   </script>
 </body>
 </html>
