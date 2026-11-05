@@ -37,13 +37,14 @@
     .vista { display: none; flex-direction: column; flex: 1; }
     .vista.activa { display: flex; }
 
+    /* Margen superior incrementado (+38px) para bajar la caja de texto */
     .barra-lista {
       position: relative;
       display: flex;
       align-items: center;
       gap: 10px;
       background-color: var(--azul);
-      padding-top: calc(env(safe-area-inset-top) + 24px);
+      padding-top: calc(env(safe-area-inset-top) + 38px);
       padding-bottom: 12px;
       padding-left: 12px;
       padding-right: 12px;
@@ -67,14 +68,14 @@
       align-items: center;
       justify-content: space-between;
       background-color: var(--azul);
-      padding-top: calc(env(safe-area-inset-top) + 24px);
+      padding-top: calc(env(safe-area-inset-top) + 38px);
       padding-bottom: 12px;
       padding-left: 12px;
       padding-right: 12px;
       color: #fff;
     }
-    .cont-izquierda { display: flex; gap: 8px; }
     .titulo-fecha { font-size: 17px; font-weight: 700; text-align: center; flex: 1; }
+    .cont-izquierda { display: flex; gap: 8px; }
     .cont-derecha { display: flex; gap: 8px; }
 
     .menu-panel-ios {
@@ -102,7 +103,12 @@
     .sugerencia:first-child { border-top: 0; }
     .sugerencia small { color: #888; font-size: 14px; }
 
-    #lista { flex: 1; background: var(--fondo); }
+    /* Margen inferior añadido (+50px) para ver bien el último alimento */
+    #lista { 
+      flex: 1; 
+      background: var(--fondo); 
+      padding-bottom: calc(env(safe-area-inset-bottom) + 50px);
+    }
     .grupo { position: relative; }
     .grupo.arrastrando { z-index: 10; background: var(--fondo); box-shadow: 0 6px 18px rgba(0,0,0,.3); }
     .seccion {
@@ -162,7 +168,7 @@
 
     #pantalla {
       display: none; position: fixed; inset: 0; z-index: 25; background: var(--fondo);
-      flex-direction: column; padding-top: calc(env(safe-area-inset-top) + 16px); padding-bottom: env(safe-area-inset-bottom);
+      flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
     }
     #pantalla.abierta { display: flex; }
     .cabecera {
@@ -182,7 +188,7 @@
 
     .modal {
       display: none; position: fixed; inset: 0; background: #fff; z-index: 200;
-      flex-direction: column; padding-top: calc(env(safe-area-inset-top) + 16px); padding-bottom: env(safe-area-inset-bottom);
+      flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
     }
     .modal.abierto { display: flex; }
     .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #eee; }
@@ -261,7 +267,7 @@
     .menu-flotante-opcion.quitar { color: #ff3b30; border-top: 1px solid #f0f0f0; }
 
     #aviso {
-      position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 80px);
+      position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 70px);
       transform: translateX(-50%); z-index: 50; width: max-content; max-width: 90vw; text-align: center;
       background: #333; color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 16px;
       opacity: 0; pointer-events: none; transition: opacity 1s;
@@ -301,8 +307,8 @@
   <div id="vistaComidas" class="vista">
     <div class="barra-comidas">
       <div class="cont-izquierda">
-        <button class="btn-blanco" id="btnIrAListaDirecto" style="width: 44px; padding: 0; display: flex; align-items: center; justify-content: center;" aria-label="Ir a Lista">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <button class="btn-blanco" id="btnIrAListaDirecto" style="width: 36px; padding: 0; display: flex; align-items: center; justify-content: center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
         <button class="btn-blanco" id="ant" style="width: 36px; padding: 0; font-size: 20px;">‹</button>
       </div>
@@ -313,8 +319,8 @@
       </div>
       <div id="menuPanelComidas" class="menu-panel-ios">
         <button id="btnIrALista" class="destacado">Lista</button>
+        <button id="menuExportar">Exportar</button>
         <button id="menuComidasOption">Comidas</button>
-        <button id="menuExportarOption">Exportar</button>
       </div>
     </div>
 
@@ -992,7 +998,7 @@
 
     async function abrirEditor(alimento, mantenimiento) {
       const nuevo = !alimento;
-      const secciones = (await pedir(tabla("secciones").getAll())).sort(porOrden);
+      const secciones = (await pedir(tabla("secciones").getAll())).sort(porNombre);
       caja.innerHTML = "";
       const titulo = document.createElement("h2");
       titulo.textContent = nuevo ? "Nuevo alimento" : "Editar alimento";
@@ -1302,6 +1308,75 @@
       document.getElementById("overlayMenuPlato").classList.remove("abierto");
       abrirFormEditorExistente(nombrePlato);
     };
+
+    async function exportarIngredientesALista() {
+      const hoyStr = formatearFechaStr(new Date());
+      const txMenu = db.transaction("menu", "readonly");
+      const todosMenus = await pedir(txMenu.objectStore("menu").getAll());
+
+      const menusFuturos = todosMenus.filter(m => {
+        const fechaPart = m.id.split('_')[0];
+        return fechaPart >= hoyStr && m.platos && m.platos.length > 0;
+      });
+
+      const nombresPlatos = new Set();
+      menusFuturos.forEach(m => m.platos.forEach(p => nombresPlatos.add(p)));
+
+      if (nombresPlatos.size === 0) {
+        aviso("No hay comidas planificadas a partir de hoy");
+        return;
+      }
+
+      const txPlatos = db.transaction("platos", "readonly");
+      const todosPlatos = await pedir(txPlatos.objectStore("platos").getAll());
+
+      const ingredientesAAnadir = new Set();
+      todosPlatos.forEach(p => {
+        if (nombresPlatos.has(p.nombre) && p.ingredientes) {
+          p.ingredientes.forEach(ing => ingredientesAAnadir.add(ing));
+        }
+      });
+
+      if (ingredientesAAnadir.size === 0) {
+        aviso("Las comidas no tienen ingredientes asociados");
+        return;
+      }
+
+      const txAlim = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
+      const stAlim = txAlim.objectStore("alimentos");
+      const stIng = txAlim.objectStore("ingredientes_base");
+      const alimentosExistentes = await pedir(stAlim.getAll());
+      const mapaAlimentos = new Map(alimentosExistentes.map(a => [a.clave, a]));
+
+      let contador = 0;
+      ingredientesAAnadir.forEach(ing => {
+        const c = clave(ing);
+        const fmt = formatear(ing);
+        if (mapaAlimentos.has(c)) {
+          const alim = mapaAlimentos.get(c);
+          if (!alim.enLista) {
+            alim.enLista = true;
+            alim.tachado = false;
+            stAlim.put(alim);
+            contador++;
+          }
+        } else {
+          stAlim.put({
+            clave: c,
+            nombre: fmt,
+            seccion: SECCION_POR_DEFECTO,
+            tachado: false,
+            enLista: true
+          });
+          stIng.put({ nombre: fmt });
+          contador++;
+        }
+      });
+
+      txAlim.oncomplete = () => {
+        aviso(contador > 0 ? `Se han añadido ${contador} ingredientes a la lista` : "Los ingredientes ya estaban en la lista");
+      };
+    }
 
     async function abrirFormEditorExistente(nombrePlato) {
       nombrePlatoOriginalEdicion = nombrePlato;
@@ -1622,97 +1697,8 @@
     document.getElementById("menuEliminar").onclick = () => { menuPanelLista.style.display = "none"; eliminarTachados(); };
     document.getElementById("menuAlimentos").onclick = () => { menuPanelLista.style.display = "none"; mostrarAlimentos(); };
     document.getElementById("menuCategorias").onclick = () => { menuPanelLista.style.display = "none"; mostrarCategorias(); };
+    document.getElementById("menuExportar").onclick = () => { menuPanelComidas.style.display = "none"; exportarIngredientesALista(); };
     document.getElementById("menuComidasOption").onclick = () => { menuPanelComidas.style.display = "none"; abrirMantenimientoComidas(); };
-    document.getElementById("menuExportarOption").onclick = () => { menuPanelComidas.style.display = "none"; exportarIngredientesALista(); };
-
-    async function exportarIngredientesALista() {
-      const hoyStr = formatearFechaStr(new Date());
-      const tx = db.transaction(["menu", "platos", "alimentos", "ingredientes_base"], "readwrite");
-      const stMenu = tx.objectStore("menu");
-      const stPlatos = tx.objectStore("platos");
-      const stAlimentos = tx.objectStore("alimentos");
-      const stIngBase = tx.objectStore("ingredientes_base");
-
-      const todosMenus = await pedir(stMenu.getAll());
-      const menusFuturos = todosMenus.filter(m => {
-        const fechaPart = m.id.split("_")[0];
-        return fechaPart >= hoyStr;
-      });
-
-      if (!menusFuturos.length) {
-        aviso("No hay comidas programadas a partir de hoy");
-        return;
-      }
-
-      const platosNombres = new Set();
-      menusFuturos.forEach(m => {
-        if (Array.isArray(m.platos)) {
-          m.platos.forEach(p => platosNombres.add(p));
-        }
-      });
-
-      if (!platosNombres.size) {
-        aviso("No hay platos asignados a partir de hoy");
-        return;
-      }
-
-      const todosPlatos = await pedir(stPlatos.getAll());
-      const mapaPlatos = new Map(todosPlatos.map(p => [p.nombre, p]));
-
-      const ingredientesAExportar = new Set();
-      platosNombres.forEach(nombrePlato => {
-        const platoObj = mapaPlatos.get(nombrePlato);
-        if (platoObj && Array.isArray(platoObj.ingredientes)) {
-          platoObj.ingredientes.forEach(ing => {
-            if (ing && ing.trim()) ingredientesAExportar.add(ing.trim());
-          });
-        }
-      });
-
-      if (!ingredientesAExportar.size) {
-        aviso("Los platos programados no contienen ingredientes");
-        return;
-      }
-
-      const todosAlimentos = await pedir(stAlimentos.getAll());
-      const mapaAlimentos = new Map(todosAlimentos.map(a => [a.clave, a]));
-
-      let countNuevosEnLista = 0;
-
-      ingredientesAExportar.forEach(ingNombre => {
-        const c = clave(ingNombre);
-        const fmtNombre = formatear(ingNombre);
-        const existente = mapaAlimentos.get(c);
-
-        if (existente) {
-          if (!existente.enLista) {
-            existente.enLista = true;
-            existente.tachado = false;
-            stAlimentos.put(existente);
-            countNuevosEnLista++;
-          }
-        } else {
-          const nuevoAlimento = {
-            clave: c,
-            nombre: fmtNombre,
-            seccion: SECCION_POR_DEFECTO,
-            tachado: false,
-            enLista: true
-          };
-          stAlimentos.put(nuevoAlimento);
-          stIngBase.put({ nombre: fmtNombre });
-          countNuevosEnLista++;
-        }
-      });
-
-      tx.oncomplete = () => {
-        if (countNuevosEnLista > 0) {
-          aviso(`Se añadieron ${countNuevosEnLista} ingrediente(s) a la lista`);
-        } else {
-          aviso("Los ingredientes ya estaban en la lista");
-        }
-      };
-    }
 
     document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
     document.getElementById("mas").onclick = () => {
