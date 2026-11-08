@@ -272,41 +272,6 @@
     }
     #aviso.visible { opacity: 1; transition: opacity .15s; }
 
-    /* TOAST DESHACER ABAJO A LA DERECHA */
-    #toastDeshacer {
-      position: fixed;
-      right: 16px;
-      bottom: calc(env(safe-area-inset-bottom) + 20px);
-      z-index: 100;
-      background: #222;
-      color: #fff;
-      padding: 10px 16px;
-      border-radius: 12px;
-      font-size: 15px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-      opacity: 0;
-      transform: translateY(10px);
-      pointer-events: none;
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-    #toastDeshacer.visible {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
-    }
-    #btnDeshacerToast {
-      background: none;
-      border: 0;
-      color: #64b5f6;
-      font-weight: 700;
-      font-size: 15px;
-      cursor: pointer;
-      padding: 0;
-    }
-
     video#wakeLockVideo {
       position: absolute; width: 1px; height: 1px; top: -10px; left: -10px; opacity: 0.01; pointer-events: none;
     }
@@ -444,12 +409,6 @@
   <div class="velo velo-confirmar" id="veloConfirmar"><div class="caja" id="cajaConfirmar"></div></div>
   <div id="aviso"></div>
 
-  <!-- TOAST DE DESHACER ABAJO A LA DERECHA -->
-  <div id="toastDeshacer">
-    <span>Eliminado</span>
-    <button id="btnDeshacerToast">Deshacer</button>
-  </div>
-
   <script>
     const SECCIONES_INICIALES = ["Otros", "Fruta", "Verdura", "Carne", "Pescado", "Lácteos", "Panadería", "Limpieza"];
     const SECCION_POR_DEFECTO = "otros";
@@ -469,8 +428,6 @@
     let platoActivoCtx = null;
     let modoMantenimiento = false;
     let nombrePlatoOriginalEdicion = "";
-    let ultimoAlimentoEliminado = null;
-    let timerDeshacer = null;
 
     const entrada = document.getElementById("entrada");
     const sugerenciasEl = document.getElementById("sugerencias");
@@ -485,8 +442,6 @@
     const veloConfirmar = document.getElementById("veloConfirmar");
     const cajaConfirmar = document.getElementById("cajaConfirmar");
     const avisoEl = document.getElementById("aviso");
-    const toastDeshacer = document.getElementById("toastDeshacer");
-    const btnDeshacerToast = document.getElementById("btnDeshacerToast");
 
     const clave = texto => texto.trim().toLowerCase();
     const normalizar = texto => texto.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -569,25 +524,6 @@
       clearTimeout(temporizadorAviso);
       temporizadorAviso = setTimeout(() => avisoEl.classList.remove("visible"), 2000);
     }
-
-    function mostrarToastDeshacer(alimento) {
-      ultimoAlimentoEliminado = { ...alimento };
-      toastDeshacer.classList.add("visible");
-      clearTimeout(timerDeshacer);
-      timerDeshacer = setTimeout(() => {
-        toastDeshacer.classList.remove("visible");
-      }, 3000);
-    }
-
-    btnDeshacerToast.onclick = async () => {
-      if (ultimoAlimentoEliminado) {
-        await ponerEnLista(ultimoAlimentoEliminado);
-        await pintar();
-        toastDeshacer.classList.remove("visible");
-        ultimoAlimentoEliminado = null;
-        clearTimeout(timerDeshacer);
-      }
-    };
 
     function confirmar(mensaje, textoAceptar) {
       return new Promise(resolver => {
@@ -835,11 +771,8 @@
       let x0 = 0, y0 = 0, dx = 0;
       let activo = false, arrastrando = false;
       let reposo = 0;
-      const anchoPantalla = window.innerWidth;
-      const limiteBorradoRapido = -anchoPantalla * 0.5;
       const anchoEditar = () => editar ? editar.offsetWidth : 0;
       const mover = px => { item.style.transform = "translateX(" + px + "px)"; };
-      
       item.cerrarFila = () => {
         item.style.transition = "transform .2s";
         reposo = 0;
@@ -859,31 +792,15 @@
           item.setPointerCapture(e.pointerId);
         }
         if (arrastrando) {
-          const actualDx = reposo + dx;
-          mover(Math.min(anchoEditar(), actualDx));
-          if (actualDx < limiteBorradoRapido) {
-            item.style.opacity = "0.6";
-          } else {
-            item.style.opacity = "1";
-          }
+          mover(Math.max(-ANCHO_PAPELERA, Math.min(anchoEditar(), reposo + dx)));
         }
       });
       const terminar = async e => {
         if (!activo) return;
         activo = false;
-        item.style.transition = "transform .2s, opacity .2s";
-        item.style.opacity = "1";
-        
+        item.style.transition = "transform .2s";
         if (arrastrando) {
           const final = reposo + dx;
-          if (final < limiteBorradoRapido) {
-            item.style.transform = `translateX(-${anchoPantalla}px)`;
-            setTimeout(async () => {
-              await quitarDeLista(objetoDatos, true);
-            }, 200);
-            return;
-          }
-
           if (final < -ANCHO_PAPELERA / 2) reposo = -ANCHO_PAPELERA;
           else if (final > anchoEditar() / 2) reposo = anchoEditar();
           else reposo = 0;
@@ -906,14 +823,11 @@
       pintar();
     }
 
-    async function quitarDeLista(alimento, conDeshacer = false) {
+    async function quitarDeLista(alimento) {
       alimento.enLista = false;
       alimento.tachado = false;
       await pedir(tabla("alimentos", "readwrite").put(alimento));
-      await pintar();
-      if (conDeshacer) {
-        mostrarToastDeshacer(alimento);
-      }
+      pintar();
     }
 
     async function eliminarAlimentoTotal(alimento) {
