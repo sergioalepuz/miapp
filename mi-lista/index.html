@@ -248,7 +248,6 @@
       font-size: 16px; color: #111;
     }
     .editor .check-fijo input { width: 22px; height: 22px; padding: 0; margin: 0; flex: none; accent-color: var(--azul); }
-    .editor .check-fijo small { display: block; color: #888; font-size: 12px; }
     .editor input, .editor select {
       width: 100%; font-size: 16px; padding: 10px;
       border: 1px solid #ddd; border-radius: 8px; background: #fff;
@@ -1170,9 +1169,6 @@
       checkFijo.checked = !nuevo && !!alimento.fijo;
       const textoFijo = document.createElement("span");
       textoFijo.textContent = "Fijo";
-      const ayudaFijo = document.createElement("small");
-      ayudaFijo.textContent = "Se añade siempre a la lista al exportar el menú";
-      textoFijo.appendChild(ayudaFijo);
       etiquetaFijo.append(checkFijo, textoFijo);
 
       const acciones = document.createElement("div");
