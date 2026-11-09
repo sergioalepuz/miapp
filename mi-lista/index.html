@@ -281,16 +281,10 @@
     }
     #deshacer.visible { opacity: 1; pointer-events: auto; transition: opacity .15s; }
 
-    video#wakeLockVideo {
-      /* Dentro de la pantalla: iOS pausa los vídeos silenciados que quedan fuera de la vista */
-      position: fixed; width: 1px; height: 1px; left: 0; bottom: 0; opacity: 0.01; pointer-events: none; z-index: 9999;
-    }
   </style>
 </head>
 <body>
 
-  <!-- Elemento de vídeo invisible para bloquear la suspensión en iOS -->
-  <video id="wakeLockVideo" playsinline muted></video>
 
   <!-- VISTA 1: MI LISTA -->
   <div id="vistaLista" class="vista activa">
@@ -308,7 +302,6 @@
         <button id="menuCategorias">Categorías</button>
         <button id="menuExportarCopia">Exportar copia</button>
         <button id="menuImportarCopia">Importar copia</button>
-        <button id="menuDiagnostico">Diagnóstico pantalla</button>
         <button id="menuBorrarDesplazados" style="color: var(--rojo); font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
           <span>Borrar</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -422,7 +415,6 @@
   <div class="velo velo-confirmar" id="veloConfirmar"><div class="caja" id="cajaConfirmar"></div></div>
   <div id="aviso"></div>
   <button id="deshacer" type="button">Deshacer</button>
-  <div id="panelDiag" style="display:none; position:fixed; left:8px; right:8px; top:calc(env(safe-area-inset-top) + 8px); z-index:400; background:rgba(0,0,0,.85); color:#fff; font:12px/1.4 ui-monospace,Menlo,monospace; padding:10px; border-radius:10px; white-space:pre-wrap; max-height:60vh; overflow:auto;"></div>
   <input type="file" id="archivoCopia" accept=".json,application/json" style="display: none;">
 
   <script>
@@ -1891,32 +1883,6 @@
       aviso("Copia restaurada");
     }
 
-    document.getElementById("menuDiagnostico").onclick = () => {
-      menuPanelLista.style.display = "none";
-      const panel = document.getElementById("panelDiag");
-      const pintarDiag = () => {
-        const v = document.getElementById("wakeLockVideo");
-        const r = v.getBoundingClientRect();
-        panel.textContent =
-          "DIAGNÓSTICO (toca aquí para cerrar)\n" +
-          "Modo: " + (navigator.standalone || matchMedia("(display-mode: standalone)").matches ? "acceso directo" : "Safari") + "\n" +
-          "WakeLock disponible: " + ("wakeLock" in navigator) + "\n" +
-          "WakeLock activo: " + (wakeLockSentinel ? !wakeLockSentinel.released : "nunca concedido") + "\n" +
-          "Vídeo: " + (v.paused ? "PARADO" : "reproduciendo") + ", readyState " + v.readyState + ", loop " + v.loop +
-          ", pos " + Math.round(r.left) + "," + Math.round(r.top) + "\n" +
-          "Service worker: " + (navigator.serviceWorker && navigator.serviceWorker.controller ? "sí" : "no") + "\n" +
-          "Segundos sin tocar: " + Math.round((Date.now() - ultimoToque) / 1000) + "\n" +
-          "--- Registro ---\n" + diagLog.join("\n");
-      };
-      pintarDiag();
-      panel.style.display = "block";
-      clearInterval(panel.timer);
-      panel.timer = setInterval(pintarDiag, 1000);
-      panel.onclick = () => { panel.style.display = "none"; clearInterval(panel.timer); };
-    };
-    let ultimoToque = Date.now();
-    document.addEventListener("touchstart", () => { ultimoToque = Date.now(); }, { passive: true });
-
     document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
     document.getElementById("mas").onclick = () => {
       if (pantallaActual === "alimentos") abrirEditor(null, true);
@@ -1934,82 +1900,24 @@
     entrada.addEventListener("input", sugerir);
     entrada.addEventListener("focus", sugerir);
 
-    /* --- SISTEMA ROBUSTO DE BLOQUEO DE SUSPENSIÓN (WAKE LOCK Y CANVAS VIDEO STREAM) --- */
+    /* --- PANTALLA SIEMPRE ENCENDIDA (WAKE LOCK) --- */
+    // En el acceso directo del iPhone, iOS solo concede el Wake Lock después de
+    // un toque, y lo suelta al salir de la app. Por eso se pide al arrancar,
+    // al volver a la app y en cada toque (touchend vale en cualquier parte de la pantalla).
     let wakeLockSentinel = null;
 
-    /* Diagnóstico temporal: registra lo que pasa con el bloqueo de pantalla */
-    const diagLog = [];
-    const inicioDiag = Date.now();
-    function diag(texto) {
-      const s = Math.round((Date.now() - inicioDiag) / 1000);
-      diagLog.push(s + "s  " + texto);
-      if (diagLog.length > 40) diagLog.shift();
-    }
-
     async function activarWakeLockAPI() {
-      if ('wakeLock' in navigator) {
-        try {
-          const s = await navigator.wakeLock.request('screen');
-          if (!wakeLockSentinel || wakeLockSentinel.released) diag("WakeLock concedido");
-          wakeLockSentinel = s;
-          s.addEventListener("release", () => diag("WakeLock liberado por iOS"));
-        } catch (e) {
-          diag("WakeLock ERROR: " + e.name + " - " + e.message);
-        }
-      } else {
-        diag("Este navegador no tiene WakeLock");
-      }
-    }
-
-    function activarStreamVideoMuted() {
+      if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
       try {
-        const videoEl = document.getElementById("wakeLockVideo");
-        const canvas = document.createElement("canvas");
-        canvas.width = 1;
-        canvas.height = 1;
-        const ctx = canvas.getContext("2d");
-        ctx.fillRect(0, 0, 1, 1);
-        
-        const stream = canvas.captureStream(2);
-        // El canvas tiene que cambiar para que el vídeo reciba fotogramas de verdad;
-        // si no, iOS lo da por vacío y no evita que la pantalla se apague
-        let alterna = false;
-        setInterval(() => {
-          alterna = !alterna;
-          ctx.fillStyle = alterna ? "#000" : "#010101";
-          ctx.fillRect(0, 0, 1, 1);
-        }, 500);
-        videoEl.srcObject = stream;
-        ["play", "pause", "ended", "stalled", "error"].forEach(ev =>
-          videoEl.addEventListener(ev, () => diag("Vídeo: " + ev)));
-        videoEl.play().catch(e => diag("Vídeo play ERROR: " + e.name + " - " + e.message));
-      } catch (e) {
-        diag("Vídeo ERROR: " + e.name + " - " + e.message);
-      }
+        wakeLockSentinel = await navigator.wakeLock.request('screen');
+      } catch (e) {}
     }
 
     function inicializarBloqueoPantalla() {
       activarWakeLockAPI();
-      activarStreamVideoMuted();
-
-      const reactivar = () => {
-        if (document.visibilityState === 'visible') {
-          activarWakeLockAPI();
-          const videoEl = document.getElementById("wakeLockVideo");
-          if (videoEl && videoEl.paused) {
-            videoEl.play().catch(e => diag("Vídeo play ERROR: " + e.name + " - " + e.message));
-          }
-        }
-      };
-
-      document.addEventListener('visibilitychange', () => diag("Visibilidad: " + document.visibilityState));
-      document.addEventListener('visibilitychange', reactivar);
-      document.addEventListener('touchstart', reactivar, { once: false, passive: true });
-      // iOS solo concede el WakeLock tras un gesto real; touchend cuenta como gesto
-      // y, a diferencia de click, se dispara al tocar cualquier parte de la pantalla
-      document.addEventListener('touchend', () => diag("Toque"), { passive: true });
-      document.addEventListener('touchend', reactivar, { once: false, passive: true });
-      document.addEventListener('click', reactivar, { once: false, passive: true });
+      document.addEventListener('visibilitychange', activarWakeLockAPI);
+      document.addEventListener('touchend', activarWakeLockAPI, { passive: true });
+      document.addEventListener('click', activarWakeLockAPI, { passive: true });
     }
 
     (async () => {
