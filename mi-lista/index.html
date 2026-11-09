@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Mi Lista & Menú</title>
   <link rel="apple-touch-icon" href="mi_lista.png">
+  <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1b9de2">
@@ -304,6 +305,8 @@
         <button id="menuEliminar">Eliminar</button>
         <button id="menuAlimentos">Alimentos</button>
         <button id="menuCategorias">Categorías</button>
+        <button id="menuExportarCopia">Exportar copia</button>
+        <button id="menuImportarCopia">Importar copia</button>
         <button id="menuBorrarDesplazados" style="color: var(--rojo); font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
           <span>Borrar</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -417,6 +420,7 @@
   <div class="velo velo-confirmar" id="veloConfirmar"><div class="caja" id="cajaConfirmar"></div></div>
   <div id="aviso"></div>
   <button id="deshacer" type="button">Deshacer</button>
+  <input type="file" id="archivoCopia" accept=".json,application/json" style="display: none;">
 
   <script>
     const SECCIONES_INICIALES = ["Otros", "Fruta", "Verdura", "Carne", "Pescado", "Lácteos", "Panadería", "Limpieza"];
@@ -1790,6 +1794,80 @@
     document.getElementById("menuExportar").onclick = () => { menuPanelComidas.style.display = "none"; exportarIngredientesALista(); };
     document.getElementById("menuComidasOption").onclick = () => { menuPanelComidas.style.display = "none"; abrirMantenimientoComidas(); };
 
+    document.getElementById("menuExportarCopia").onclick = () => { menuPanelLista.style.display = "none"; exportarCopia(); };
+    document.getElementById("menuImportarCopia").onclick = () => { menuPanelLista.style.display = "none"; document.getElementById("archivoCopia").click(); };
+    document.getElementById("archivoCopia").onchange = e => {
+      const archivo = e.target.files[0];
+      e.target.value = "";
+      if (archivo) importarCopia(archivo);
+    };
+
+    /* --- COPIA DE SEGURIDAD (exportar / importar) --- */
+    const TABLAS_COPIA = ["secciones", "alimentos", "platos", "menu", "ingredientes_base"];
+
+    async function exportarCopia() {
+      const copia = { app: "miapp", version: 1, fecha: new Date().toISOString(), datos: {} };
+      for (const t of TABLAS_COPIA) copia.datos[t] = await pedir(tabla(t).getAll());
+
+      const hoy = new Date();
+      const dos = n => String(n).padStart(2, "0");
+      const nombreArchivo = "mi-lista-copia-" + hoy.getFullYear() + "-" + dos(hoy.getMonth() + 1) + "-" + dos(hoy.getDate()) + ".json";
+      const archivo = new File([JSON.stringify(copia, null, 2)], nombreArchivo, { type: "application/json" });
+
+      // En iPhone abre el menú de compartir (Guardar en Archivos, AirDrop, Mail...)
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        try {
+          await navigator.share({ files: [archivo], title: nombreArchivo });
+          return;
+        } catch (e) {
+          if (e.name === "AbortError") return;
+        }
+      }
+      // Alternativa: descarga normal
+      const url = URL.createObjectURL(archivo);
+      const enlace = document.createElement("a");
+      enlace.href = url;
+      enlace.download = nombreArchivo;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function importarCopia(archivo) {
+      let copia;
+      try {
+        copia = JSON.parse(await archivo.text());
+      } catch (e) {
+        aviso("El archivo no es una copia válida");
+        return;
+      }
+      if (!copia || copia.app !== "miapp" || !copia.datos) {
+        aviso("El archivo no es una copia de Mi Lista");
+        return;
+      }
+      const d = copia.datos;
+      const fecha = copia.fecha ? new Date(copia.fecha).toLocaleDateString("es-ES") : "fecha desconocida";
+      const pregunta = "¿Restaurar la copia del " + fecha + "? Se sustituirán todos los datos actuales ("
+        + (d.alimentos || []).length + " alimentos, " + (d.platos || []).length + " platos).";
+      if (!(await confirmar(pregunta, "Restaurar"))) return;
+
+      await new Promise((ok, fallo) => {
+        const tx = db.transaction(TABLAS_COPIA, "readwrite");
+        for (const t of TABLAS_COPIA) {
+          const st = tx.objectStore(t);
+          st.clear();
+          (d[t] || []).forEach(r => st.put(r));
+        }
+        tx.oncomplete = ok;
+        tx.onerror = () => fallo(tx.error);
+      });
+      await asegurarSeccion("Otros");
+      await pintar();
+      renderizarSemana();
+      aviso("Copia restaurada");
+    }
+
     document.getElementById("atras").onclick = () => pantalla.classList.remove("abierta");
     document.getElementById("mas").onclick = () => {
       if (pantallaActual === "alimentos") abrirEditor(null, true);
@@ -1860,6 +1938,11 @@
       pintar();
       inicializarBloqueoPantalla();
     })();
+
+    /* Funcionamiento sin conexión */
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
   </script>
 </body>
 </html>

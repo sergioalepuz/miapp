@@ -1,0 +1,13 @@
+{
+  "name": "Mi Lista & Menú",
+  "short_name": "Mi Lista",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1b9de2",
+  "theme_color": "#1b9de2",
+  "lang": "es",
+  "icons": [
+    { "src": "mi_lista.png", "type": "image/png", "sizes": "any", "purpose": "any" }
+  ]
+}
