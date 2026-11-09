@@ -1943,6 +1943,23 @@
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js").catch(() => {});
     }
+
+    /* Buscar versión nueva al volver a la app (el acceso directo del iPhone
+       no se recarga solo, solo se reanuda donde estaba) */
+    let firmaVersion = null;
+    async function firmaServidor() {
+      const r = await fetch(location.pathname, { method: "HEAD", cache: "no-store" });
+      return r.ok ? (r.headers.get("etag") || r.headers.get("last-modified")) : null;
+    }
+    firmaServidor().then(f => { firmaVersion = f; }).catch(() => {});
+
+    document.addEventListener("visibilitychange", async () => {
+      if (document.visibilityState !== "visible" || !firmaVersion) return;
+      try {
+        const nueva = await firmaServidor();
+        if (nueva && nueva !== firmaVersion) location.reload();
+      } catch (e) {}
+    });
   </script>
 </body>
 </html>
