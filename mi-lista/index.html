@@ -3,7 +3,7 @@
 <head>  
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Mi Lista & MenÃº</title>
+  <title>Mi Lista & Menú</title>
   <link rel="apple-touch-icon" href="mi_lista.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -92,7 +92,7 @@
 
     #sugerencias {
       display: none; position: absolute; left: 12px; right: 12px; top: calc(100% - 4px);
-      z-index: 5; background: #fff; border: 1px solid #ddd; border-radius: 10px;
+      z-index: 5; background: #fff; color: #111; border: 1px solid #ddd; border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,.15); max-height: 40vh; overflow-y: auto;
     }
     .sugerencia {
@@ -287,23 +287,23 @@
 </head>
 <body>
 
-  <!-- Elemento de vÃ­deo invisible para bloquear la suspensiÃ³n en iOS -->
+  <!-- Elemento de vídeo invisible para bloquear la suspensión en iOS -->
   <video id="wakeLockVideo" playsinline loop muted></video>
 
   <!-- VISTA 1: MI LISTA -->
   <div id="vistaLista" class="vista activa">
     <div class="barra-lista">
-      <input id="entrada" type="text" placeholder="AÃ±adir alimento" autocomplete="off">
+      <input id="entrada" type="text" placeholder="Añadir alimento" autocomplete="off">
       <button id="ok" class="btn-blanco">Ok</button>
-      <button id="menuLista" class="btn-blanco btn-puntos">Â·Â·Â·</button>
+      <button id="menuLista" class="btn-blanco btn-puntos">···</button>
       
       <div id="sugerencias"></div>
       
       <div id="menuPanelLista" class="menu-panel-ios">
-        <button id="btnIrAMenu" class="destacado">MenÃº</button>
+        <button id="btnIrAMenu" class="destacado">Menú</button>
         <button id="menuEliminar">Eliminar</button>
         <button id="menuAlimentos">Alimentos</button>
-        <button id="menuCategorias">CategorÃ­as</button>
+        <button id="menuCategorias">Categorías</button>
         <button id="menuBorrarDesplazados" style="color: var(--rojo); font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
           <span>Borrar</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -313,19 +313,19 @@
     <div id="lista"></div>
   </div>
 
-  <!-- VISTA 2: MENÃš SEMANAL DE COMIDAS -->
+  <!-- VISTA 2: MENÚ SEMANAL DE COMIDAS -->
   <div id="vistaComidas" class="vista">
     <div class="barra-comidas">
       <div class="cont-izquierda">
         <button class="btn-blanco" id="btnIrAListaDirecto" style="width: 36px; padding: 0; display: flex; align-items: center; justify-content: center;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <button class="btn-blanco" id="ant" style="width: 36px; padding: 0; font-size: 20px;">â€¹</button>
+        <button class="btn-blanco" id="ant" style="width: 36px; padding: 0; font-size: 20px;">?</button>
       </div>
       <div class="titulo-fecha" id="tituloFecha">--</div>
       <div class="cont-derecha">
-        <button class="btn-blanco" id="sig" style="width: 36px; padding: 0; font-size: 20px;">â€º</button>
-        <button class="btn-blanco btn-puntos" id="menuComidasBtn">Â·Â·Â·</button>
+        <button class="btn-blanco" id="sig" style="width: 36px; padding: 0; font-size: 20px;">?</button>
+        <button class="btn-blanco btn-puntos" id="menuComidasBtn">···</button>
       </div>
       <div id="menuPanelComidas" class="menu-panel-ios">
         <button id="btnIrALista" class="destacado">Lista</button>
@@ -351,12 +351,12 @@
     </div>
   </div>
 
-  <!-- PANTALLA SECUNDARIA (ALIMENTOS / CATEGORÃAS) -->
+  <!-- PANTALLA SECUNDARIA (ALIMENTOS / CATEGORÍAS) -->
   <div id="pantalla">
     <div class="cabecera">
-      <button id="atras">â€¹ AtrÃ¡s</button>
+      <button id="atras">? Atrás</button>
       <span id="tituloPantalla"></span>
-      <button id="mas" aria-label="AÃ±adir">
+      <button id="mas" aria-label="Añadir">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </div>
@@ -396,7 +396,7 @@
           Ingredientes
         </label>
         <div class="contenedor-ingredientes" id="contenedorChips"></div>
-        <input type="text" id="inputNuevoIngrediente" placeholder="aÃ±adir..." autocomplete="off">
+        <input type="text" id="inputNuevoIngrediente" placeholder="añadir..." autocomplete="off">
         <div class="sugerencias-ingredientes" id="sugerenciasIng"></div>
       </div>
     </div>
@@ -419,10 +419,10 @@
   <button id="deshacer" type="button">Deshacer</button>
 
   <script>
-    const SECCIONES_INICIALES = ["Otros", "Fruta", "Verdura", "Carne", "Pescado", "LÃ¡cteos", "PanaderÃ­a", "Limpieza"];
+    const SECCIONES_INICIALES = ["Otros", "Fruta", "Verdura", "Carne", "Pescado", "Lácteos", "Panadería", "Limpieza"];
     const SECCION_POR_DEFECTO = "otros";
     const OPCION_NUEVA = "__nueva__";
-    const DIAS = ["lun", "mar", "miÃ©", "jue", "vie", "sÃ¡b", "dom"];
+    const DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
     const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
     const ICONO_ASA = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M4 8h16M4 12h16M4 16h16"/></svg>';
@@ -562,7 +562,7 @@
       });
     }
 
-    /* NavegaciÃ³n SPA */
+    /* Navegación SPA */
     function cambiarVista(nombreVista) {
       document.querySelectorAll(".vista").forEach(v => v.classList.remove("activa"));
       if (nombreVista === "lista") {
@@ -586,7 +586,7 @@
       cambiarVista("lista");
     };
 
-    /* LÃ³gica Mi Lista */
+    /* Lógica Mi Lista */
     async function ponerEnLista(alimento) {
       alimento.enLista = true;
       alimento.tachado = false;
@@ -621,12 +621,12 @@
         const nombre = document.createElement("span");
         nombre.textContent = a.nombre;
         const seccion = document.createElement("small");
-        seccion.textContent = (enLista(a) ? "âœ“ " : "") + (nombreSeccion[a.seccion] || "");
+        seccion.textContent = (enLista(a) ? "? " : "") + (nombreSeccion[a.seccion] || "");
         fila.append(nombre, seccion);
         fila.onclick = async () => {
           entrada.value = "";
           if (enLista(a)) {
-            aviso("Ya estÃ¡ en la lista");
+            aviso("Ya está en la lista");
           } else {
             await ponerEnLista(a);
             await pintar();
@@ -644,7 +644,7 @@
       const existente = await pedir(tabla("alimentos").get(clave(nombre)));
       if (existente) {
         if (enLista(existente)) {
-          aviso("Ya estÃ¡ en la lista");
+          aviso("Ya está en la lista");
           return;
         }
         await ponerEnLista(existente);
@@ -683,7 +683,7 @@
         const asa = document.createElement("div");
         asa.className = "asa";
         asa.innerHTML = ICONO_ASA;
-        asa.setAttribute("aria-label", "Arrastrar secciÃ³n");
+        asa.setAttribute("aria-label", "Arrastrar sección");
         cab.appendChild(asa);
         grupo.appendChild(cab);
 
@@ -785,7 +785,7 @@
       const anchoFila = () => item.offsetWidth || window.innerWidth;
       const mover = px => {
         item.style.transform = "translateX(" + px + "px)";
-        // Con borrado rÃ¡pido, el fondo rojo crece con el desplazamiento
+        // Con borrado rápido, el fondo rojo crece con el desplazamiento
         if (borradoRapido && papeleraFila) papeleraFila.style.width = Math.max(ANCHO_PAPELERA, -px) + "px";
       };
       item.cerrarFila = () => {
@@ -821,7 +821,7 @@
         if (arrastrando) {
           const final = reposo + dx;
           if (borradoRapido && e.type === "pointerup" && final < -anchoFila() / 2) {
-            // MÃ¡s del 50 %: sale de la pantalla y se borra directamente
+            // Más del 50 %: sale de la pantalla y se borra directamente
             mover(-anchoFila());
             setTimeout(borradoRapido, 200);
             return;
@@ -855,7 +855,7 @@
       pintar();
     }
 
-    /* Borrado rÃ¡pido con opciÃ³n de deshacer */
+    /* Borrado rápido con opción de deshacer */
     const botonDeshacer = document.getElementById("deshacer");
     let ultimoQuitado = null;
     let temporizadorDeshacer;
@@ -885,7 +885,7 @@
     };
 
     async function eliminarAlimentoTotal(alimento) {
-      const pregunta = "Â¿Eliminar Â«" + alimento.nombre + "Â» de los alimentos?" + (enLista(alimento) ? " TambiÃ©n se quitarÃ¡ de la lista." : "");
+      const pregunta = "¿Eliminar «" + alimento.nombre + "» de los alimentos?" + (enLista(alimento) ? " También se quitará de la lista." : "");
       if (!(await confirmar(pregunta, "Eliminar"))) return;
       await pedir(tabla("alimentos", "readwrite").delete(alimento.clave));
       await pintar();
@@ -893,7 +893,7 @@
     }
 
     async function eliminarPlatoTotal(nombrePlato) {
-      const pregunta = "Â¿Eliminar el plato Â«" + nombrePlato + "Â»?";
+      const pregunta = "¿Eliminar el plato «" + nombrePlato + "»?";
       if (!(await confirmar(pregunta, "Eliminar"))) return;
       const tx = db.transaction(["platos", "menu"], "readwrite");
       tx.objectStore("platos").delete(nombrePlato);
@@ -913,14 +913,14 @@
 
     async function eliminarCategoriaTotal(categoria) {
       if (categoria.clave === SECCION_POR_DEFECTO) {
-        aviso("La categorÃ­a Otros no se puede eliminar");
+        aviso("La categoría Otros no se puede eliminar");
         return;
       }
       const alimentos = await pedir(tabla("alimentos").getAll());
       const total = alimentos.filter(a => a.seccion === categoria.clave).length;
-      let pregunta = "Â¿Eliminar la categorÃ­a Â«" + categoria.nombre + "Â»?";
-      if (total === 1) pregunta += " Su alimento pasarÃ¡ a Â«OtrosÂ».";
-      else if (total > 1) pregunta += " Sus " + total + " alimentos pasarÃ¡n a Â«OtrosÂ».";
+      let pregunta = "¿Eliminar la categoría «" + categoria.nombre + "»?";
+      if (total === 1) pregunta += " Su alimento pasará a «Otros».";
+      else if (total > 1) pregunta += " Sus " + total + " alimentos pasarán a «Otros».";
       if (!(await confirmar(pregunta, "Eliminar"))) return;
       await eliminarCategoria(categoria.clave);
       await pintar();
@@ -947,8 +947,8 @@
       }
 
       const pregunta = clavesABorrar.length === 1
-        ? "Â¿Quitar de la lista el alimento seleccionado?"
-        : `Â¿Quitar de la lista los ${clavesABorrar.length} alimentos seleccionados?`;
+        ? "¿Quitar de la lista el alimento seleccionado?"
+        : `¿Quitar de la lista los ${clavesABorrar.length} alimentos seleccionados?`;
 
       if (!(await confirmar(pregunta, "Borrar"))) return;
 
@@ -967,8 +967,8 @@
         return;
       }
       const pregunta = tachados.length === 1
-        ? "Â¿Eliminar de la lista el alimento tachado?"
-        : "Â¿Eliminar de la lista los " + tachados.length + " alimentos tachados?";
+        ? "¿Eliminar de la lista el alimento tachado?"
+        : "¿Eliminar de la lista los " + tachados.length + " alimentos tachados?";
       if (!(await confirmar(pregunta, "Eliminar"))) return;
       tachados.forEach(a => { a.enLista = false; a.tachado = false; });
       await escribir("alimentos", tachados);
@@ -1009,7 +1009,7 @@
       if (!alimentos.length) {
         const vacio = document.createElement("div");
         vacio.className = "vacio";
-        vacio.textContent = "TodavÃ­a no hay alimentos";
+        vacio.textContent = "Todavía no hay alimentos";
         contenidoPantalla.appendChild(vacio);
         return;
       }
@@ -1029,7 +1029,7 @@
         const nombre = document.createElement("span");
         nombre.textContent = a.nombre;
         const categoria = document.createElement("small");
-        categoria.textContent = (enLista(a) ? "âœ“ " : "") + (nombreSeccion[a.seccion] || "");
+        categoria.textContent = (enLista(a) ? "? " : "") + (nombreSeccion[a.seccion] || "");
         registro.append(nombre, categoria);
 
         fila.append(papelera, registro);
@@ -1047,7 +1047,7 @@
     }
 
     async function mostrarCategorias() {
-      abrirPantalla("categorias", "CategorÃ­as");
+      abrirPantalla("categorias", "Categorías");
       const secciones = (await pedir(tabla("secciones").getAll())).sort(porNombre);
       const alimentos = await pedir(tabla("alimentos").getAll());
       contenidoPantalla.innerHTML = "";
@@ -1058,7 +1058,7 @@
         const papelera = document.createElement("button");
         papelera.className = "borrar";
         papelera.innerHTML = ICONO_PAPELERA;
-        papelera.setAttribute("aria-label", "Eliminar categorÃ­a");
+        papelera.setAttribute("aria-label", "Eliminar categoría");
         papelera.onclick = () => eliminarCategoriaTotal(s);
 
         const registro = document.createElement("div");
@@ -1099,7 +1099,7 @@
       const campo = document.createElement("input");
       campo.type = "text"; campo.value = nuevo ? "" : alimento.nombre; campo.autocomplete = "off";
       const etiquetaSeccion = document.createElement("label");
-      etiquetaSeccion.textContent = "CategorÃ­a";
+      etiquetaSeccion.textContent = "Categoría";
       const desplegable = document.createElement("select");
       const seccionInicial = nuevo ? SECCION_POR_DEFECTO : alimento.seccion;
       for (const s of secciones) {
@@ -1109,11 +1109,11 @@
         desplegable.appendChild(o);
       }
       const opcionNueva = document.createElement("option");
-      opcionNueva.value = OPCION_NUEVA; opcionNueva.textContent = "+ Nueva categorÃ­aâ€¦";
+      opcionNueva.value = OPCION_NUEVA; opcionNueva.textContent = "+ Nueva categoría?";
       desplegable.appendChild(opcionNueva);
 
       const campoNueva = document.createElement("input");
-      campoNueva.type = "text"; campoNueva.placeholder = "Nombre de la nueva categorÃ­a";
+      campoNueva.type = "text"; campoNueva.placeholder = "Nombre de la nueva categoría";
       campoNueva.autocomplete = "off"; campoNueva.style.display = "none"; campoNueva.style.marginTop = "8px";
       desplegable.onchange = () => {
         const otra = desplegable.value === OPCION_NUEVA;
@@ -1143,7 +1143,7 @@
         if (!nombre) { aviso("Escribe un nombre"); return; }
         let seccion = desplegable.value;
         if (seccion === OPCION_NUEVA) {
-          if (!campoNueva.value.trim()) { aviso("Escribe el nombre de la categorÃ­a"); return; }
+          if (!campoNueva.value.trim()) { aviso("Escribe el nombre de la categoría"); return; }
           seccion = await asegurarSeccion(campoNueva.value);
         }
         const guardado = nuevo ? await crearAlimento(nombre, seccion) : await guardarEdicion(alimento, nombre, seccion);
@@ -1196,12 +1196,12 @@
     async function abrirEditorCategoria(categoria) {
       const nueva = !categoria;
       if (!nueva && categoria.clave === SECCION_POR_DEFECTO) {
-        aviso("La categorÃ­a Otros no se puede modificar");
+        aviso("La categoría Otros no se puede modificar");
         return;
       }
       caja.innerHTML = "";
       const titulo = document.createElement("h2");
-      titulo.textContent = nueva ? "Nueva categorÃ­a" : "Editar categorÃ­a";
+      titulo.textContent = nueva ? "Nueva categoría" : "Editar categoría";
       caja.appendChild(titulo);
 
       const editor = document.createElement("div");
@@ -1229,12 +1229,12 @@
         if (!nombre) { aviso("Escribe un nombre"); return; }
         if (nueva) {
           const todas = await pedir(tabla("secciones").getAll());
-          if (todas.some(s => s.clave === clave(nombre))) { aviso("Ya existe esa categorÃ­a"); return; }
+          if (todas.some(s => s.clave === clave(nombre))) { aviso("Ya existe esa categoría"); return; }
           await asegurarSeccion(nombre);
         } else {
-          if (clave(nombre) === SECCION_POR_DEFECTO) { aviso("Ya existe esa categorÃ­a"); return; }
+          if (clave(nombre) === SECCION_POR_DEFECTO) { aviso("Ya existe esa categoría"); return; }
           const guardado = await renombrarCategoria(categoria, nombre);
-          if (!guardado) { aviso("Ya existe esa categorÃ­a"); return; }
+          if (!guardado) { aviso("Ya existe esa categoría"); return; }
         }
         velo.classList.remove("abierto");
         await pintar();
@@ -1290,7 +1290,7 @@
       });
     }
 
-    /* LÃ³gica MenÃº Semanal de Comidas */
+    /* Lógica Menú Semanal de Comidas */
     function getLunes(d) {
       const date = new Date(d);
       const day = date.getDay();
@@ -1463,7 +1463,7 @@
       });
 
       txAlim.oncomplete = () => {
-        aviso(contador > 0 ? `Se han aÃ±adido ${contador} ingredientes a la lista` : "Los ingredientes ya estaban en la lista");
+        aviso(contador > 0 ? `Se han añadido ${contador} ingredientes a la lista` : "Los ingredientes ya estaban en la lista");
       };
     }
 
@@ -1674,7 +1674,7 @@
       listaIngredientesNuevos.forEach((ing, index) => {
         const chip = document.createElement("div");
         chip.className = "chip-ingrediente";
-        chip.innerHTML = `${ing} <button onclick="eliminarChip(${index})">âœ•</button>`;
+        chip.innerHTML = `${ing} <button onclick="eliminarChip(${index})">?</button>`;
         cont.appendChild(chip);
       });
     }
@@ -1769,7 +1769,7 @@
     document.getElementById("ant").onclick = () => { fechaLunesActual.setDate(fechaLunesActual.getDate() - 7); renderizarSemana(); };
     document.getElementById("sig").onclick = () => { fechaLunesActual.setDate(fechaLunesActual.getDate() + 7); renderizarSemana(); };
 
-    /* MenÃºs Tres Puntos */
+    /* Menús Tres Puntos */
     document.getElementById("menuLista").onclick = (e) => {
       e.stopPropagation();
       const abierto = menuPanelLista.style.display === "block";
@@ -1807,7 +1807,7 @@
     entrada.addEventListener("input", sugerir);
     entrada.addEventListener("focus", sugerir);
 
-    /* --- SISTEMA ROBUSTO DE BLOQUEO DE SUSPENSIÃ“N (WAKE LOCK Y CANVAS VIDEO STREAM) --- */
+    /* --- SISTEMA ROBUSTO DE BLOQUEO DE SUSPENSIÓN (WAKE LOCK Y CANVAS VIDEO STREAM) --- */
     let wakeLockSentinel = null;
 
     async function activarWakeLockAPI() {
