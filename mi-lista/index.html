@@ -1906,13 +1906,15 @@
     entrada.addEventListener("focus", sugerir);
 
     /* --- PANTALLA SIEMPRE ENCENDIDA --- */
-    // Se usa la API Wake Lock (iOS 16.4+). Se pide al arrancar, al volver a la app
-    // y al tocar la pantalla, pero solo si no está ya activa.
-    // El vídeo invisible queda como alternativa para iPhones sin Wake Lock.
+    // Se combinan dos métodos, porque en el acceso directo del iPhone la API
+    // Wake Lock no siempre mantiene la pantalla encendida por sí sola:
+    //  - Wake Lock: se pide al arrancar, al volver a la app y al tocar, si no está activo.
+    //  - Vídeo invisible en bucle: se pone en marcha si está parado.
     let wakeLock = null;
 
     async function pedirWakeLock() {
-      if (wakeLock || document.visibilityState !== "visible") return;
+      if (!("wakeLock" in navigator) || document.visibilityState !== "visible") return;
+      if (wakeLock && !wakeLock.released) return;
       try {
         wakeLock = await navigator.wakeLock.request("screen");
         wakeLock.addEventListener("release", () => { wakeLock = null; });
@@ -1935,12 +1937,14 @@
     }
 
     function inicializarBloqueoPantalla() {
-      const mantener = "wakeLock" in navigator ? pedirWakeLock : activarVideoInvisible;
+      const mantener = () => { pedirWakeLock(); activarVideoInvisible(); };
       mantener();
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") mantener();
       });
-      document.addEventListener("pointerdown", mantener, { passive: true });
+      // "touchend" y "click" cuentan como gesto del usuario en iOS (necesario para el vídeo)
+      document.addEventListener("touchend", mantener, { passive: true });
+      document.addEventListener("click", mantener, { passive: true });
     }
 
     (async () => {
