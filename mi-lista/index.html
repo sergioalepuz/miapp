@@ -2007,6 +2007,7 @@
       document.addEventListener('touchstart', reactivar, { once: false, passive: true });
       // iOS solo concede el WakeLock tras un gesto real; touchend cuenta como gesto
       // y, a diferencia de click, se dispara al tocar cualquier parte de la pantalla
+      document.addEventListener('touchend', () => diag("Toque"), { passive: true });
       document.addEventListener('touchend', reactivar, { once: false, passive: true });
       document.addEventListener('click', reactivar, { once: false, passive: true });
     }
