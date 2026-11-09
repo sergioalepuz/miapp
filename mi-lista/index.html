@@ -1970,7 +1970,15 @@
         const ctx = canvas.getContext("2d");
         ctx.fillRect(0, 0, 1, 1);
         
-        const stream = canvas.captureStream(1);
+        const stream = canvas.captureStream(2);
+        // El canvas tiene que cambiar para que el vídeo reciba fotogramas de verdad;
+        // si no, iOS lo da por vacío y no evita que la pantalla se apague
+        let alterna = false;
+        setInterval(() => {
+          alterna = !alterna;
+          ctx.fillStyle = alterna ? "#000" : "#010101";
+          ctx.fillRect(0, 0, 1, 1);
+        }, 500);
         videoEl.srcObject = stream;
         ["play", "pause", "ended", "stalled", "error"].forEach(ev =>
           videoEl.addEventListener(ev, () => diag("Vídeo: " + ev)));
@@ -1997,6 +2005,9 @@
       document.addEventListener('visibilitychange', () => diag("Visibilidad: " + document.visibilityState));
       document.addEventListener('visibilitychange', reactivar);
       document.addEventListener('touchstart', reactivar, { once: false, passive: true });
+      // iOS solo concede el WakeLock tras un gesto real; touchend cuenta como gesto
+      // y, a diferencia de click, se dispara al tocar cualquier parte de la pantalla
+      document.addEventListener('touchend', reactivar, { once: false, passive: true });
       document.addEventListener('click', reactivar, { once: false, passive: true });
     }
 
