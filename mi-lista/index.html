@@ -1313,55 +1313,68 @@
       document.getElementById("tituloFecha").textContent = `${fechaLunesActual.getDate()} ${MESES[fechaLunesActual.getMonth()]} - ${domingo.getDate()} ${MESES[domingo.getMonth()]}`;
 
       const cont = document.getElementById("contenedorDias");
-      cont.innerHTML = "";
+      const idPintado = ++ultimoPintadoSemana;
 
+      // Primero se leen todos los datos y después se pinta de golpe
       const tx = db.transaction("menu", "readonly");
       const store = tx.objectStore("menu");
-
+      const dias = [];
       for (let i = 0; i < 7; i++) {
         const d = new Date(fechaLunesActual);
         d.setDate(d.getDate() + i);
         const fechaStr = formatearFechaStr(d);
-        const esHoy = d.getTime() === hoy.getTime();
+        const platos = {};
+        for (const toma of TOMAS) {
+          platos[toma] = (await pedir(store.get(`${fechaStr}_${toma}`)))?.platos || [];
+        }
+        dias.push({ d, fechaStr, platos, esHoy: d.getTime() === hoy.getTime() });
+      }
+      // Si mientras tanto se pidió otro pintado (cambio rápido de semana), este se descarta
+      if (idPintado !== ultimoPintadoSemana) return;
 
-        const desayunoArr = (await pedir(store.get(`${fechaStr}_desayuno`)))?.platos || [];
-        const comidaArr = (await pedir(store.get(`${fechaStr}_comida`)))?.platos || [];
-        const cenaArr = (await pedir(store.get(`${fechaStr}_cena`)))?.platos || [];
-
+      cont.innerHTML = "";
+      dias.forEach(({ d, fechaStr, platos, esHoy }, i) => {
         const fila = document.createElement("div");
         fila.className = "fila-dia" + (esHoy ? " hoy" : "");
-        fila.innerHTML = `
-          <div class="col-dia">
-            <div class="nombre-dia">${DIAS[i]}</div>
-            <div class="num-dia">${d.getDate()}</div>
-          </div>
-          <div class="celda-contenido">
-            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'desayuno', desayunoArr)}</div>
-            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'desayuno')">+</button>
-          </div>
-          <div class="celda-contenido">
-            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'comida', comidaArr)}</div>
-            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'comida')">+</button>
-          </div>
-          <div class="celda-contenido">
-            <div class="lista-platos-celda">${generarHtmlPlatos(fechaStr, 'cena', cenaArr)}</div>
-            <button class="btn-mas" onclick="abrirSeleccion('${fechaStr}', 'cena')">+</button>
-          </div>
-        `;
+
+        const colDia = document.createElement("div");
+        colDia.className = "col-dia";
+        const nombreDia = document.createElement("div");
+        nombreDia.className = "nombre-dia";
+        nombreDia.textContent = DIAS[i];
+        const numDia = document.createElement("div");
+        numDia.className = "num-dia";
+        numDia.textContent = d.getDate();
+        colDia.append(nombreDia, numDia);
+        fila.appendChild(colDia);
+
+        for (const toma of TOMAS) {
+          const celda = document.createElement("div");
+          celda.className = "celda-contenido";
+
+          const listaCelda = document.createElement("div");
+          listaCelda.className = "lista-platos-celda";
+          for (const plato of platos[toma]) {
+            const badge = document.createElement("div");
+            badge.className = "plato-item-badge";
+            badge.textContent = plato;
+            badge.onclick = () => abrirMenuPlato(fechaStr, toma, plato);
+            listaCelda.appendChild(badge);
+          }
+
+          const mas = document.createElement("button");
+          mas.className = "btn-mas";
+          mas.textContent = "+";
+          mas.onclick = () => abrirSeleccion(fechaStr, toma);
+
+          celda.append(listaCelda, mas);
+          fila.appendChild(celda);
+        }
         cont.appendChild(fila);
-      }
+      });
     }
-
-    function generarHtmlPlatos(fechaStr, toma, arrayPlatos) {
-      if (!arrayPlatos || arrayPlatos.length === 0) return "";
-      return arrayPlatos.map(plato => `
-        <div class="plato-item-badge" onclick="abrirMenuPlato('${fechaStr}', '${toma}', '${escapeHtml(plato)}')">${plato}</div>
-      `).join("");
-    }
-
-    function escapeHtml(text) {
-      return text.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    }
+    const TOMAS = ["desayuno", "comida", "cena"];
+    let ultimoPintadoSemana = 0;
 
     function abrirMenuPlato(fechaStr, toma, nombrePlato) {
       platoActivoCtx = { fechaStr, toma, nombrePlato };
@@ -1678,7 +1691,14 @@
       listaIngredientesNuevos.forEach((ing, index) => {
         const chip = document.createElement("div");
         chip.className = "chip-ingrediente";
-        chip.innerHTML = `${ing} <button onclick="eliminarChip(${index})">✕</button>`;
+        const texto = document.createElement("span");
+        texto.textContent = ing;
+        const quitar = document.createElement("button");
+        quitar.type = "button";
+        quitar.textContent = "✕";
+        quitar.setAttribute("aria-label", "Quitar " + ing);
+        quitar.onclick = () => eliminarChip(index);
+        chip.append(texto, quitar);
         cont.appendChild(chip);
       });
     }
@@ -1885,49 +1905,42 @@
     entrada.addEventListener("input", sugerir);
     entrada.addEventListener("focus", sugerir);
 
-    /* --- SISTEMA ROBUSTO DE BLOQUEO DE SUSPENSIÓN (WAKE LOCK Y CANVAS VIDEO STREAM) --- */
-    let wakeLockSentinel = null;
+    /* --- PANTALLA SIEMPRE ENCENDIDA --- */
+    // Se usa la API Wake Lock (iOS 16.4+). Se pide al arrancar, al volver a la app
+    // y al tocar la pantalla, pero solo si no está ya activa.
+    // El vídeo invisible queda como alternativa para iPhones sin Wake Lock.
+    let wakeLock = null;
 
-    async function activarWakeLockAPI() {
-      if ('wakeLock' in navigator) {
-        try {
-          wakeLockSentinel = await navigator.wakeLock.request('screen');
-        } catch (e) {}
+    async function pedirWakeLock() {
+      if (wakeLock || document.visibilityState !== "visible") return;
+      try {
+        wakeLock = await navigator.wakeLock.request("screen");
+        wakeLock.addEventListener("release", () => { wakeLock = null; });
+      } catch (e) {
+        wakeLock = null;
       }
     }
 
-    function activarStreamVideoMuted() {
+    function activarVideoInvisible() {
+      const videoEl = document.getElementById("wakeLockVideo");
       try {
-        const videoEl = document.getElementById("wakeLockVideo");
-        const canvas = document.createElement("canvas");
-        canvas.width = 1;
-        canvas.height = 1;
-        const ctx = canvas.getContext("2d");
-        ctx.fillRect(0, 0, 1, 1);
-        
-        const stream = canvas.captureStream(1);
-        videoEl.srcObject = stream;
-        videoEl.play().catch(() => {});
+        if (!videoEl.srcObject) {
+          const canvas = document.createElement("canvas");
+          canvas.width = 1; canvas.height = 1;
+          canvas.getContext("2d").fillRect(0, 0, 1, 1);
+          videoEl.srcObject = canvas.captureStream(1);
+        }
+        if (videoEl.paused) videoEl.play().catch(() => {});
       } catch (e) {}
     }
 
     function inicializarBloqueoPantalla() {
-      activarWakeLockAPI();
-      activarStreamVideoMuted();
-
-      const reactivar = () => {
-        if (document.visibilityState === 'visible') {
-          activarWakeLockAPI();
-          const videoEl = document.getElementById("wakeLockVideo");
-          if (videoEl && videoEl.paused) {
-            videoEl.play().catch(() => {});
-          }
-        }
-      };
-
-      document.addEventListener('visibilitychange', reactivar);
-      document.addEventListener('touchstart', reactivar, { once: false, passive: true });
-      document.addEventListener('click', reactivar, { once: false, passive: true });
+      const mantener = "wakeLock" in navigator ? pedirWakeLock : activarVideoInvisible;
+      mantener();
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") mantener();
+      });
+      document.addEventListener("pointerdown", mantener, { passive: true });
     }
 
     (async () => {
