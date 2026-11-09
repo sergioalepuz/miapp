@@ -98,12 +98,9 @@
     .sugerencia {
       display: flex; justify-content: space-between; align-items: center; gap: 12px;
       padding: 12px 14px; font-size: 18px; border-top: 1px solid #eee;
-      color: #111; cursor: pointer;
     }
     .sugerencia:first-child { border-top: 0; }
-    .sugerencia span { color: #111; font-weight: 500; }
-    .sugerencia small { color: #666; font-size: 14px; }
-    .sugerencia:active { background-color: #f0f0f0; }
+    .sugerencia small { color: #888; font-size: 14px; }
 
     #lista { 
       flex: 1; 
@@ -229,7 +226,7 @@
       background: #fff; border: 1px solid #ddd; border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 150px; overflow-y: auto; z-index: 300;
     }
-    .sugerencias-ingredientes div { padding: 10px 14px; font-size: 16px; border-bottom: 1px solid #eee; color: #111; }
+    .sugerencias-ingredientes div { padding: 10px 14px; font-size: 16px; border-bottom: 1px solid #eee; }
 
     .velo {
       position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.4);
@@ -274,6 +271,14 @@
       opacity: 0; pointer-events: none; transition: opacity 1s;
     }
     #aviso.visible { opacity: 1; transition: opacity .15s; }
+
+    #deshacer {
+      position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 16px); z-index: 60;
+      background: #333; color: #fff; border: 0; border-radius: 16px;
+      padding: 7px 14px; font-size: 14px; font-weight: 600;
+      opacity: 0; pointer-events: none; transition: opacity .6s;
+    }
+    #deshacer.visible { opacity: 1; pointer-events: auto; transition: opacity .15s; }
 
     video#wakeLockVideo {
       position: absolute; width: 1px; height: 1px; top: -10px; left: -10px; opacity: 0.01; pointer-events: none;
@@ -411,6 +416,7 @@
   <div class="velo" id="velo"><div class="caja" id="caja"></div></div>
   <div class="velo velo-confirmar" id="veloConfirmar"><div class="caja" id="cajaConfirmar"></div></div>
   <div id="aviso"></div>
+  <button id="deshacer" type="button">Deshacer</button>
 
   <script>
     const SECCIONES_INICIALES = ["Otros", "Fruta", "Verdura", "Carne", "Pescado", "Lácteos", "Panadería", "Limpieza"];
@@ -705,7 +711,7 @@
 
           fila.append(editar, papelera, item);
           grupo.appendChild(fila);
-          activarGestos(item, a, editar);
+          activarGestos(item, a, editar, () => quitarConDeshacer(a));
           editar.onclick = () => {
             item.cerrarFila();
             abrirEditor(a, false);
@@ -770,14 +776,21 @@
       await escribir("secciones", nuevas);
     }
 
-    function activarGestos(item, objetoDatos, editar) {
+    function activarGestos(item, objetoDatos, editar, borradoRapido) {
       let x0 = 0, y0 = 0, dx = 0;
       let activo = false, arrastrando = false;
       let reposo = 0;
       const anchoEditar = () => editar ? editar.offsetWidth : 0;
-      const mover = px => { item.style.transform = "translateX(" + px + "px)"; };
+      const papeleraFila = item.parentElement ? item.parentElement.querySelector(".borrar") : null;
+      const anchoFila = () => item.offsetWidth || window.innerWidth;
+      const mover = px => {
+        item.style.transform = "translateX(" + px + "px)";
+        // Con borrado rápido, el fondo rojo crece con el desplazamiento
+        if (borradoRapido && papeleraFila) papeleraFila.style.width = Math.max(ANCHO_PAPELERA, -px) + "px";
+      };
       item.cerrarFila = () => {
         item.style.transition = "transform .2s";
+        if (papeleraFila) papeleraFila.style.transition = "width .2s";
         reposo = 0;
         mover(0);
       };
@@ -785,6 +798,7 @@
         activo = true; arrastrando = false;
         x0 = e.clientX; y0 = e.clientY; dx = 0;
         item.style.transition = "none";
+        if (papeleraFila) papeleraFila.style.transition = "none";
       });
       item.addEventListener("pointermove", e => {
         if (!activo) return;
@@ -795,15 +809,23 @@
           item.setPointerCapture(e.pointerId);
         }
         if (arrastrando) {
-          mover(Math.max(-ANCHO_PAPELERA, Math.min(anchoEditar(), reposo + dx)));
+          const minimo = borradoRapido ? -anchoFila() : -ANCHO_PAPELERA;
+          mover(Math.max(minimo, Math.min(anchoEditar(), reposo + dx)));
         }
       });
       const terminar = async e => {
         if (!activo) return;
         activo = false;
         item.style.transition = "transform .2s";
+        if (papeleraFila) papeleraFila.style.transition = "width .2s";
         if (arrastrando) {
           const final = reposo + dx;
+          if (borradoRapido && e.type === "pointerup" && final < -anchoFila() / 2) {
+            // Más del 50 %: sale de la pantalla y se borra directamente
+            mover(-anchoFila());
+            setTimeout(borradoRapido, 200);
+            return;
+          }
           if (final < -ANCHO_PAPELERA / 2) reposo = -ANCHO_PAPELERA;
           else if (final > anchoEditar() / 2) reposo = anchoEditar();
           else reposo = 0;
@@ -832,6 +854,35 @@
       await pedir(tabla("alimentos", "readwrite").put(alimento));
       pintar();
     }
+
+    /* Borrado rápido con opción de deshacer */
+    const botonDeshacer = document.getElementById("deshacer");
+    let ultimoQuitado = null;
+    let temporizadorDeshacer;
+
+    async function quitarConDeshacer(alimento) {
+      ultimoQuitado = { alimento, tachado: !!alimento.tachado };
+      await quitarDeLista(alimento);
+      botonDeshacer.classList.add("visible");
+      clearTimeout(temporizadorDeshacer);
+      temporizadorDeshacer = setTimeout(ocultarDeshacer, 3000);
+    }
+
+    function ocultarDeshacer() {
+      botonDeshacer.classList.remove("visible");
+      ultimoQuitado = null;
+    }
+
+    botonDeshacer.onclick = async () => {
+      if (!ultimoQuitado) return;
+      const { alimento, tachado } = ultimoQuitado;
+      clearTimeout(temporizadorDeshacer);
+      ocultarDeshacer();
+      alimento.enLista = true;
+      alimento.tachado = tachado;
+      await pedir(tabla("alimentos", "readwrite").put(alimento));
+      await pintar();
+    };
 
     async function eliminarAlimentoTotal(alimento) {
       const pregunta = "¿Eliminar «" + alimento.nombre + "» de los alimentos?" + (enLista(alimento) ? " También se quitará de la lista." : "");
