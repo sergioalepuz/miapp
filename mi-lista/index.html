@@ -1487,7 +1487,6 @@
           p.ingredientes.forEach(ing => ingredientesAAnadir.add(ing));
         }
       });
-
       // Los alimentos marcados como fijos se añaden siempre
       const alimentosFijos = (await pedir(tabla("alimentos").getAll())).filter(a => a.fijo);
       alimentosFijos.forEach(a => ingredientesAAnadir.add(a.nombre));
