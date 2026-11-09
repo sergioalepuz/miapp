@@ -1905,46 +1905,49 @@
     entrada.addEventListener("input", sugerir);
     entrada.addEventListener("focus", sugerir);
 
-    /* --- PANTALLA SIEMPRE ENCENDIDA --- */
-    // Se combinan dos métodos, porque en el acceso directo del iPhone la API
-    // Wake Lock no siempre mantiene la pantalla encendida por sí sola:
-    //  - Wake Lock: se pide al arrancar, al volver a la app y al tocar, si no está activo.
-    //  - Vídeo invisible en bucle: se pone en marcha si está parado.
-    let wakeLock = null;
+    /* --- SISTEMA ROBUSTO DE BLOQUEO DE SUSPENSIÓN (WAKE LOCK Y CANVAS VIDEO STREAM) --- */
+    let wakeLockSentinel = null;
 
-    async function pedirWakeLock() {
-      if (!("wakeLock" in navigator) || document.visibilityState !== "visible") return;
-      if (wakeLock && !wakeLock.released) return;
-      try {
-        wakeLock = await navigator.wakeLock.request("screen");
-        wakeLock.addEventListener("release", () => { wakeLock = null; });
-      } catch (e) {
-        wakeLock = null;
+    async function activarWakeLockAPI() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLockSentinel = await navigator.wakeLock.request('screen');
+        } catch (e) {}
       }
     }
 
-    function activarVideoInvisible() {
-      const videoEl = document.getElementById("wakeLockVideo");
+    function activarStreamVideoMuted() {
       try {
-        if (!videoEl.srcObject) {
-          const canvas = document.createElement("canvas");
-          canvas.width = 1; canvas.height = 1;
-          canvas.getContext("2d").fillRect(0, 0, 1, 1);
-          videoEl.srcObject = canvas.captureStream(1);
-        }
-        if (videoEl.paused) videoEl.play().catch(() => {});
+        const videoEl = document.getElementById("wakeLockVideo");
+        const canvas = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext("2d");
+        ctx.fillRect(0, 0, 1, 1);
+        
+        const stream = canvas.captureStream(1);
+        videoEl.srcObject = stream;
+        videoEl.play().catch(() => {});
       } catch (e) {}
     }
 
     function inicializarBloqueoPantalla() {
-      const mantener = () => { pedirWakeLock(); activarVideoInvisible(); };
-      mantener();
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") mantener();
-      });
-      // "touchend" y "click" cuentan como gesto del usuario en iOS (necesario para el vídeo)
-      document.addEventListener("touchend", mantener, { passive: true });
-      document.addEventListener("click", mantener, { passive: true });
+      activarWakeLockAPI();
+      activarStreamVideoMuted();
+
+      const reactivar = () => {
+        if (document.visibilityState === 'visible') {
+          activarWakeLockAPI();
+          const videoEl = document.getElementById("wakeLockVideo");
+          if (videoEl && videoEl.paused) {
+            videoEl.play().catch(() => {});
+          }
+        }
+      };
+
+      document.addEventListener('visibilitychange', reactivar);
+      document.addEventListener('touchstart', reactivar, { once: false, passive: true });
+      document.addEventListener('click', reactivar, { once: false, passive: true });
     }
 
     (async () => {
