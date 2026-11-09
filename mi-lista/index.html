@@ -243,6 +243,12 @@
     .caja .mensaje { margin: 0; padding: 8px 16px 0; font-size: 17px; line-height: 1.35; }
     .editor { padding: 0 16px 8px; }
     .editor label { display: block; font-size: 13px; color: #666; margin: 12px 0 4px; }
+    .editor .check-fijo {
+      display: flex; align-items: center; gap: 10px; margin: 16px 0 4px;
+      font-size: 16px; color: #111;
+    }
+    .editor .check-fijo input { width: 22px; height: 22px; padding: 0; margin: 0; flex: none; accent-color: var(--azul); }
+    .editor .check-fijo small { display: block; color: #888; font-size: 12px; }
     .editor input, .editor select {
       width: 100%; font-size: 16px; padding: 10px;
       border: 1px solid #ddd; border-radius: 8px; background: #fff;
@@ -1066,7 +1072,7 @@
         const nombre = document.createElement("span");
         nombre.textContent = a.nombre;
         const categoria = document.createElement("small");
-        categoria.textContent = (enLista(a) ? "✓ " : "") + (nombreSeccion[a.seccion] || "");
+        categoria.textContent = (enLista(a) ? "✓ " : "") + (nombreSeccion[a.seccion] || "") + (a.fijo ? " · Fijo" : "");
         registro.append(nombre, categoria);
 
         fila.append(papelera, registro);
@@ -1157,6 +1163,18 @@
         campoNueva.style.display = otra ? "block" : "none";
         if (otra) campoNueva.focus();
       };
+      const etiquetaFijo = document.createElement("label");
+      etiquetaFijo.className = "check-fijo";
+      const checkFijo = document.createElement("input");
+      checkFijo.type = "checkbox";
+      checkFijo.checked = !nuevo && !!alimento.fijo;
+      const textoFijo = document.createElement("span");
+      textoFijo.textContent = "Fijo";
+      const ayudaFijo = document.createElement("small");
+      ayudaFijo.textContent = "Se añade siempre a la lista al exportar el menú";
+      textoFijo.appendChild(ayudaFijo);
+      etiquetaFijo.append(checkFijo, textoFijo);
+
       const acciones = document.createElement("div");
       acciones.className = "acciones";
 
@@ -1183,7 +1201,8 @@
           if (!campoNueva.value.trim()) { aviso("Escribe el nombre de la categoría"); return; }
           seccion = await asegurarSeccion(campoNueva.value);
         }
-        const guardado = nuevo ? await crearAlimento(nombre, seccion) : await guardarEdicion(alimento, nombre, seccion);
+        const fijo = checkFijo.checked;
+        const guardado = nuevo ? await crearAlimento(nombre, seccion, fijo) : await guardarEdicion(alimento, nombre, seccion, fijo);
         if (!guardado) { aviso("Ya existe ese alimento"); return; }
         velo.classList.remove("abierto");
         await pintar();
@@ -1194,23 +1213,23 @@
       campoNueva.onkeydown = e => { if (e.key === "Enter") guardarCambios(); };
 
       acciones.append(cancelar, guardar);
-      editor.append(etiquetaNombre, campo, etiquetaSeccion, desplegable, campoNueva, acciones);
+      editor.append(etiquetaNombre, campo, etiquetaSeccion, desplegable, campoNueva, etiquetaFijo, acciones);
       caja.appendChild(editor);
       velo.classList.add("abierto");
       if (nuevo) campo.focus();
     }
 
-    async function crearAlimento(nombre, seccion) {
+    async function crearAlimento(nombre, seccion, fijo = false) {
       const existente = await pedir(tabla("alimentos").get(clave(nombre)));
       if (existente) return false;
       const t = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
-      t.objectStore("alimentos").put({ clave: clave(nombre), nombre, seccion, tachado: false, enLista: false });
+      t.objectStore("alimentos").put({ clave: clave(nombre), nombre, seccion, tachado: false, enLista: false, fijo });
       t.objectStore("ingredientes_base").put({ nombre });
       await new Promise((ok, fallo) => { t.oncomplete = ok; t.onerror = fallo; });
       return true;
     }
 
-    function guardarEdicion(alimento, nombre, seccion) {
+    function guardarEdicion(alimento, nombre, seccion, fijo = !!alimento.fijo) {
       return new Promise((ok, fallo) => {
         const nuevaClave = clave(nombre);
         const t = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
@@ -1224,7 +1243,9 @@
           const cambiaClave = nuevaClave !== alimento.clave;
           if (cambiaClave && existente.result) { ok(false); return; }
           if (cambiaClave) st.delete(alimento.clave);
-          st.put({ ...alimento, clave: nuevaClave, nombre, seccion });
+          const actualizado = { ...alimento, clave: nuevaClave, nombre, seccion, fijo };
+          Object.assign(alimento, actualizado);
+          st.put(actualizado);
           stIng.put({ nombre });
         };
       });
@@ -1461,11 +1482,6 @@
       const nombresPlatos = new Set();
       menusFuturos.forEach(m => m.platos.forEach(p => nombresPlatos.add(p)));
 
-      if (nombresPlatos.size === 0) {
-        aviso("No hay comidas planificadas a partir de hoy");
-        return;
-      }
-
       const txPlatos = db.transaction("platos", "readonly");
       const todosPlatos = await pedir(txPlatos.objectStore("platos").getAll());
 
@@ -1476,8 +1492,12 @@
         }
       });
 
+      // Los alimentos marcados como fijos se añaden siempre
+      const alimentosFijos = (await pedir(tabla("alimentos").getAll())).filter(a => a.fijo);
+      alimentosFijos.forEach(a => ingredientesAAnadir.add(a.nombre));
+
       if (ingredientesAAnadir.size === 0) {
-        aviso("Las comidas no tienen ingredientes asociados");
+        aviso(nombresPlatos.size === 0 ? "No hay comidas planificadas a partir de hoy" : "Las comidas no tienen ingredientes asociados");
         return;
       }
 
@@ -1493,7 +1513,7 @@
         const fmt = formatear(ing);
         if (mapaAlimentos.has(c)) {
           const alim = mapaAlimentos.get(c);
-          if (!alim.enLista) {
+          if (!enLista(alim)) {
             alim.enLista = true;
             alim.tachado = false;
             stAlim.put(alim);
