@@ -592,6 +592,22 @@
       await pedir(tabla("alimentos", "readwrite").put(alimento));
     }
 
+    /* Pone en negrita los primeros caracteres del nombre (lo que se ha escrito) */
+    function resaltarPrefijo(el, nombre, longitud) {
+      el.textContent = "";
+      const negrita = document.createElement("strong");
+      negrita.textContent = nombre.slice(0, longitud);
+      el.append(negrita, document.createTextNode(nombre.slice(longitud)));
+    }
+
+    /* Cuántos caracteres del nombre corresponden a lo escrito, ignorando acentos */
+    function longitudPrefijo(nombre, textoNormalizado) {
+      for (let k = 1; k <= nombre.length; k++) {
+        if (normalizar(nombre.slice(0, k)).length >= textoNormalizado.length) return k;
+      }
+      return nombre.length;
+    }
+
     let ultimaBusqueda = 0;
     async function sugerir() {
       const id = ++ultimaBusqueda;
@@ -618,7 +634,7 @@
         const fila = document.createElement("div");
         fila.className = "sugerencia";
         const nombre = document.createElement("span");
-        nombre.textContent = a.nombre;
+        resaltarPrefijo(nombre, a.nombre, longitudPrefijo(a.nombre, texto));
         const seccion = document.createElement("small");
         seccion.textContent = (enLista(a) ? "✓ " : "") + (nombreSeccion[a.seccion] || "");
         fila.append(nombre, seccion);
@@ -699,7 +715,13 @@
           papelera.className = "borrar";
           papelera.innerHTML = ICONO_PAPELERA;
           papelera.setAttribute("aria-label", "Quitar de la lista");
-          papelera.onclick = () => quitarDeLista(a);
+          papelera.onclick = () => {
+            item.style.transition = "transform .2s";
+            item.style.transform = "translateX(" + (-item.offsetWidth) + "px)";
+            papelera.style.transition = "width .2s";
+            papelera.style.width = item.offsetWidth + "px";
+            setTimeout(() => colapsarFila(item, () => quitarConDeshacer(a)), 200);
+          };
 
           const item = document.createElement("div");
           item.className = "item" + (a.tachado ? " tachado" : "");
@@ -822,7 +844,7 @@
           if (borradoRapido && e.type === "pointerup" && final < -anchoFila() / 2) {
             // Más del 50 %: sale de la pantalla y se borra directamente
             mover(-anchoFila());
-            setTimeout(borradoRapido, 200);
+            setTimeout(() => colapsarFila(item, borradoRapido), 200);
             return;
           }
           if (final < -ANCHO_PAPELERA / 2) reposo = -ANCHO_PAPELERA;
@@ -839,6 +861,21 @@
       };
       item.addEventListener("pointerup", terminar);
       item.addEventListener("pointercancel", terminar);
+    }
+
+    /* Encoge la fila (o la categoría entera si era su último alimento) y después ejecuta la acción */
+    function colapsarFila(item, accion) {
+      const fila = item.parentElement;
+      const grupo = fila.parentElement;
+      const objetivo = grupo && grupo.querySelectorAll(".fila").length === 1 ? grupo : fila;
+      objetivo.style.overflow = "hidden";
+      objetivo.style.height = objetivo.offsetHeight + "px";
+      objetivo.offsetHeight; // fuerza a aplicar la altura antes de animar
+      objetivo.style.transition = "height .25s ease, opacity .25s ease";
+      objetivo.style.height = "0px";
+      objetivo.style.opacity = "0";
+      objetivo.style.borderBottomWidth = "0";
+      setTimeout(accion, 250);
     }
 
     async function alternarTachado(alimento) {
@@ -1645,7 +1682,7 @@
       if (coincidencias.length) {
         coincidencias.forEach(i => {
           const item = document.createElement("div");
-          item.textContent = i.nombre;
+          resaltarPrefijo(item, i.nombre, txt.length);
           item.onclick = () => {
             anadirIngrediente(i.nombre);
             inputIng.value = "";
