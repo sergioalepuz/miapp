@@ -282,14 +282,15 @@
     #deshacer.visible { opacity: 1; pointer-events: auto; transition: opacity .15s; }
 
     video#wakeLockVideo {
-      position: absolute; width: 1px; height: 1px; top: -10px; left: -10px; opacity: 0.01; pointer-events: none;
+      /* Dentro de la pantalla: iOS pausa los vídeos silenciados que quedan fuera de la vista */
+      position: fixed; width: 1px; height: 1px; left: 0; bottom: 0; opacity: 0.01; pointer-events: none; z-index: 9999;
     }
   </style>
 </head>
 <body>
 
   <!-- Elemento de vídeo invisible para bloquear la suspensión en iOS -->
-  <video id="wakeLockVideo" playsinline loop muted></video>
+  <video id="wakeLockVideo" playsinline muted></video>
 
   <!-- VISTA 1: MI LISTA -->
   <div id="vistaLista" class="vista activa">
