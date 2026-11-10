@@ -103,6 +103,20 @@
     .sugerencia:first-child { border-top: 0; }
     .sugerencia small { color: #888; font-size: 14px; }
 
+    #totalPendientes {
+      position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top) + 8px);
+      text-align: center; font-size: 15px; font-weight: 600; color: #fff; pointer-events: none;
+    }
+    .contador-seccion { opacity: .85; font-weight: 400; }
+    .buscador-alimentos {
+      position: sticky; top: 0; z-index: 2; background: var(--fondo); padding: 10px 12px;
+      border-bottom: 1px solid #eee;
+    }
+    .buscador-alimentos input {
+      width: 100%; font-size: 16px; padding: 10px 12px; border: 1px solid #ddd;
+      border-radius: 10px; background: #fff; outline: none;
+    }
+
     #lista { 
       flex: 1; 
       background: var(--fondo); 
@@ -294,6 +308,7 @@
   <!-- VISTA 1: MI LISTA -->
   <div id="vistaLista" class="vista activa">
     <div class="barra-lista">
+      <div id="totalPendientes"></div>
       <input id="entrada" type="text" placeholder="Añadir alimento" autocomplete="off">
       <button id="ok" class="btn-blanco">Ok</button>
       <button id="menuLista" class="btn-blanco btn-puntos">···</button>
@@ -682,6 +697,10 @@
       const secciones = (await pedir(tabla("secciones").getAll())).sort(porOrden);
       const alimentos = await pedir(tabla("alimentos").getAll());
       lista.innerHTML = "";
+      const enLaLista = alimentos.filter(enLista);
+      const totalFaltan = enLaLista.filter(a => !a.tachado).length;
+      document.getElementById("totalPendientes").textContent =
+        !enLaLista.length ? "" : totalFaltan ? (totalFaltan === 1 ? "Falta 1" : "Faltan " + totalFaltan) : "Todo cogido ✓";
       for (const s of secciones) {
         const items = alimentos
           .filter(a => a.seccion === s.clave && enLista(a))
@@ -696,6 +715,11 @@
         cab.className = "seccion";
         const tituloSeccion = document.createElement("span");
         tituloSeccion.textContent = s.nombre;
+        const pendientesSeccion = items.filter(a => !a.tachado).length;
+        const contador = document.createElement("span");
+        contador.className = "contador-seccion";
+        contador.textContent = pendientesSeccion ? " · " + pendientesSeccion : " · ✓";
+        tituloSeccion.appendChild(contador);
         cab.appendChild(tituloSeccion);
         const asa = document.createElement("div");
         asa.className = "asa";
@@ -1019,9 +1043,37 @@
         contenidoPantalla.appendChild(vacio);
         return;
       }
+
+      const cajaBuscar = document.createElement("div");
+      cajaBuscar.className = "buscador-alimentos";
+      const buscar = document.createElement("input");
+      buscar.type = "search"; buscar.placeholder = "Buscar alimento"; buscar.autocomplete = "off";
+      buscar.value = filtroAlimentos;
+      cajaBuscar.appendChild(buscar);
+      contenidoPantalla.appendChild(cajaBuscar);
+
+      const sinResultados = document.createElement("div");
+      sinResultados.className = "vacio";
+      sinResultados.textContent = "Ningún alimento coincide";
+
+      const filas = [];
+      const filtrar = () => {
+        filtroAlimentos = buscar.value;
+        const texto = normalizar(buscar.value);
+        let visibles = 0;
+        for (const { fila, a } of filas) {
+          const coincide = !texto || normalizar(a.nombre).includes(texto);
+          fila.style.display = coincide ? "" : "none";
+          if (coincide) visibles++;
+        }
+        sinResultados.style.display = visibles ? "none" : "block";
+      };
+      buscar.oninput = filtrar;
+
       for (const a of alimentos) {
         const fila = document.createElement("div");
         fila.className = "fila";
+        filas.push({ fila, a });
 
         const papelera = document.createElement("button");
         papelera.className = "borrar";
@@ -1050,7 +1102,10 @@
           }
         };
       }
+      contenidoPantalla.appendChild(sinResultados);
+      filtrar();
     }
+    let filtroAlimentos = "";
 
     async function mostrarCategorias() {
       abrirPantalla("categorias", "Categorías");
@@ -1820,7 +1875,7 @@
     };
 
     document.getElementById("menuEliminar").onclick = () => { menuPanelLista.style.display = "none"; eliminarTachados(); };
-    document.getElementById("menuAlimentos").onclick = () => { menuPanelLista.style.display = "none"; mostrarAlimentos(); };
+    document.getElementById("menuAlimentos").onclick = () => { menuPanelLista.style.display = "none"; filtroAlimentos = ""; mostrarAlimentos(); };
     document.getElementById("menuCategorias").onclick = () => { menuPanelLista.style.display = "none"; mostrarCategorias(); };
     document.getElementById("menuExportar").onclick = () => { menuPanelComidas.style.display = "none"; exportarIngredientesALista(); };
     document.getElementById("menuComidasOption").onclick = () => { menuPanelComidas.style.display = "none"; abrirMantenimientoComidas(); };
