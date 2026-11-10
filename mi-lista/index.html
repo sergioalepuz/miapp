@@ -211,6 +211,12 @@
       flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
     }
     .modal.abierto { display: flex; }
+    /* Mantenimiento de comidas: cabecera gris desde arriba del todo */
+    .modal.modo-mantenimiento { background: #e9e9ee; padding-bottom: 0; }
+    .modal.modo-mantenimiento .lista-platos { padding-bottom: env(safe-area-inset-bottom); }
+    .modal.modo-mantenimiento .modal-header { background: #e9e9ee; border-bottom-color: #d6d6db; }
+    .modal.modo-mantenimiento .buscador-box,
+    .modal.modo-mantenimiento .lista-platos { background: #fff; }
     .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #eee; }
     .btn-texto-verde { background: none; border: 0; color: var(--verde-apple); font-size: 17px; font-weight: 600; cursor: pointer; }
     .buscador-box { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; gap: 10px; }
@@ -277,13 +283,13 @@
     .acciones button { border: 0; background: none; padding: 8px 10px; font-size: 18px; color: var(--azul); font-weight: 600; }
     .acciones .guardar { font-weight: 700; }
     .acciones .peligro { color: var(--rojo); font-weight: 700; }
-    .acciones.acciones-editor { justify-content: space-between; padding: 0 4px 4px; }
+    .acciones.acciones-editor { justify-content: center; gap: 48px; padding: 0 4px 4px; }
     .zona-eliminar { border-top: 1px solid #eee; margin-top: 10px; padding-top: 6px; text-align: center; }
     .zona-eliminar button {
       border: 0; background: none; width: 100%; padding: 10px; font-size: 18px;
       color: var(--rojo); font-weight: 700;
     }
-    .categoria-otros { color: var(--rojo); }
+    .categoria-otros { color: var(--rojo); font-weight: 700; }
 
     .overlay-menu {
       display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4);
@@ -1589,6 +1595,7 @@
     async function abrirSeleccion(fechaStr, toma) {
       modoMantenimiento = false;
       slotActivo = { fechaStr, toma };
+      document.getElementById("modalSeleccion").classList.remove("modo-mantenimiento");
       document.getElementById("tituloModalSel").textContent = "Seleccionar Plato";
       document.getElementById("btnAceptarSel").style.display = "block";
       document.getElementById("inputBuscar").value = "";
@@ -1605,6 +1612,7 @@
     async function abrirMantenimientoComidas() {
       modoMantenimiento = true;
       slotActivo = null;
+      document.getElementById("modalSeleccion").classList.add("modo-mantenimiento");
       document.getElementById("tituloModalSel").textContent = "Comidas";
       document.getElementById("btnAceptarSel").style.display = "none";
       document.getElementById("inputBuscar").value = "";
