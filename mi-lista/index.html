@@ -180,8 +180,8 @@
     .btn-mas { background: none; border: 0; color: #1b9de2; font-size: 22px; font-weight: bold; cursor: pointer; padding: 0 8px; line-height: 1; }
 
     #pantalla {
-      display: none; position: fixed; inset: 0; z-index: 25; background: var(--fondo);
-      flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+      display: none; position: fixed; inset: 0; z-index: 25; background: var(--azul);
+      flex-direction: column; padding-top: env(safe-area-inset-top);
     }
     #pantalla.abierta { display: flex; }
     .cabecera {
@@ -197,7 +197,18 @@
       width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px;
       background: #fff; color: var(--azul); display: flex; align-items: center; justify-content: center;
     }
-    #contenidoPantalla { flex: 1; overflow-y: auto; }
+    #contenidoPantalla {
+      flex: 1; overflow-y: auto; background: var(--fondo); overscroll-behavior-y: none;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Franja azul fija bajo la barra de estado del iPhone: la parte de arriba
+       se ve siempre azul aunque el contenido se desplace por debajo */
+    body::before {
+      content: ""; position: fixed; top: 0; left: 0; right: 0;
+      height: env(safe-area-inset-top); background: var(--azul);
+      z-index: 26; pointer-events: none;
+    }
 
     .modal {
       display: none; position: fixed; inset: 0; background: #fff; z-index: 200;
