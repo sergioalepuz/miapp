@@ -221,6 +221,24 @@
     .modal.modo-mantenimiento { background: #e9e9ee; padding-bottom: 0; }
     .modal.modo-mantenimiento .lista-platos { padding-bottom: env(safe-area-inset-bottom); }
     .modal.modo-mantenimiento .modal-header { background: #e9e9ee; border-bottom-color: #d6d6db; }
+    /* Cabecera del mantenimiento de comidas: igual que Alimentos/Categorías pero en gris */
+    #btnNuevoPlatoMant { display: none; }
+    .modal.modo-mantenimiento { padding-top: calc(env(safe-area-inset-top) + 20px); }
+    .modal.modo-mantenimiento.editando-plato { padding-top: env(safe-area-inset-top); }
+    .modal.modo-mantenimiento #zonaSuperiorModal .modal-header {
+      position: relative; justify-content: center; padding: 14px 56px;
+    }
+    .modal.modo-mantenimiento #tituloModalSel { font-size: 18px !important; color: #111; }
+    .modal.modo-mantenimiento #btnCancelarSel {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      height: 34px; padding: 0 12px; border: 0; border-radius: 8px;
+      background: #fff; color: var(--azul); font-size: 15px; font-weight: 600;
+    }
+    .modal.modo-mantenimiento #btnNuevoPlatoMant {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px;
+      background: #fff; color: var(--azul); display: flex; align-items: center; justify-content: center;
+    }
     .modal.modo-mantenimiento .buscador-box,
     .modal.modo-mantenimiento .lista-platos { background: #fff; }
     /* Editar / nuevo plato: solo el formulario, con cabecera gris desde arriba del todo */
@@ -421,6 +439,9 @@
         <button class="btn-texto-verde" id="btnCancelarSel">Cancelar</button>
         <span style="font-weight: 600; font-size: 17px;" id="tituloModalSel">Seleccionar Plato</span>
         <button class="btn-texto-verde" id="btnAceptarSel">Aceptar</button>
+        <button id="btnNuevoPlatoMant" aria-label="Nuevo plato">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
       </div>
       <div class="buscador-box">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1682,6 +1703,7 @@
       document.getElementById("modalSeleccion").classList.remove("modo-mantenimiento", "editando-plato");
       cerrarModalAlCancelar = false;
       document.getElementById("tituloModalSel").textContent = "Seleccionar Plato";
+      document.getElementById("btnCancelarSel").textContent = "Cancelar";
       document.getElementById("btnAceptarSel").style.display = "block";
       document.getElementById("inputBuscar").value = "";
       
@@ -1701,6 +1723,7 @@
       document.getElementById("modalSeleccion").classList.remove("editando-plato");
       cerrarModalAlCancelar = false;
       document.getElementById("tituloModalSel").textContent = "Comidas";
+      document.getElementById("btnCancelarSel").textContent = "‹ Atrás";
       document.getElementById("btnAceptarSel").style.display = "none";
       document.getElementById("inputBuscar").value = "";
 
@@ -1997,6 +2020,7 @@
       };
     };
 
+    document.getElementById("btnNuevoPlatoMant").onclick = () => abrirFormNuevoPlato("");
     document.getElementById("btnCancelarSel").onclick = () => document.getElementById("modalSeleccion").classList.remove("abierto");
     document.getElementById("btnCancelarNuevo").onclick = () => cerrarFormNuevoPlato();
     document.getElementById("ant").onclick = () => { fechaLunesActual.setDate(fechaLunesActual.getDate() - 7); renderizarSemana(); };
