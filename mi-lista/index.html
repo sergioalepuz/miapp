@@ -224,7 +224,6 @@
     /* Cabecera del mantenimiento de comidas: igual que Alimentos/Categorías pero en gris */
     #btnNuevoPlatoMant { display: none; }
     .modal.modo-mantenimiento { padding-top: calc(env(safe-area-inset-top) + 20px); }
-    .modal.modo-mantenimiento.editando-plato { padding-top: env(safe-area-inset-top); }
     .modal.modo-mantenimiento #zonaSuperiorModal .modal-header {
       position: relative; justify-content: center; padding: 14px 56px;
     }
@@ -244,7 +243,9 @@
     /* Editar / nuevo plato: solo el formulario, con cabecera gris desde arriba del todo */
     .modal.editando-plato #zonaSuperiorModal { display: none; }
     .modal.editando-plato {
-      background: linear-gradient(#e9e9ee, #e9e9ee) top / 100% env(safe-area-inset-top) no-repeat, #fff;
+      /* Igual de bajo que las cabeceras de Alimentos, Categorías y Comidas; el hueco de arriba en gris */
+      padding-top: calc(env(safe-area-inset-top) + 20px);
+      background: linear-gradient(#e9e9ee, #e9e9ee) top / 100% calc(env(safe-area-inset-top) + 20px) no-repeat, #fff;
     }
     .modal.editando-plato #panelNuevoPlato { box-shadow: none; }
     .modal.editando-plato #panelNuevoPlato > .modal-header {
