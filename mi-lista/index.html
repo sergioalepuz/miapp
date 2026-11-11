@@ -1738,11 +1738,28 @@
         itemDiv.className = "item-plato";
         itemDiv.textContent = p.nombre;
 
-        fila.append(papelera, itemDiv);
-        listaEl.appendChild(fila);
-
-        activarGestos(itemDiv, p, null);
+        if (modoMantenimiento) {
+          // Mantenimiento de comidas: a la derecha lápiz y, pasado el umbral, se abre el editor.
+          // A la izquierda, papelera que hay que pulsar
+          const editar = document.createElement("button");
+          editar.className = "editar";
+          editar.innerHTML = ICONO_LAPIZ;
+          editar.setAttribute("aria-label", "Editar plato");
+          editar.onclick = () => {
+            itemDiv.cerrarFila();
+            abrirFormEditorExistente(p.nombre);
+          };
+          fila.append(editar, papelera, itemDiv);
+          listaEl.appendChild(fila);
+          activarGestos(itemDiv, p, editar, null, { soloEdicionRapida: true });
+        } else {
+          fila.append(papelera, itemDiv);
+          listaEl.appendChild(fila);
+          activarGestos(itemDiv, p, null);
+        }
         itemDiv.onclick = () => {
+          // El editor ya se abrió al deslizar
+          if (document.getElementById("panelNuevoPlato").classList.contains("abierto")) return;
           if (itemDiv.style.transform && itemDiv.style.transform !== "translateX(0px)") {
             itemDiv.cerrarFila();
           } else {
