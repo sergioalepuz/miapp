@@ -1210,11 +1210,22 @@
         cuantos.textContent = total === 1 ? "1 alimento" : total + " alimentos";
         registro.append(nombre, cuantos);
 
-        fila.append(papelera, registro);
+        const editar = document.createElement("button");
+        editar.className = "editar";
+        editar.innerHTML = ICONO_LAPIZ;
+        editar.setAttribute("aria-label", "Editar categoría");
+        editar.onclick = () => {
+          registro.cerrarFila();
+          abrirEditorCategoria(s);
+        };
+
+        fila.append(editar, papelera, registro);
         contenidoPantalla.appendChild(fila);
 
-        activarGestos(registro, s, null);
+        // Derecha: lápiz y, pasado el umbral, se abre el editor. Izquierda: papelera que hay que pulsar
+        activarGestos(registro, s, editar, null, { soloEdicionRapida: true });
         registro.onclick = () => {
+          if (velo.classList.contains("abierto")) return; // el editor ya se abrió al deslizar
           if (registro.style.transform && registro.style.transform !== "translateX(0px)") {
             registro.cerrarFila();
           } else {
