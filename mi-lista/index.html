@@ -405,8 +405,8 @@
       </div>
       <div id="menuPanelComidas" class="menu-panel-ios">
         <button id="btnIrALista" class="destacado">Lista</button>
-        <button id="menuExportar">Exportar</button>
         <button id="menuComidasOption">Comidas</button>
+        <button id="menuExportar">Exportar a lista</button>
       </div>
     </div>
 
@@ -2050,7 +2050,12 @@
     document.getElementById("menuEliminar").onclick = () => { menuPanelLista.style.display = "none"; eliminarTachados(); };
     document.getElementById("menuAlimentos").onclick = () => { menuPanelLista.style.display = "none"; filtroAlimentos = ""; mostrarAlimentos(); };
     document.getElementById("menuCategorias").onclick = () => { menuPanelLista.style.display = "none"; mostrarCategorias(); };
-    document.getElementById("menuExportar").onclick = () => { menuPanelComidas.style.display = "none"; exportarIngredientesALista(); };
+    document.getElementById("menuExportar").onclick = async () => {
+      menuPanelComidas.style.display = "none";
+      const pregunta = "¿Añadir a la lista los ingredientes de las comidas planificadas a partir de hoy y los alimentos fijos?";
+      if (!(await confirmar(pregunta, "Exportar"))) return;
+      exportarIngredientesALista();
+    };
     document.getElementById("menuComidasOption").onclick = () => { menuPanelComidas.style.display = "none"; abrirMantenimientoComidas(); };
 
     document.getElementById("menuExportarCopia").onclick = () => { menuPanelLista.style.display = "none"; exportarCopia(); };
