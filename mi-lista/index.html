@@ -851,7 +851,10 @@
       await escribir("secciones", nuevas);
     }
 
-    function activarGestos(item, objetoDatos, editar, borradoRapido) {
+    const anchoIcono = boton => (boton.querySelector("svg") || boton).getBoundingClientRect().width;
+
+    // opciones.soloEdicionRapida: edición rápida a la derecha sin borrado rápido ni tachar al tocar
+    function activarGestos(item, objetoDatos, editar, borradoRapido, opciones = {}) {
       let x0 = 0, y0 = 0, dx = 0;
       let activo = false, arrastrando = false;
       let reposo = 0;
@@ -862,15 +865,28 @@
         if (!anchoBaseEditar && !editar.style.width) anchoBaseEditar = editar.offsetWidth;
         return anchoBaseEditar || editar.offsetWidth;
       };
-      const edicionRapida = !!(borradoRapido && editar);
+      const edicionRapida = !!editar && (!!borradoRapido || !!opciones.soloEdicionRapida);
+      const permiteTachar = !!editar && !opciones.soloEdicionRapida;
       const papeleraFila = item.parentElement ? item.parentElement.querySelector(".borrar") : null;
       const anchoFila = () => item.offsetWidth || window.innerWidth;
       const mover = px => {
         item.style.transform = "translateX(" + px + "px)";
         // Con borrado rápido, el fondo rojo crece con el desplazamiento
-        if (borradoRapido && papeleraFila) papeleraFila.style.width = Math.max(ANCHO_PAPELERA, -px) + "px";
-        // Igual con el lápiz al deslizar a la derecha: el fondo azul crece
-        if (edicionRapida) editar.style.width = px > anchoEditar() ? px + "px" : "";
+        // El fondo crece con el dedo, pero el icono se queda fijo en su sitio
+        if (borradoRapido && papeleraFila) {
+          const crece = -px > ANCHO_PAPELERA;
+          papeleraFila.style.width = crece ? -px + "px" : "";
+          papeleraFila.style.justifyContent = crece ? "flex-end" : "";
+          papeleraFila.style.paddingRight = crece ? (ANCHO_PAPELERA - anchoIcono(papeleraFila)) / 2 + "px" : "";
+        }
+        if (edicionRapida) {
+          const base = anchoEditar();
+          const crece = px > base;
+          editar.style.width = crece ? px + "px" : "";
+          editar.style.aspectRatio = crece ? "auto" : "";   // sin esto, Safari agranda también la altura
+          editar.style.justifyContent = crece ? "flex-start" : "";
+          editar.style.paddingLeft = crece ? (base - anchoIcono(editar)) / 2 + "px" : "";
+        }
       };
       item.cerrarFila = () => {
         item.style.transition = "transform .2s";
@@ -928,7 +944,7 @@
         } else if (e.type === "pointerup") {
           if (reposo !== 0) {
             reposo = 0; mover(0);
-          } else if (editar) {
+          } else if (permiteTachar) {
             await alternarTachado(objetoDatos);
           }
         }
@@ -1141,11 +1157,22 @@
         categoria.append((enLista(a) ? "✓ " : ""), textoSeccion, (a.fijo ? " · Fijo" : ""));
         registro.append(nombre, categoria);
 
-        fila.append(papelera, registro);
+        const editar = document.createElement("button");
+        editar.className = "editar";
+        editar.innerHTML = ICONO_LAPIZ;
+        editar.setAttribute("aria-label", "Editar alimento");
+        editar.onclick = () => {
+          registro.cerrarFila();
+          abrirEditor(a, true);
+        };
+
+        fila.append(editar, papelera, registro);
         contenidoPantalla.appendChild(fila);
 
-        activarGestos(registro, a, null);
+        // Derecha: lápiz y, pasado el umbral, se abre el editor. Izquierda: papelera que hay que pulsar
+        activarGestos(registro, a, editar, null, { soloEdicionRapida: true });
         registro.onclick = () => {
+          if (velo.classList.contains("abierto")) return; // el editor ya se abrió al deslizar
           if (registro.style.transform && registro.style.transform !== "translateX(0px)") {
             registro.cerrarFila();
           } else {
