@@ -177,7 +177,8 @@
 
     #pantalla {
       display: none; position: fixed; inset: 0; z-index: 25; background: var(--azul);
-      flex-direction: column; padding-top: env(safe-area-inset-top);
+      /* El espacio extra de arriba (20px) baja la cabecera; es azul porque es el fondo de #pantalla */
+      flex-direction: column; padding-top: calc(env(safe-area-inset-top) + 20px);
     }
     #pantalla.abierta { display: flex; }
     .cabecera {
