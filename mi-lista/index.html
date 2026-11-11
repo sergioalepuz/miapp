@@ -113,8 +113,13 @@
       border-radius: 10px; background: #fff; outline: none;
     }
 
+    /* La vista de la lista ocupa la pantalla fija: la barra azul se queda arriba
+       y solo se desplaza la lista, sin rebote al arrastrar hacia abajo */
+    #vistaLista { position: fixed; inset: 0; }
+    #vistaLista .barra-lista { flex: none; }
     #lista { 
       flex: 1; 
+      overflow-y: auto; overscroll-behavior-y: none; -webkit-overflow-scrolling: touch;
       background: var(--fondo); 
       padding-bottom: calc(env(safe-area-inset-bottom) + 50px);
     }
