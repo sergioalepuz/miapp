@@ -158,7 +158,10 @@
     .registro small { color: #888; font-size: 14px; font-weight: 400; text-align: right; }
     .vacio { padding: 24px 16px; color: #888; text-align: center; }
 
-    .tabla-semana { flex: 1; display: flex; flex-direction: column; padding: 10px 14px; overflow-y: auto; background: #fff; }
+    .tabla-semana { flex: 1; display: flex; flex-direction: column; padding: 10px 14px; overflow-y: auto; overscroll-behavior-y: none; background: #fff; }
+    /* Igual que la lista: la vista del menú ocupa la pantalla fija y solo se desplaza la semana, sin rebote */
+    #vistaComidas { position: fixed; inset: 0; }
+    #vistaComidas .barra-comidas { flex: none; }
     .fila-iconos { display: grid; grid-template-columns: 70px 1fr 1fr 1fr; align-items: center; padding-bottom: 8px; }
     .icono-toma { text-align: center; color: #555; display: flex; justify-content: center; align-items: center; }
     .icono-toma svg { width: 22px; height: 22px; stroke: #444; }
@@ -217,13 +220,16 @@
       flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
     }
     .modal.abierto { display: flex; }
-    /* Mantenimiento de comidas: cabecera gris desde arriba del todo */
-    .modal.modo-mantenimiento { background: #e9e9ee; padding-bottom: 0; }
-    .modal.modo-mantenimiento .lista-platos { padding-bottom: env(safe-area-inset-bottom); }
-    .modal.modo-mantenimiento .modal-header { background: #e9e9ee; border-bottom-color: #d6d6db; }
+    /* Ventana de platos (elegir plato y mantenimiento): cabecera gris, 20px más baja,
+       con el hueco de arriba también gris */
+    #modalSeleccion {
+      background: #e9e9ee; padding-bottom: 0;
+      padding-top: calc(env(safe-area-inset-top) + 20px);
+    }
+    #modalSeleccion .lista-platos { padding-bottom: env(safe-area-inset-bottom); }
+    #modalSeleccion #zonaSuperiorModal .modal-header { background: #e9e9ee; border-bottom-color: #d6d6db; }
     /* Cabecera del mantenimiento de comidas: igual que Alimentos/Categorías pero en gris */
     #btnNuevoPlatoMant { display: none; }
-    .modal.modo-mantenimiento { padding-top: calc(env(safe-area-inset-top) + 20px); }
     .modal.modo-mantenimiento #zonaSuperiorModal .modal-header {
       position: relative; justify-content: center; padding: 14px 56px;
     }
@@ -238,11 +244,11 @@
       width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px;
       background: #fff; color: var(--azul); display: flex; align-items: center; justify-content: center;
     }
-    .modal.modo-mantenimiento .buscador-box,
-    .modal.modo-mantenimiento .lista-platos { background: #fff; }
+    #modalSeleccion .buscador-box,
+    #modalSeleccion .lista-platos { background: #fff; }
     /* Editar / nuevo plato: solo el formulario, con cabecera gris desde arriba del todo */
     .modal.editando-plato #zonaSuperiorModal { display: none; }
-    .modal.editando-plato {
+    #modalSeleccion.editando-plato {
       /* Igual de bajo que las cabeceras de Alimentos, Categorías y Comidas; el hueco de arriba en gris */
       padding-top: calc(env(safe-area-inset-top) + 20px);
       background: linear-gradient(#e9e9ee, #e9e9ee) top / 100% calc(env(safe-area-inset-top) + 20px) no-repeat, #fff;
@@ -257,7 +263,7 @@
     .buscador-box { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; gap: 10px; }
     .buscador-box svg { width: 20px; height: 20px; stroke: #666; }
     .buscador-input { flex: 1; border: 0; font-size: 17px; outline: none; background: transparent; }
-    .lista-platos { flex: 1; overflow-y: auto; }
+    .lista-platos { flex: 1; overflow-y: auto; overscroll-behavior-y: none; }
     .item-plato {
       position: relative; padding: 16px; font-size: 18px; border-bottom: 1px solid #eee; background: #fff;
       touch-action: pan-y; user-select: none; -webkit-user-select: none;
