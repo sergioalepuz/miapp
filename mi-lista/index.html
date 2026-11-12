@@ -253,11 +253,6 @@
       padding-top: calc(env(safe-area-inset-top) + 20px);
       background: linear-gradient(#e9e9ee, #e9e9ee) top / 100% calc(env(safe-area-inset-top) + 20px) no-repeat, #fff;
     }
-    /* Nuevo plato: un poco más bajo (se abre con el teclado y iOS sube la pantalla) */
-    #modalSeleccion.editando-plato.nuevo-plato {
-      padding-top: calc(env(safe-area-inset-top) + 60px);
-      background: linear-gradient(#e9e9ee, #e9e9ee) top / 100% calc(env(safe-area-inset-top) + 60px) no-repeat, #fff;
-    }
     .modal.editando-plato #panelNuevoPlato { box-shadow: none; }
     .modal.editando-plato #panelNuevoPlato > .modal-header {
       margin: -16px -16px 16px; padding: 14px 16px !important;
@@ -1756,14 +1751,14 @@
       document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
       document.getElementById("panelNuevoPlato").classList.add("abierto");
       document.getElementById("listaPlatos").style.display = "none";
-      document.getElementById("modalSeleccion").classList.remove("nuevo-plato"); document.getElementById("modalSeleccion").classList.add("editando-plato");
+      document.getElementById("modalSeleccion").classList.add("editando-plato");
       document.getElementById("modalSeleccion").classList.add("abierto");
     }
 
     async function abrirSeleccion(fechaStr, toma) {
       modoMantenimiento = false;
       slotActivo = { fechaStr, toma };
-      document.getElementById("modalSeleccion").classList.remove("modo-mantenimiento", "editando-plato", "nuevo-plato");
+      document.getElementById("modalSeleccion").classList.remove("modo-mantenimiento", "editando-plato");
       cerrarModalAlCancelar = false;
       document.getElementById("tituloModalSel").textContent = "Seleccionar Plato";
       document.getElementById("btnCancelarSel").textContent = "Cancelar";
@@ -1783,7 +1778,7 @@
       modoMantenimiento = true;
       slotActivo = null;
       document.getElementById("modalSeleccion").classList.add("modo-mantenimiento");
-      document.getElementById("modalSeleccion").classList.remove("editando-plato", "nuevo-plato");
+      document.getElementById("modalSeleccion").classList.remove("editando-plato");
       cerrarModalAlCancelar = false;
       document.getElementById("tituloModalSel").textContent = "Comidas";
       document.getElementById("btnCancelarSel").textContent = "‹ Atrás";
@@ -1900,12 +1895,12 @@
       document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
       document.getElementById("panelNuevoPlato").classList.add("abierto");
       document.getElementById("listaPlatos").style.display = "none";
-      document.getElementById("modalSeleccion").classList.add("editando-plato", "nuevo-plato");
+      document.getElementById("modalSeleccion").classList.add("editando-plato");
       document.getElementById("inputNuevoIngrediente").focus();
     }
 
     function cerrarFormNuevoPlato() {
-      document.getElementById("modalSeleccion").classList.remove("editando-plato", "nuevo-plato");
+      document.getElementById("modalSeleccion").classList.remove("editando-plato");
       if (cerrarModalAlCancelar) {
         // Se abrió directamente desde el menú semanal: se cierra todo
         cerrarModalAlCancelar = false;
@@ -2077,7 +2072,7 @@
           await cargarListaPlatos("");
         } else {
           cerrarModalAlCancelar = false;
-          document.getElementById("modalSeleccion").classList.remove("abierto", "editando-plato", "nuevo-plato");
+          document.getElementById("modalSeleccion").classList.remove("abierto", "editando-plato");
         }
         renderizarSemana();
       };
@@ -2233,6 +2228,26 @@
       pintar();
       inicializarBloqueoPantalla();
     })();
+
+    /* Teclado del iPhone: al abrirse, iOS desplaza la pantalla hacia arriba y la cabecera
+       de la ventana de platos se mete debajo de la hora. Para evitarlo, mientras la ventana
+       está abierta se ajusta a la zona que de verdad se ve (visualViewport). */
+    const modalPlatos = document.getElementById("modalSeleccion");
+    function ajustarModalAlTeclado() {
+      const vv = window.visualViewport;
+      if (!vv || !modalPlatos.classList.contains("abierto")) {
+        modalPlatos.style.top = modalPlatos.style.height = modalPlatos.style.bottom = "";
+        return;
+      }
+      modalPlatos.style.top = vv.offsetTop + "px";
+      modalPlatos.style.height = vv.height + "px";
+      modalPlatos.style.bottom = "auto";
+    }
+    if (window.visualViewport) {
+      visualViewport.addEventListener("resize", ajustarModalAlTeclado);
+      visualViewport.addEventListener("scroll", ajustarModalAlTeclado);
+    }
+    new MutationObserver(ajustarModalAlTeclado).observe(modalPlatos, { attributes: true, attributeFilter: ["class"] });
 
     /* Funcionamiento sin conexión */
     if ("serviceWorker" in navigator) {
