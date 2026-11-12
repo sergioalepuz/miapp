@@ -2242,9 +2242,11 @@
         modalPlatos.style.top = modalPlatos.style.height = modalPlatos.style.bottom = "";
         return;
       }
+      // Se baja la ventana lo mismo que iOS ha subido la pantalla, pero sin encogerla:
+      // sigue tapando todo hasta abajo (también detrás del teclado), así no se ve nada por detrás
       modalPlatos.style.top = vv.offsetTop + "px";
-      modalPlatos.style.height = vv.height + "px";
-      modalPlatos.style.bottom = "auto";
+      modalPlatos.style.bottom = -vv.offsetTop + "px";
+      modalPlatos.style.height = "auto";
     }
     if (window.visualViewport) {
       visualViewport.addEventListener("resize", ajustarModalAlTeclado);
