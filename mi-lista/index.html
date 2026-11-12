@@ -1896,7 +1896,10 @@
       document.getElementById("panelNuevoPlato").classList.add("abierto");
       document.getElementById("listaPlatos").style.display = "none";
       document.getElementById("modalSeleccion").classList.add("editando-plato");
-      document.getElementById("inputNuevoIngrediente").focus();
+      // El cursor va al Nombre, al final del texto si ya viene escrito desde el buscador
+      const campoNombre = document.getElementById("inputNuevoNombre");
+      campoNombre.focus();
+      campoNombre.setSelectionRange(campoNombre.value.length, campoNombre.value.length);
     }
 
     function cerrarFormNuevoPlato() {
