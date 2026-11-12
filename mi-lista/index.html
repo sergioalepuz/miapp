@@ -253,6 +253,11 @@
       padding-top: calc(env(safe-area-inset-top) + 20px);
       background: linear-gradient(#e9e9ee, #e9e9ee) top / 100% calc(env(safe-area-inset-top) + 20px) no-repeat, #fff;
     }
+    /* Nuevo plato: un poco más bajo (se abre con el teclado y iOS sube la pantalla) */
+    #modalSeleccion.editando-plato.nuevo-plato {
+      padding-top: calc(env(safe-area-inset-top) + 40px);
+      background: linear-gradient(#e9e9ee, #e9e9ee) top / 100% calc(env(safe-area-inset-top) + 40px) no-repeat, #fff;
+    }
     .modal.editando-plato #panelNuevoPlato { box-shadow: none; }
     .modal.editando-plato #panelNuevoPlato > .modal-header {
       margin: -16px -16px 16px; padding: 14px 16px !important;
@@ -1751,14 +1756,14 @@
       document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
       document.getElementById("panelNuevoPlato").classList.add("abierto");
       document.getElementById("listaPlatos").style.display = "none";
-      document.getElementById("modalSeleccion").classList.add("editando-plato");
+      document.getElementById("modalSeleccion").classList.remove("nuevo-plato"); document.getElementById("modalSeleccion").classList.add("editando-plato");
       document.getElementById("modalSeleccion").classList.add("abierto");
     }
 
     async function abrirSeleccion(fechaStr, toma) {
       modoMantenimiento = false;
       slotActivo = { fechaStr, toma };
-      document.getElementById("modalSeleccion").classList.remove("modo-mantenimiento", "editando-plato");
+      document.getElementById("modalSeleccion").classList.remove("modo-mantenimiento", "editando-plato", "nuevo-plato");
       cerrarModalAlCancelar = false;
       document.getElementById("tituloModalSel").textContent = "Seleccionar Plato";
       document.getElementById("btnCancelarSel").textContent = "Cancelar";
@@ -1778,7 +1783,7 @@
       modoMantenimiento = true;
       slotActivo = null;
       document.getElementById("modalSeleccion").classList.add("modo-mantenimiento");
-      document.getElementById("modalSeleccion").classList.remove("editando-plato");
+      document.getElementById("modalSeleccion").classList.remove("editando-plato", "nuevo-plato");
       cerrarModalAlCancelar = false;
       document.getElementById("tituloModalSel").textContent = "Comidas";
       document.getElementById("btnCancelarSel").textContent = "‹ Atrás";
@@ -1895,12 +1900,12 @@
       document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
       document.getElementById("panelNuevoPlato").classList.add("abierto");
       document.getElementById("listaPlatos").style.display = "none";
-      document.getElementById("modalSeleccion").classList.add("editando-plato");
+      document.getElementById("modalSeleccion").classList.add("editando-plato", "nuevo-plato");
       document.getElementById("inputNuevoIngrediente").focus();
     }
 
     function cerrarFormNuevoPlato() {
-      document.getElementById("modalSeleccion").classList.remove("editando-plato");
+      document.getElementById("modalSeleccion").classList.remove("editando-plato", "nuevo-plato");
       if (cerrarModalAlCancelar) {
         // Se abrió directamente desde el menú semanal: se cierra todo
         cerrarModalAlCancelar = false;
@@ -2072,7 +2077,7 @@
           await cargarListaPlatos("");
         } else {
           cerrarModalAlCancelar = false;
-          document.getElementById("modalSeleccion").classList.remove("abierto", "editando-plato");
+          document.getElementById("modalSeleccion").classList.remove("abierto", "editando-plato", "nuevo-plato");
         }
         renderizarSemana();
       };
