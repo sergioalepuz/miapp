@@ -161,6 +161,9 @@
     /* Nombre y precio siempre en una sola línea: si no caben, el nombre se corta con "…" */
     .item > span:first-child { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .precio-item { flex: none; font-size: 17px; font-weight: 500; color: #555; white-space: nowrap; margin-left: 12px; }
+    /* Columnas fijas para que cantidades y precios queden alineados en vertical */
+    .item .cantidad-item { flex: none; width: 40px; margin-left: 8px; text-align: center; font-size: 17px; font-weight: 600; color: #555; white-space: nowrap; }
+    .item .precio-item.columna { width: 82px; text-align: right; }
     .item.tachado span { text-decoration: line-through; color: #999; }
 
     .registro {
@@ -867,13 +870,19 @@
           const nombre = document.createElement("span");
           nombre.textContent = a.nombre;
           item.appendChild(nombre);
+          // A la derecha: [cantidad] [importe]. Si hay cantidad, el importe ya es cantidad × precio
           const cantidad = cantidadEnLista(a);
-          if (typeof a.precio === "number" || cantidad !== 1) {
+          const tienePrecio = typeof a.precio === "number";
+          if (cantidad !== 1) {
+            const cant = document.createElement("span");
+            cant.className = "cantidad-item";
+            cant.textContent = formatearCantidad(cantidad);
+            item.appendChild(cant);
+          }
+          if (tienePrecio || cantidad !== 1) {
             const precio = document.createElement("span");
-            precio.className = "precio-item";
-            if (typeof a.precio !== "number") precio.textContent = formatearCantidad(cantidad) + " ud";
-            else if (cantidad === 1) precio.textContent = formatearPrecio(a.precio) + " €";
-            else precio.textContent = formatearCantidad(cantidad) + " × " + formatearPrecio(a.precio) + " = " + formatearPrecio(importeEnLista(a)) + " €";
+            precio.className = "precio-item columna";
+            precio.textContent = tienePrecio ? formatearPrecio(importeEnLista(a)) + " €" : "";
             item.appendChild(precio);
           }
 
