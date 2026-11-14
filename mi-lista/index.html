@@ -127,7 +127,7 @@
     .grupo.arrastrando { z-index: 10; background: var(--fondo); box-shadow: 0 6px 18px rgba(0,0,0,.3); }
     /* Línea con la suma de precios, del mismo tamaño que las categorías y en azul más oscuro */
     #totalLista {
-      flex: none; display: none; justify-content: center; align-items: center;
+      flex: none; display: none; justify-content: space-between; align-items: center;
       background: #1477ad; color: #fff; font-size: 17px; font-weight: 600; padding: 6px 16px;
       border-top: 1px solid #eee; border-bottom: 1px solid #eee; user-select: none; -webkit-user-select: none;
     }
@@ -804,7 +804,14 @@
       const sumaPrecios = lista => lista.reduce((suma, a) => suma + importeEnLista(a), 0);
       const enLaLista = alimentos.filter(a => enLista(a) && a.seccion !== SECCION_CONSUM);
       const lineaTotal = document.getElementById("totalLista");
-      lineaTotal.textContent = "Total: " + formatearPrecio(sumaPrecios(enLaLista)) + " €";
+      // Izquierda: alimentos tachados / total. Derecha: suma de precios (sin CONSUM en ninguno de los dos)
+      const tachadosLista = enLaLista.filter(a => a.tachado).length;
+      lineaTotal.textContent = "";
+      const textoAlimentos = document.createElement("span");
+      textoAlimentos.textContent = "Alimentos: " + tachadosLista + "/" + enLaLista.length;
+      const textoTotal = document.createElement("span");
+      textoTotal.textContent = "Total: " + formatearPrecio(sumaPrecios(enLaLista)) + " €";
+      lineaTotal.append(textoAlimentos, textoTotal);
       lineaTotal.style.display = enLaLista.length ? "flex" : "none";
       for (const s of secciones) {
         const items = alimentos
