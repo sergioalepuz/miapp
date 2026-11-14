@@ -1643,6 +1643,9 @@
     document.getElementById("btnMenuQuitar").onclick = async () => {
       if (!platoActivoCtx) return;
       const { fechaStr, toma, nombrePlato } = platoActivoCtx;
+      document.getElementById("overlayMenuPlato").classList.remove("abierto");
+      const nombreToma = { desayuno: "del desayuno", comida: "de la comida", cena: "de la cena" }[toma] || "";
+      if (!(await confirmar("¿Quitar «" + nombrePlato + "» " + nombreToma + "?", "Quitar"))) return;
       const keyId = `${fechaStr}_${toma}`;
       const tx = db.transaction("menu", "readwrite");
       const store = tx.objectStore("menu");
@@ -1753,6 +1756,10 @@
       document.getElementById("listaPlatos").style.display = "none";
       document.getElementById("modalSeleccion").classList.add("editando-plato");
       document.getElementById("modalSeleccion").classList.add("abierto");
+      // Cursor en el Nombre, al final del texto
+      const campoNombre = document.getElementById("inputNuevoNombre");
+      campoNombre.focus();
+      campoNombre.setSelectionRange(campoNombre.value.length, campoNombre.value.length);
     }
 
     async function abrirSeleccion(fechaStr, toma) {
