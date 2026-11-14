@@ -1366,6 +1366,13 @@
       textoFijo.textContent = "Fijo";
       etiquetaFijo.append(checkFijo, textoFijo);
 
+      const etiquetaPrecio = document.createElement("label");
+      etiquetaPrecio.textContent = "Precio (€)";
+      const campoPrecio = document.createElement("input");
+      campoPrecio.type = "text"; campoPrecio.inputMode = "decimal"; campoPrecio.autocomplete = "off";
+      campoPrecio.placeholder = "0,00";
+      campoPrecio.value = !nuevo && typeof alimento.precio === "number" ? formatearPrecio(alimento.precio) : "";
+
       const acciones = document.createElement("div");
       acciones.className = "acciones acciones-editor";
 
@@ -1396,7 +1403,9 @@
           seccion = await asegurarSeccion(campoNueva.value);
         }
         const fijo = checkFijo.checked;
-        const guardado = nuevo ? await crearAlimento(nombre, seccion, fijo) : await guardarEdicion(alimento, nombre, seccion, fijo);
+        const precio = leerPrecio(campoPrecio.value);
+        if (Number.isNaN(precio)) { aviso("El precio no es válido"); return; }
+        const guardado = nuevo ? await crearAlimento(nombre, seccion, fijo, precio) : await guardarEdicion(alimento, nombre, seccion, fijo, precio);
         if (!guardado) { aviso("Ya existe ese alimento"); return; }
         velo.classList.remove("abierto");
         await pintar();
@@ -1405,26 +1414,36 @@
       guardar.onclick = guardarCambios;
       campo.onkeydown = e => { if (e.key === "Enter") guardarCambios(); };
       campoNueva.onkeydown = e => { if (e.key === "Enter") guardarCambios(); };
+      campoPrecio.onkeydown = e => { if (e.key === "Enter") guardarCambios(); };
 
       acciones.append(cancelar, guardar);
-      editor.append(etiquetaNombre, campo, etiquetaSeccion, desplegable, campoNueva, etiquetaFijo, acciones);
+      editor.append(etiquetaNombre, campo, etiquetaSeccion, desplegable, campoNueva, etiquetaPrecio, campoPrecio, etiquetaFijo, acciones);
       if (zonaEliminar.firstChild) editor.appendChild(zonaEliminar);
       caja.appendChild(editor);
       velo.classList.add("abierto");
       if (nuevo) campo.focus();
     }
 
-    async function crearAlimento(nombre, seccion, fijo = false) {
+    /* Precio: se guarda como número (o null si está vacío) y se muestra con coma: 1,25 */
+    function leerPrecio(texto) {
+      const t = texto.trim().replace("€", "").replace(",", ".").trim();
+      if (!t) return null;
+      const n = Number(t);
+      return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : NaN;
+    }
+    const formatearPrecio = n => n.toFixed(2).replace(".", ",");
+
+    async function crearAlimento(nombre, seccion, fijo = false, precio = null) {
       const existente = await pedir(tabla("alimentos").get(clave(nombre)));
       if (existente) return false;
       const t = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
-      t.objectStore("alimentos").put({ clave: clave(nombre), nombre, seccion, tachado: false, enLista: false, fijo });
+      t.objectStore("alimentos").put({ clave: clave(nombre), nombre, seccion, tachado: false, enLista: false, fijo, precio });
       t.objectStore("ingredientes_base").put({ nombre });
       await new Promise((ok, fallo) => { t.oncomplete = ok; t.onerror = fallo; });
       return true;
     }
 
-    function guardarEdicion(alimento, nombre, seccion, fijo = !!alimento.fijo) {
+    function guardarEdicion(alimento, nombre, seccion, fijo = !!alimento.fijo, precio = alimento.precio ?? null) {
       return new Promise((ok, fallo) => {
         const nuevaClave = clave(nombre);
         const t = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
@@ -1438,7 +1457,7 @@
           const cambiaClave = nuevaClave !== alimento.clave;
           if (cambiaClave && existente.result) { ok(false); return; }
           if (cambiaClave) st.delete(alimento.clave);
-          const actualizado = { ...alimento, clave: nuevaClave, nombre, seccion, fijo };
+          const actualizado = { ...alimento, clave: nuevaClave, nombre, seccion, fijo, precio };
           Object.assign(alimento, actualizado);
           st.put(actualizado);
           stIng.put({ nombre });
