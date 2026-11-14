@@ -148,6 +148,7 @@
       background: #fff; font-weight: 600; padding: 8px 16px; font-size: 32px;
       touch-action: pan-y; user-select: none; -webkit-user-select: none;
     }
+    .precio-item { font-size: 17px; font-weight: 500; color: #555; white-space: nowrap; margin-left: 12px; }
     .item.tachado span { text-decoration: line-through; color: #999; }
 
     .registro {
@@ -825,6 +826,12 @@
           const nombre = document.createElement("span");
           nombre.textContent = a.nombre;
           item.appendChild(nombre);
+          if (typeof a.precio === "number") {
+            const precio = document.createElement("span");
+            precio.className = "precio-item";
+            precio.textContent = formatearPrecio(a.precio) + " €";
+            item.appendChild(precio);
+          }
 
           fila.append(editar, papelera, item);
           grupo.appendChild(fila);
