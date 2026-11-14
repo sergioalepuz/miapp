@@ -148,7 +148,9 @@
       background: #fff; font-weight: 600; padding: 8px 16px; font-size: 32px;
       touch-action: pan-y; user-select: none; -webkit-user-select: none;
     }
-    .precio-item { font-size: 17px; font-weight: 500; color: #555; white-space: nowrap; margin-left: 12px; }
+    /* Nombre y precio siempre en una sola línea: si no caben, el nombre se corta con "…" */
+    .item > span:first-child { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .precio-item { flex: none; font-size: 17px; font-weight: 500; color: #555; white-space: nowrap; margin-left: 12px; }
     .item.tachado span { text-decoration: line-through; color: #999; }
 
     .registro {
