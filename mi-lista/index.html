@@ -798,7 +798,7 @@
       const alimentos = await pedir(tabla("alimentos").getAll());
       lista.innerHTML = "";
       // Suma de los precios de los alimentos de la lista (tachados incluidos), sin los de CONSUM
-      const sumaPrecios = lista => lista.reduce((suma, a) => suma + (typeof a.precio === "number" ? a.precio : 0), 0);
+      const sumaPrecios = lista => lista.reduce((suma, a) => suma + importeEnLista(a), 0);
       const enLaLista = alimentos.filter(a => enLista(a) && a.seccion !== SECCION_CONSUM);
       const lineaTotal = document.getElementById("totalLista");
       lineaTotal.textContent = "Total: " + formatearPrecio(sumaPrecios(enLaLista)) + " €";
@@ -867,10 +867,13 @@
           const nombre = document.createElement("span");
           nombre.textContent = a.nombre;
           item.appendChild(nombre);
-          if (typeof a.precio === "number") {
+          const cantidad = cantidadEnLista(a);
+          if (typeof a.precio === "number" || cantidad !== 1) {
             const precio = document.createElement("span");
             precio.className = "precio-item";
-            precio.textContent = formatearPrecio(a.precio) + " €";
+            if (typeof a.precio !== "number") precio.textContent = formatearCantidad(cantidad) + " ud";
+            else if (cantidad === 1) precio.textContent = formatearPrecio(a.precio) + " €";
+            else precio.textContent = formatearCantidad(cantidad) + " × " + formatearPrecio(a.precio) + " = " + formatearPrecio(importeEnLista(a)) + " €";
             item.appendChild(precio);
           }
 
@@ -1067,6 +1070,7 @@
     async function quitarDeLista(alimento) {
       alimento.enLista = false;
       alimento.tachado = false;
+      delete alimento.cantidad;   // la cantidad es solo de la lista
       await pedir(tabla("alimentos", "readwrite").put(alimento));
       pintar();
     }
@@ -1077,7 +1081,7 @@
     let temporizadorDeshacer;
 
     async function quitarConDeshacer(alimento) {
-      ultimoQuitado = { alimento, tachado: !!alimento.tachado };
+      ultimoQuitado = { alimento, tachado: !!alimento.tachado, cantidad: alimento.cantidad };
       await quitarDeLista(alimento);
       botonDeshacer.classList.add("visible");
       clearTimeout(temporizadorDeshacer);
@@ -1091,11 +1095,12 @@
 
     botonDeshacer.onclick = async () => {
       if (!ultimoQuitado) return;
-      const { alimento, tachado } = ultimoQuitado;
+      const { alimento, tachado, cantidad } = ultimoQuitado;
       clearTimeout(temporizadorDeshacer);
       ocultarDeshacer();
       alimento.enLista = true;
       alimento.tachado = tachado;
+      if (cantidad !== undefined) alimento.cantidad = cantidad;
       await pedir(tabla("alimentos", "readwrite").put(alimento));
       await pintar();
     };
@@ -1158,7 +1163,7 @@
         ? "¿Eliminar de la lista el alimento tachado?"
         : "¿Eliminar de la lista los " + tachados.length + " alimentos tachados?";
       if (!(await confirmar(pregunta, "Eliminar"))) return;
-      tachados.forEach(a => { a.enLista = false; a.tachado = false; });
+      tachados.forEach(a => { a.enLista = false; a.tachado = false; delete a.cantidad; });
       await escribir("alimentos", tachados);
       pintar();
     }
@@ -1425,6 +1430,15 @@
       campoPrecio.placeholder = "0,00";
       campoPrecio.value = !nuevo && typeof alimento.precio === "number" ? formatearPrecio(alimento.precio) : "";
 
+      // Cantidad: solo al editar desde la lista; no se guarda en el mantenimiento de alimentos
+      const conCantidad = !nuevo && !mantenimiento;
+      const etiquetaCantidad = document.createElement("label");
+      etiquetaCantidad.textContent = "Cantidad (en esta lista)";
+      const campoCantidad = document.createElement("input");
+      campoCantidad.type = "text"; campoCantidad.inputMode = "decimal"; campoCantidad.autocomplete = "off";
+      campoCantidad.placeholder = "1";
+      campoCantidad.value = conCantidad && typeof alimento.cantidad === "number" ? formatearCantidad(alimento.cantidad) : "";
+
       const acciones = document.createElement("div");
       acciones.className = "acciones acciones-editor";
 
@@ -1456,8 +1470,10 @@
         }
         const fijo = checkFijo.checked;
         const precio = leerPrecio(campoPrecio.value);
+        const cantidad = conCantidad ? leerCantidad(campoCantidad.value) : undefined;
+        if (Number.isNaN(cantidad)) { aviso("La cantidad no es válida"); return; }
         if (Number.isNaN(precio)) { aviso("El precio no es válido"); return; }
-        const guardado = nuevo ? await crearAlimento(nombre, seccion, fijo, precio) : await guardarEdicion(alimento, nombre, seccion, fijo, precio);
+        const guardado = nuevo ? await crearAlimento(nombre, seccion, fijo, precio) : await guardarEdicion(alimento, nombre, seccion, fijo, precio, cantidad);
         if (!guardado) { aviso("Ya existe ese alimento"); return; }
         velo.classList.remove("abierto");
         await pintar();
@@ -1467,9 +1483,12 @@
       campo.onkeydown = e => { if (e.key === "Enter") guardarCambios(); };
       campoNueva.onkeydown = e => { if (e.key === "Enter") guardarCambios(); };
       campoPrecio.onkeydown = e => { if (e.key === "Enter") guardarCambios(); };
+      campoCantidad.onkeydown = e => { if (e.key === "Enter") guardarCambios(); };
 
       acciones.append(cancelar, guardar);
-      editor.append(etiquetaNombre, campo, etiquetaSeccion, desplegable, campoNueva, etiquetaPrecio, campoPrecio, etiquetaFijo, acciones);
+      editor.append(etiquetaNombre, campo, etiquetaSeccion, desplegable, campoNueva, etiquetaPrecio, campoPrecio);
+      if (conCantidad) editor.append(etiquetaCantidad, campoCantidad);
+      editor.append(etiquetaFijo, acciones);
       if (zonaEliminar.firstChild) editor.appendChild(zonaEliminar);
       caja.appendChild(editor);
       velo.classList.add("abierto");
@@ -1485,6 +1504,17 @@
     }
     const formatearPrecio = n => n.toFixed(2).replace(".", ",");
 
+    /* Cantidad: solo vale mientras el alimento está en la lista (se borra al quitarlo) */
+    const cantidadEnLista = a => (typeof a.cantidad === "number" && a.cantidad > 0 ? a.cantidad : 1);
+    const importeEnLista = a => (typeof a.precio === "number" ? Math.round(a.precio * cantidadEnLista(a) * 100) / 100 : 0);
+    const formatearCantidad = n => String(Math.round(n * 1000) / 1000).replace(".", ",");
+    function leerCantidad(texto) {
+      const t = texto.trim().replace(",", ".");
+      if (!t) return null;
+      const n = Number(t);
+      return Number.isFinite(n) && n > 0 ? n : NaN;
+    }
+
     async function crearAlimento(nombre, seccion, fijo = false, precio = null) {
       const existente = await pedir(tabla("alimentos").get(clave(nombre)));
       if (existente) return false;
@@ -1495,7 +1525,8 @@
       return true;
     }
 
-    function guardarEdicion(alimento, nombre, seccion, fijo = !!alimento.fijo, precio = alimento.precio ?? null) {
+    // cantidad: undefined = no se toca (mantenimiento); null = sin cantidad; número = cantidad en la lista
+    function guardarEdicion(alimento, nombre, seccion, fijo = !!alimento.fijo, precio = alimento.precio ?? null, cantidad = undefined) {
       return new Promise((ok, fallo) => {
         const nuevaClave = clave(nombre);
         const t = db.transaction(["alimentos", "ingredientes_base"], "readwrite");
@@ -1510,7 +1541,10 @@
           if (cambiaClave && existente.result) { ok(false); return; }
           if (cambiaClave) st.delete(alimento.clave);
           const actualizado = { ...alimento, clave: nuevaClave, nombre, seccion, fijo, precio };
+          if (cantidad === null || cantidad === 1) delete actualizado.cantidad;
+          else if (cantidad !== undefined) actualizado.cantidad = cantidad;
           Object.assign(alimento, actualizado);
+          if (!("cantidad" in actualizado)) delete alimento.cantidad;
           st.put(actualizado);
           stIng.put({ nombre });
         };
