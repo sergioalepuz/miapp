@@ -1741,15 +1741,13 @@
     }
 
     async function abrirFormEditorExistente(nombrePlato) {
+      // Primero se abre la ventana y se pone el cursor, sin esperar a nada: iOS solo saca el
+      // teclado si el foco se pone en el mismo momento del toque. Los ingredientes se cargan después.
       nombrePlatoOriginalEdicion = nombrePlato;
-      const tx = db.transaction("platos", "readonly");
-      const platoData = await pedir(tx.objectStore("platos").get(nombrePlato));
-      const ingredientesActuales = platoData?.ingredientes || [];
-
       document.getElementById("tituloPanelNuevo").textContent = "Editar plato";
       document.getElementById("inputNuevoNombre").value = nombrePlato;
       document.getElementById("inputNuevoIngrediente").value = "";
-      listaIngredientesNuevos = [...ingredientesActuales];
+      listaIngredientesNuevos = [];
       renderizarChipsIngredientes();
 
       document.getElementById("zonaSuperiorModal").classList.add("deshabilitado-gris");
@@ -1761,6 +1759,12 @@
       const campoNombre = document.getElementById("inputNuevoNombre");
       campoNombre.focus();
       campoNombre.setSelectionRange(campoNombre.value.length, campoNombre.value.length);
+
+      const tx = db.transaction("platos", "readonly");
+      const platoData = await pedir(tx.objectStore("platos").get(nombrePlato));
+      if (nombrePlatoOriginalEdicion !== nombrePlato) return;   // se abrió otro plato mientras tanto
+      listaIngredientesNuevos = [...(platoData?.ingredientes || [])];
+      renderizarChipsIngredientes();
     }
 
     async function abrirSeleccion(fechaStr, toma) {
