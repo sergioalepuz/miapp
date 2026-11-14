@@ -125,6 +125,12 @@
     }
     .grupo { position: relative; }
     .grupo.arrastrando { z-index: 10; background: var(--fondo); box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+    /* Línea con la suma de precios, del mismo tamaño que las categorías y en azul más oscuro */
+    #totalLista {
+      flex: none; display: none; justify-content: center; align-items: center;
+      background: #1477ad; color: #fff; font-size: 17px; font-weight: 600; padding: 6px 16px;
+      border-bottom: 1px solid #eee; user-select: none; -webkit-user-select: none;
+    }
     .seccion {
       position: relative; display: flex; align-items: center; justify-content: center;
       background: var(--azul); color: #fff; font-size: 17px; padding: 6px 56px;
@@ -396,6 +402,7 @@
         <button id="menuImportarCopia">Importar copia</button>
       </div>
     </div>
+    <div id="totalLista"></div>
     <div id="lista"></div>
   </div>
 
@@ -774,6 +781,12 @@
       const secciones = (await pedir(tabla("secciones").getAll())).sort(porOrden);
       const alimentos = await pedir(tabla("alimentos").getAll());
       lista.innerHTML = "";
+      // Suma de los precios de todos los alimentos que están en la lista (tachados incluidos)
+      const enLaLista = alimentos.filter(enLista);
+      const totalPrecio = enLaLista.reduce((suma, a) => suma + (typeof a.precio === "number" ? a.precio : 0), 0);
+      const lineaTotal = document.getElementById("totalLista");
+      lineaTotal.textContent = "Total: " + formatearPrecio(totalPrecio) + " €";
+      lineaTotal.style.display = enLaLista.length ? "flex" : "none";
       for (const s of secciones) {
         const items = alimentos
           .filter(a => a.seccion === s.clave && enLista(a))
