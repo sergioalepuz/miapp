@@ -131,6 +131,10 @@
       background: #1477ad; color: #fff; font-size: 17px; font-weight: 600; padding: 6px 16px;
       border-bottom: 1px solid #eee; user-select: none; -webkit-user-select: none;
     }
+    .seccion.seccion-consum { background: #1683bf; }
+    .suma-consum { position: absolute; right: 16px; font-size: 15px; font-weight: 600; }
+    .grupo-consum .fila, .grupo-consum .item { background: #ececec; }
+    .grupo-consum .fila { border-bottom-color: #d6d6db; }
     .seccion {
       position: relative; display: flex; align-items: center; justify-content: center;
       background: var(--azul); color: #fff; font-size: 17px; padding: 6px 56px;
@@ -518,6 +522,18 @@
   <script>
     const SECCIONES_INICIALES = ["Otros", "Fruta", "Verdura", "Carne", "Pescado", "Lácteos", "Panadería", "Limpieza"];
     const SECCION_POR_DEFECTO = "otros";
+    // Categoría especial CONSUM: no se puede borrar ni modificar, va siempre al final,
+    // sus alimentos tienen fondo gris y su suma va aparte, en su propia cabecera
+    const SECCION_CONSUM = "consum";
+    const consumAlFinal = (a, b) => (a.clave === SECCION_CONSUM) - (b.clave === SECCION_CONSUM);
+    async function asegurarConsum() {
+      const existente = await pedir(tabla("secciones").get(SECCION_CONSUM));
+      if (!existente) await asegurarSeccion("CONSUM");
+      else if (existente.nombre !== "CONSUM") {
+        existente.nombre = "CONSUM";
+        await pedir(tabla("secciones", "readwrite").put(existente));
+      }
+    }
     const OPCION_NUEVA = "__nueva__";
     const DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
     const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -778,14 +794,14 @@
     }
 
     async function pintar() {
-      const secciones = (await pedir(tabla("secciones").getAll())).sort(porOrden);
+      const secciones = (await pedir(tabla("secciones").getAll())).sort(porOrden).sort(consumAlFinal);
       const alimentos = await pedir(tabla("alimentos").getAll());
       lista.innerHTML = "";
-      // Suma de los precios de todos los alimentos que están en la lista (tachados incluidos)
-      const enLaLista = alimentos.filter(enLista);
-      const totalPrecio = enLaLista.reduce((suma, a) => suma + (typeof a.precio === "number" ? a.precio : 0), 0);
+      // Suma de los precios de los alimentos de la lista (tachados incluidos), sin los de CONSUM
+      const sumaPrecios = lista => lista.reduce((suma, a) => suma + (typeof a.precio === "number" ? a.precio : 0), 0);
+      const enLaLista = alimentos.filter(a => enLista(a) && a.seccion !== SECCION_CONSUM);
       const lineaTotal = document.getElementById("totalLista");
-      lineaTotal.textContent = "Total: " + formatearPrecio(totalPrecio) + " €";
+      lineaTotal.textContent = "Total: " + formatearPrecio(sumaPrecios(enLaLista)) + " €";
       lineaTotal.style.display = enLaLista.length ? "flex" : "none";
       for (const s of secciones) {
         const items = alimentos
@@ -793,12 +809,13 @@
           .sort(porNombre);
         if (!items.length) continue;
 
+        const esConsum = s.clave === SECCION_CONSUM;
         const grupo = document.createElement("div");
-        grupo.className = "grupo";
+        grupo.className = "grupo" + (esConsum ? " grupo-consum" : "");
         grupo.dataset.clave = s.clave;
 
         const cab = document.createElement("div");
-        cab.className = "seccion";
+        cab.className = "seccion" + (esConsum ? " seccion-consum" : "");
         const tituloSeccion = document.createElement("span");
         tituloSeccion.textContent = s.nombre;
         const pendientesSeccion = items.filter(a => !a.tachado).length;
@@ -807,11 +824,20 @@
         contador.textContent = pendientesSeccion ? " · " + pendientesSeccion : " · ✓";
         tituloSeccion.appendChild(contador);
         cab.appendChild(tituloSeccion);
-        const asa = document.createElement("div");
-        asa.className = "asa";
-        asa.innerHTML = ICONO_ASA;
-        asa.setAttribute("aria-label", "Arrastrar sección");
-        cab.appendChild(asa);
+        let asa = null;
+        if (esConsum) {
+          // CONSUM no se arrastra (siempre al final) y muestra su propia suma de precios
+          const suma = document.createElement("span");
+          suma.className = "suma-consum";
+          suma.textContent = formatearPrecio(sumaPrecios(items)) + " €";
+          cab.appendChild(suma);
+        } else {
+          asa = document.createElement("div");
+          asa.className = "asa";
+          asa.innerHTML = ICONO_ASA;
+          asa.setAttribute("aria-label", "Arrastrar sección");
+          cab.appendChild(asa);
+        }
         grupo.appendChild(cab);
 
         for (const a of items) {
@@ -857,7 +883,7 @@
           };
         }
         lista.appendChild(grupo);
-        activarArrastreSeccion(grupo, asa);
+        if (asa) activarArrastreSeccion(grupo, asa);
       }
     }
 
@@ -883,7 +909,7 @@
           anterior = grupo.previousElementSibling;
         }
         let siguiente = grupo.nextElementSibling;
-        while (siguiente && centro > siguiente.getBoundingClientRect().top + siguiente.offsetHeight / 2) {
+        while (siguiente && siguiente.dataset.clave !== SECCION_CONSUM && centro > siguiente.getBoundingClientRect().top + siguiente.offsetHeight / 2) {
           lista.insertBefore(siguiente, grupo);
           siguiente = grupo.nextElementSibling;
         }
@@ -1106,6 +1132,10 @@
         aviso("La categoría Otros no se puede eliminar");
         return;
       }
+      if (categoria.clave === SECCION_CONSUM) {
+        aviso("La categoría CONSUM no se puede eliminar");
+        return;
+      }
       const alimentos = await pedir(tabla("alimentos").getAll());
       const total = alimentos.filter(a => a.seccion === categoria.clave).length;
       let pregunta = "¿Eliminar la categoría «" + categoria.nombre + "»?";
@@ -1251,7 +1281,7 @@
 
     async function mostrarCategorias() {
       abrirPantalla("categorias", "Categorías");
-      const secciones = (await pedir(tabla("secciones").getAll())).sort(porNombre);
+      const secciones = (await pedir(tabla("secciones").getAll())).sort(porNombre).sort(consumAlFinal);
       const alimentos = await pedir(tabla("alimentos").getAll());
       contenidoPantalla.innerHTML = "";
       for (const s of secciones) {
@@ -1345,7 +1375,7 @@
 
     async function abrirEditor(alimento, mantenimiento) {
       const nuevo = !alimento;
-      const secciones = (await pedir(tabla("secciones").getAll())).sort(porNombre);
+      const secciones = (await pedir(tabla("secciones").getAll())).sort(porNombre).sort(consumAlFinal);
       caja.innerHTML = "";
       const titulo = document.createElement("h2");
       titulo.textContent = nuevo ? "Nuevo alimento" : "Editar alimento";
@@ -1491,6 +1521,10 @@
       const nueva = !categoria;
       if (!nueva && categoria.clave === SECCION_POR_DEFECTO) {
         aviso("La categoría Otros no se puede modificar");
+        return;
+      }
+      if (!nueva && categoria.clave === SECCION_CONSUM) {
+        aviso("La categoría CONSUM no se puede modificar");
         return;
       }
       caja.innerHTML = "";
@@ -2264,6 +2298,7 @@
         tx.onerror = () => fallo(tx.error);
       });
       await asegurarSeccion("Otros");
+      await asegurarConsum();
       await pintar();
       renderizarSemana();
       aviso("Copia restaurada");
@@ -2310,6 +2345,7 @@
       db = await abrirBD();
       await asegurarOrden();
       await asegurarSeccion("Otros");
+      await asegurarConsum();
       await normalizarNombres();
       pintar();
       inicializarBloqueoPantalla();
