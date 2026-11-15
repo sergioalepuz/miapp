@@ -712,20 +712,39 @@
       await pedir(tabla("alimentos", "readwrite").put(alimento));
     }
 
-    /* Pone en negrita los primeros caracteres del nombre (lo que se ha escrito) */
-    function resaltarPrefijo(el, nombre, longitud) {
-      el.textContent = "";
-      const negrita = document.createElement("strong");
-      negrita.textContent = nombre.slice(0, longitud);
-      el.append(negrita, document.createTextNode(nombre.slice(longitud)));
+    /* Búsqueda tipo LIKE '%texto%': encuentra lo escrito en cualquier parte del nombre,
+       sin distinguir mayúsculas ni acentos. Devuelve dónde está en el nombre original. */
+    function buscarEnNombre(nombre, textoNormalizado) {
+      if (!textoNormalizado) return null;
+      const letras = [...nombre];
+      let plano = "";
+      const origen = [];   // para cada letra de "plano", su posición en el nombre original
+      letras.forEach((c, i) => {
+        const n = c.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        for (let k = 0; k < n.length; k++) origen.push(i);
+        plano += n;
+      });
+      const pos = plano.indexOf(textoNormalizado);
+      if (pos < 0) return null;
+      return { inicio: origen[pos], fin: origen[pos + textoNormalizado.length - 1] + 1, letras };
     }
+    const coincideNombre = (nombre, textoNormalizado) => !textoNormalizado || !!buscarEnNombre(nombre, textoNormalizado);
 
-    /* Cuántos caracteres del nombre corresponden a lo escrito, ignorando acentos */
-    function longitudPrefijo(nombre, textoNormalizado) {
-      for (let k = 1; k <= nombre.length; k++) {
-        if (normalizar(nombre.slice(0, k)).length >= textoNormalizado.length) return k;
-      }
-      return nombre.length;
+    /* Primero los que empiezan por lo escrito y después el resto, por orden alfabético */
+    const porCoincidencia = (textoNormalizado, nombreDe) => (x, y) => {
+      const px = buscarEnNombre(nombreDe(x), textoNormalizado), py = buscarEnNombre(nombreDe(y), textoNormalizado);
+      const ex = px && px.inicio === 0 ? 0 : 1, ey = py && py.inicio === 0 ? 0 : 1;
+      return ex - ey || nombreDe(x).localeCompare(nombreDe(y), "es", { sensitivity: "base" });
+    };
+
+    /* Escribe el nombre en el elemento con la parte que coincide en negrita */
+    function resaltarCoincidencia(el, nombre, textoNormalizado) {
+      el.textContent = "";
+      const r = buscarEnNombre(nombre, textoNormalizado);
+      if (!r) { el.textContent = nombre; return; }
+      const negrita = document.createElement("strong");
+      negrita.textContent = r.letras.slice(r.inicio, r.fin).join("");
+      el.append(r.letras.slice(0, r.inicio).join(""), negrita, r.letras.slice(r.fin).join(""));
     }
 
     let ultimaBusqueda = 0;
@@ -742,8 +761,8 @@
 
       const nombreSeccion = Object.fromEntries(secciones.map(s => [s.clave, s.nombre]));
       const coincidencias = alimentos
-        .filter(a => normalizar(a.nombre).startsWith(texto))
-        .sort(porNombre);
+        .filter(a => coincideNombre(a.nombre, texto))
+        .sort(porCoincidencia(texto, a => a.nombre));
 
       sugerenciasEl.innerHTML = "";
       if (!coincidencias.length) {
@@ -754,7 +773,7 @@
         const fila = document.createElement("div");
         fila.className = "sugerencia";
         const nombre = document.createElement("span");
-        resaltarPrefijo(nombre, a.nombre, longitudPrefijo(a.nombre, texto));
+        resaltarCoincidencia(nombre, a.nombre, texto);
         const seccion = document.createElement("small");
         seccion.textContent = (enLista(a) ? "✓ " : "") + (nombreSeccion[a.seccion] || "");
         fila.append(nombre, seccion);
@@ -1240,10 +1259,10 @@
         filtroAlimentos = buscar.value;
         const texto = normalizar(buscar.value);
         let visibles = 0;
-        for (const { fila, a } of filas) {
-          const coincide = !texto || normalizar(a.nombre).includes(texto);
+        for (const { fila, a, nombre } of filas) {
+          const coincide = coincideNombre(a.nombre, texto);
           fila.style.display = coincide ? "" : "none";
-          if (coincide) visibles++;
+          if (coincide) { visibles++; resaltarCoincidencia(nombre, a.nombre, texto); }
         }
         sinResultados.style.display = visibles ? "none" : "block";
       };
@@ -1252,7 +1271,6 @@
       for (const a of alimentos) {
         const fila = document.createElement("div");
         fila.className = "fila";
-        filas.push({ fila, a });
 
         const papelera = document.createElement("button");
         papelera.className = "borrar";
@@ -1265,6 +1283,7 @@
 
         const nombre = document.createElement("span");
         nombre.textContent = a.nombre;
+        filas.push({ fila, a, nombre });
         const categoria = document.createElement("small");
         const textoSeccion = document.createElement("span");
         textoSeccion.textContent = nombreSeccion[a.seccion] || "";
@@ -1939,8 +1958,8 @@
       const listaEl = document.getElementById("listaPlatos");
       listaEl.innerHTML = "";
 
-      const txt = filtro.trim().toLowerCase();
-      const filtrados = txt ? platos.filter(p => p.nombre.toLowerCase().startsWith(txt)) : platos;
+      const txt = normalizar(filtro);
+      const filtrados = txt ? platos.filter(p => coincideNombre(p.nombre, txt)).sort(porCoincidencia(txt, p => p.nombre)) : platos;
 
       for (const p of filtrados) {
         const fila = document.createElement("div");
@@ -1954,7 +1973,7 @@
 
         const itemDiv = document.createElement("div");
         itemDiv.className = "item-plato";
-        itemDiv.textContent = p.nombre;
+        resaltarCoincidencia(itemDiv, p.nombre, txt);
 
         if (modoMantenimiento) {
           // Mantenimiento de comidas: a la derecha lápiz y, pasado el umbral, se abre el editor.
@@ -2071,12 +2090,13 @@
       const todos = Array.from(mapaUnico.values()).map(nombre => ({ nombre }));
       todos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
 
-      const coincidencias = todos.filter(i => i.nombre.toLowerCase().startsWith(txt));
+      const txtNorm = normalizar(txt);
+      const coincidencias = todos.filter(i => coincideNombre(i.nombre, txtNorm)).sort(porCoincidencia(txtNorm, i => i.nombre));
       sugerenciasIngEl.innerHTML = "";
       if (coincidencias.length) {
         coincidencias.forEach(i => {
           const item = document.createElement("div");
-          resaltarPrefijo(item, i.nombre, txt.length);
+          resaltarCoincidencia(item, i.nombre, txtNorm);
           item.onclick = () => {
             anadirIngrediente(i.nombre);
             inputIng.value = "";
