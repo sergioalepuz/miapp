@@ -652,7 +652,7 @@
       temporizadorAviso = setTimeout(() => avisoEl.classList.remove("visible"), 2000);
     }
 
-    function confirmar(mensaje, textoAceptar) {
+    function confirmar(mensaje, textoAceptar, textoCancelar = "Cancelar", estiloPeligro = true) {
       return new Promise(resolver => {
         cajaConfirmar.innerHTML = "";
         const texto = document.createElement("p");
@@ -661,9 +661,9 @@
         const acciones = document.createElement("div");
         acciones.className = "acciones";
         const cancelar = document.createElement("button");
-        cancelar.textContent = "Cancelar";
+        cancelar.textContent = textoCancelar;
         const aceptar = document.createElement("button");
-        aceptar.className = "peligro";
+        aceptar.className = estiloPeligro ? "peligro" : "guardar";
         aceptar.textContent = textoAceptar;
 
         const cerrar = valor => {
@@ -780,7 +780,7 @@
         fila.onclick = async () => {
           entrada.value = "";
           if (enLista(a)) {
-            aviso("Ya está en la lista");
+            await preguntarUnaMas(a);
           } else {
             await ponerEnLista(a);
             await pintar();
@@ -792,13 +792,27 @@
       sugerenciasEl.style.display = "block";
     }
 
+    /* El alimento ya está en la lista: se pregunta si se quiere una unidad más */
+    async function preguntarUnaMas(alimento) {
+      const pregunta = "«" + alimento.nombre + "» ya está en la lista. ¿Quieres añadir una unidad más?";
+      if (!(await confirmar(pregunta, "Sí", "No", false))) return;
+      const actual = await pedir(tabla("alimentos").get(alimento.clave));
+      if (!actual) return;
+      actual.cantidad = cantidadEnLista(actual) + 1;
+      actual.tachado = false;   // si estaba tachado, vuelve a estar pendiente: hay que coger otra
+      await pedir(tabla("alimentos", "readwrite").put(actual));
+      await pintar();
+    }
+
     async function anadir() {
       const nombre = formatear(entrada.value);
       if (!nombre) return;
       const existente = await pedir(tabla("alimentos").get(clave(nombre)));
       if (existente) {
         if (enLista(existente)) {
-          aviso("Ya está en la lista");
+          entrada.value = "";
+          sugerir();
+          await preguntarUnaMas(existente);
           return;
         }
         await ponerEnLista(existente);
