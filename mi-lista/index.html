@@ -572,10 +572,9 @@
 
     const clave = texto => texto.trim().toLowerCase();
     const normalizar = texto => texto.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const formatear = texto => {
-      const t = texto.trim().replace(/\s+/g, " ").toLocaleLowerCase("es");
-      return t.charAt(0).toLocaleUpperCase("es") + t.slice(1);
-    };
+    // Los nombres se guardan tal cual se escriben: solo se quitan los espacios de sobra
+    // (ya no se cambian mayúsculas ni minúsculas)
+    const formatear = texto => texto.trim().replace(/\s+/g, " ");
     const porOrden = (a, b) => (a.orden ?? 9999) - (b.orden ?? 9999);
     const porNombre = (a, b) => a.nombre.localeCompare(b.nombre, "es");
     const enLista = a => a.enLista !== false;
@@ -2138,8 +2137,9 @@
     };
 
     function anadirIngrediente(nombre) {
-      const fmt = nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase();
-      if (!listaIngredientesNuevos.includes(fmt)) {
+      const fmt = formatear(nombre);
+      if (!fmt) return;
+      if (!listaIngredientesNuevos.some(i => clave(i) === clave(fmt))) {
         listaIngredientesNuevos.push(fmt);
         renderizarChipsIngredientes();
       }
